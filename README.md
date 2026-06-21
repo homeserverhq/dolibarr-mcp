@@ -55,13 +55,13 @@ The MCP server serves at `http://dolibarr-mcp:6033/mcp` (Streamable HTTP).
 
 The server implements 295 MCP tools organized into the following categories:
 
-### Status (1 tool)
+### ✅ Status (1 tool)
 - `status_get` — Health check endpoint for backend connectivity
 
-### Documents (1 tool)
+### 📄 Documents (1 tool)
 - `documents_list` — List documents/attachments for a given element
 
-### Third Parties (11 tools)
+### 🏢 Third Parties (11 tools)
 - `thirdparties_list` — List all third parties
 - `thirdparties_get` — Get a third party by ID
 - `thirdparties_create` — Create a new third party
@@ -73,7 +73,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `thirdparties_get_representatives` — Get representatives for a third party
 - `thirdparties_get_categories` — Get categories for a third party
 
-### Contacts (6 tools)
+### 👤 Contacts (6 tools)
 - `contacts_list` — List all contacts
 - `contacts_get` — Get a contact by ID
 - `contacts_create` — Create a new contact
@@ -81,7 +81,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `contacts_delete` — Delete a contact by ID
 - `contacts_get_categories` — Get categories for a contact
 
-### Products (9 tools)
+### 📦 Products (9 tools)
 - `products_list` — List all products
 - `products_get` — Get a product by ID
 - `products_create` — Create a new product
@@ -92,7 +92,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `products_get_stock` — Get stock for a product
 - `products_get_contacts` — Get contacts for a product
 
-### Warehouses (6 tools)
+### 🏭 Warehouses (6 tools)
 - `warehouses_list` — List all warehouses
 - `warehouses_get` — Get a warehouse by ID
 - `warehouses_create` — Create a new warehouse
@@ -100,21 +100,21 @@ The server implements 295 MCP tools organized into the following categories:
 - `warehouses_delete` — Delete a warehouse by ID
 - `warehouses_list_products` — List products in a warehouse
 
-### Stock Movements (5 tools)
+### 📊 Stock Movements (5 tools)
 - `stockmovements_list` — List all stock movements
 - `stockmovements_get` — Get a stock movement by ID
 - `stockmovements_create` — Create a new stock movement
 - `stockmovements_update` — Update an existing stock movement
 - `stockmovements_delete` — Delete a stock movement by ID
 
-### Product Lots (5 tools)
+### 🏷️ Product Lots (5 tools)
 - `productlots_list` — List all product lots
 - `productlots_get` — Get a product lot by ID
 - `productlots_create` — Create a new product lot
 - `productlots_update` — Update an existing product lot
 - `productlots_delete` — Delete a product lot by ID
 
-### Proposals (16 tools)
+### 📝 Proposals (16 tools)
 - `proposals_list` — List all proposals
 - `proposals_get` — Get a proposal by ID
 - `proposals_create` — Create a new proposal
@@ -131,7 +131,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `proposals_get_contacts` — Get contacts for a proposal
 - `proposals_add_contact` — Add a contact to a proposal
 
-### Orders (19 tools)
+### 🛒 Orders (19 tools)
 - `orders_list` — List all orders
 - `orders_get` — Get an order by ID
 - `orders_create` — Create a new order
@@ -152,7 +152,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `orders_create_shipment` — Create a shipment from an order
 - `orders_get_contacts` — Get contacts for an order
 
-### Invoices (21 tools)
+### 🧾 Invoices (21 tools)
 - `invoices_list` — List all invoices
 - `invoices_get` — Get an invoice by ID
 - `invoices_create` — Create a new invoice
@@ -175,13 +175,13 @@ The server implements 295 MCP tools organized into the following categories:
 - `invoices_get_discount` — Get available discounts for an invoice
 - `invoices_use_discount` — Apply a discount to an invoice
 
-### Payments (4 tools)
+### 💳 Payments (4 tools)
 - `payments_list` — List all payments
 - `payments_get` — Get a payment by ID
 - `payments_update` — Update an existing payment
 - `payments_delete` — Delete a payment by ID
 
-### Bank Accounts (12 tools)
+### 🏦 Bank Accounts (12 tools)
 - `bankaccounts_list` — List all bank accounts
 - `bankaccounts_get` — Get a bank account by ID
 - `bankaccounts_create` — Create a new bank account
@@ -195,7 +195,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `bankaccounts_delete_line` — Delete a bank account line
 - `bankaccounts_get_balance` — Get the balance of a bank account
 
-### Supplier Orders (13 tools)
+### 🚚 Supplier Orders (13 tools)
 - `supplier_orders_list` — List all supplier orders
 - `supplier_orders_get` — Get a supplier order by ID
 - `supplier_orders_create` — Create a new supplier order
@@ -209,7 +209,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `supplier_orders_approve` — Approve a supplier order
 - `supplier_orders_receive` — Receive a supplier order
 
-### Supplier Invoices (15 tools)
+### 📋 Supplier Invoices (15 tools)
 - `supplier_invoices_list` — List all supplier invoices
 - `supplier_invoices_get` — Get a supplier invoice by ID
 - `supplier_invoices_create` — Create a new supplier invoice
@@ -224,14 +224,14 @@ The server implements 295 MCP tools organized into the following categories:
 - `supplier_invoices_get_payments` — Get payments for a supplier invoice
 - `supplier_invoices_add_payment` — Add a payment to a supplier invoice
 
-### Supplier Proposals (5 tools)
+### 🤝 Supplier Proposals (5 tools)
 - `supplier_proposals_list` — List all supplier proposals
 - `supplier_proposals_get` — Get a supplier proposal by ID
 - `supplier_proposals_create` — Create a new supplier proposal
 - `supplier_proposals_update` — Update an existing supplier proposal
 - `supplier_proposals_delete` — Delete a supplier proposal by ID
 
-### Contracts (12 tools)
+### 📜 Contracts (12 tools)
 - `contracts_list` — List all contracts
 - `contracts_get` — Get a contract by ID
 - `contracts_create` — Create a new contract
@@ -245,7 +245,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `contracts_validate` — Validate a contract
 - `contracts_close` — Close a contract
 
-### BOMs (8 tools)
+### ⚙️ BOMs (8 tools)
 - `boms_list` — List all bills of materials
 - `boms_get` — Get a BOM by ID
 - `boms_create` — Create a new BOM
@@ -255,7 +255,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `boms_create_line` — Create a line on a BOM
 - `boms_delete_line` — Delete a line from a BOM
 
-### Manufacturing Orders (7 tools)
+### 🏗️ Manufacturing Orders (7 tools)
 - `mos_list` — List all manufacturing orders
 - `mos_get` — Get a manufacturing order by ID
 - `mos_create` — Create a new manufacturing order
@@ -264,7 +264,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `mos_produce_and_consume` — Produce and consume for an MO
 - `mos_get_categories` — Get categories for a manufacturing order
 
-### Projects (10 tools)
+### 🎯 Projects (10 tools)
 - `projects_list` — List all projects
 - `projects_get` — Get a project by ID
 - `projects_create` — Create a new project
@@ -276,7 +276,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `projects_validate` — Validate a project
 - `projects_get_contacts` — Get contacts for a project
 
-### Tasks (10 tools)
+### 📌 Tasks (10 tools)
 - `tasks_list` — List all tasks
 - `tasks_get` — Get a task by ID
 - `tasks_create` — Create a new task
@@ -288,7 +288,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `tasks_delete_timespent` — Delete time spent from a task
 - `tasks_get_contacts` — Get contacts for a task
 
-### Shipments (10 tools)
+### 📦 Shipments (10 tools)
 - `shipments_list` — List all shipments
 - `shipments_get` — Get a shipment by ID
 - `shipments_create` — Create a new shipment
@@ -300,7 +300,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `shipments_setinvoiced` — Mark a shipment as invoiced
 - `shipments_get_lines` — Get lines of a shipment
 
-### Receptions (8 tools)
+### 📥 Receptions (8 tools)
 - `receptions_list` — List all receptions
 - `receptions_get` — Get a reception by ID
 - `receptions_create` — Create a new reception
@@ -310,7 +310,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `receptions_close` — Close a reception
 - `receptions_get_lines` — Get lines of a reception
 
-### Interventions (13 tools)
+### 🔧 Interventions (13 tools)
 - `interventions_list` — List all interventions
 - `interventions_get` — Get an intervention by ID
 - `interventions_create` — Create a new intervention
@@ -325,7 +325,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `interventions_close` — Close an intervention
 - `interventions_get_contacts` — Get contacts for an intervention
 
-### Expense Reports (15 tools)
+### 💸 Expense Reports (15 tools)
 - `expense_reports_list` — List all expense reports
 - `expense_reports_get` — Get an expense report by ID
 - `expense_reports_create` — Create a new expense report
@@ -342,7 +342,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `expense_reports_setpaid` — Mark an expense report as paid
 - `expense_reports_cancel` — Cancel an expense report
 
-### Holidays (9 tools)
+### 🏖️ Holidays (9 tools)
 - `holidays_list` — List all holidays
 - `holidays_get` — Get a holiday by ID
 - `holidays_create` — Create a new holiday request
@@ -353,14 +353,14 @@ The server implements 295 MCP tools organized into the following categories:
 - `holidays_cancel` — Cancel a holiday request
 - `holidays_refuse` — Refuse a holiday request
 
-### Agenda Events (5 tools)
+### 📅 Agenda Events (5 tools)
 - `agenda_events_list` — List all agenda events
 - `agenda_events_get` — Get an agenda event by ID
 - `agenda_events_create` — Create a new agenda event
 - `agenda_events_update` — Update an existing agenda event
 - `agenda_events_delete` — Delete an agenda event by ID
 
-### Categories (10 tools)
+### 🗂️ Categories (10 tools)
 - `categories_list` — List all categories
 - `categories_get` — Get a category by ID
 - `categories_create` — Create a new category
@@ -372,7 +372,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `categories_link_object_by_ref` — Link an object to a category by ref
 - `categories_unlink_object` — Unlink an object from a category
 
-### Mailings (6 tools)
+### 📧 Mailings (6 tools)
 - `mailings_list` — List all mailings
 - `mailings_get` — Get a mailing by ID
 - `mailings_create` — Create a new mailing
@@ -380,7 +380,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `mailings_delete` — Delete a mailing by ID
 - `mailings_validate` — Validate a mailing
 
-### Multi Currencies (6 tools)
+### 💱 Multi Currencies (6 tools)
 - `multi_currencies_list` — List all multi-currencies
 - `multi_currencies_get` — Get a multi-currency by ID
 - `multi_currencies_create` — Create a new multi-currency
@@ -388,7 +388,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `multi_currencies_delete` — Delete a multi-currency by ID
 - `multi_currencies_get_rates` — Get rates for a multi-currency
 
-### Tickets (8 tools)
+### 🎫 Tickets (8 tools)
 - `tickets_list` — List all tickets
 - `tickets_get` — Get a ticket by ID
 - `tickets_create` — Create a new ticket
@@ -398,17 +398,17 @@ The server implements 295 MCP tools organized into the following categories:
 - `tickets_add_contact` — Add a contact to a ticket
 - `tickets_delete_contact` — Remove a contact from a ticket
 
-### Workstations (2 tools)
+### 🖥️ Workstations (2 tools)
 - `workstations_list` — List all workstations
 - `workstations_get` — Get a workstation by ID
 
-### Object Links (4 tools)
+### 🔗 Object Links (4 tools)
 - `object_links_get` — Get an object link by ID
 - `object_links_create` — Create a new object link
 - `object_links_get_by_values` — Get object links by values
 - `object_links_delete` — Delete an object link by ID
 
-### Users (8 tools)
+### 👥 Users (8 tools)
 - `users_list` — List all users
 - `users_get` — Get a user by ID
 - `users_get_by_login` — Get a user by login
