@@ -339,12 +339,6 @@ class DolibarrClient:
     async def stockmovements_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/stockmovements/", api_key, json=payload)
 
-    async def stockmovements_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.put(f"/stockmovements/{id}", api_key, json=payload)
-
-    async def stockmovements_delete(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.delete(f"/stockmovements/{id}", api_key)
-
     # ============================================================
     # Product Lots
     # ============================================================

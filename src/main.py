@@ -1701,38 +1701,6 @@ async def stockmovements_create(product_id: int, warehouse_id: int, qty: float, 
     params = CreateStockMovementParam(product_id=product_id, warehouse_id=warehouse_id, qty=qty, type=type, batch=batch, movementcode=movementcode, label=label, price=price, datem=datem, sellBy=sellBy, eatBy=eatBy, origin_type=origin_type, origin_id=origin_id)
     return await get_client().stockmovements_create(params.model_dump(exclude_unset=True), get_user_token())
 
-@mcp.tool()
-async def stockmovements_update(id: int, product_id: Optional[int] = None, warehouse_id: Optional[int] = None, qty: Optional[float] = None, type: Optional[int] = None, batch: Optional[str] = None, movementcode: Optional[str] = None, label: Optional[str] = None, price: Optional[float] = None, datem: Optional[str] = None, sellBy: Optional[str] = None, eatBy: Optional[str] = None, origin_type: Optional[str] = None, origin_id: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
-    """Update an existing stock movement.
-
-    Args:
-        id: The unique ID of the resource (required).
-        product_id: Product ID.
-        warehouse_id: Warehouse ID.
-        qty: Quantity.
-        type: Type.
-        batch: Batch number.
-        movementcode: Movement code.
-        label: Label.
-        price: Unit price.
-        datem: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        sellBy: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        eatBy: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        origin_type: Origin object type.
-        origin_id: Origin object ID.
-    """
-    payload = {k: v for k, v in {"product_id": product_id, "warehouse_id": warehouse_id, "qty": qty, "type": type, "batch": batch, "movementcode": movementcode, "label": label, "price": price, "datem": datem, "sellBy": sellBy, "eatBy": eatBy, "origin_type": origin_type, "origin_id": origin_id}.items() if v is not None}
-    return await get_client().stockmovements_update(id, payload, get_user_token())
-
-@mcp.tool()
-async def stockmovements_delete(id: int, ctx: Context = None) -> dict[str, Any]:
-    """Delete a stock movement by ID.
-
-    Args:
-        id: The unique ID of the resource (required).
-    """
-    return await get_client().stockmovements_delete(id, get_user_token())
-
 # ============================================================
 # Product Lots
 # ============================================================

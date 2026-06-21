@@ -350,8 +350,6 @@ RESOURCE_TESTS = [
         "list": "stockmovements_list",
         "create": ("stockmovements_create", {"product_id": "{product}", "warehouse_id": "{warehouse}", "qty": 10.0, "type": 0, "label": make_name("Movement"), "batch": "test-batch-001"}),
         "get": "stockmovements_get",
-        "update": ("stockmovements_update", {"qty": 15.0}),
-        "delete": "stockmovements_delete",
         "store_key": "stockmovement",
         "sub_tests": [],
     },
