@@ -900,9 +900,18 @@ async def thirdparties_create(
         outstanding_limit: Outstanding bill limit.
         multicurrency_code: Multi-currency code.
     """
-    payload = {k: v for k, v in {"name": name, "client": client, "fournisseur": fournisseur, "address": address, "zip": zip, "town": town, "country_id": country_id, "country_code": country_code, "phone": phone, "email": email, "url": url, "code_client": code_client, "code_fournisseur": code_fournisseur, "capital": capital, "siren": siren, "siret": siret, "ape": ape, "tva_intra": tva_intra, "status": status, "note_public": note_public, "note_private": note_private, "parent": parent, "price_level": price_level, "outstanding_limit": outstanding_limit, "multicurrency_code": multicurrency_code}.items() if v != "" or k in ("name", "client", "fournisseur")}
+    params = CreateThirdPartyParam(
+        name=name, client=client, fournisseur=fournisseur,
+        address=address, zip=zip, town=town, country_id=country_id,
+        country_code=country_code, phone=phone, email=email, url=url,
+        code_client=code_client, code_fournisseur=code_fournisseur,
+        capital=capital, siren=siren, siret=siret, ape=ape,
+        tva_intra=tva_intra, status=status, note_public=note_public,
+        note_private=note_private, parent=parent, price_level=price_level,
+        outstanding_limit=outstanding_limit, multicurrency_code=multicurrency_code,
+    )
     return await get_client().thirdparties_create(
-        payload, get_user_token()
+        params.model_dump(), get_user_token()
     )
 
 @mcp.tool()
@@ -965,9 +974,18 @@ async def thirdparties_update(
         outstanding_limit: Outstanding bill limit.
         multicurrency_code: Multi-currency code.
     """
-    payload = {k: v for k, v in {"name": name, "client": client, "fournisseur": fournisseur, "address": address, "zip": zip, "town": town, "country_id": country_id, "country_code": country_code, "phone": phone, "email": email, "url": url, "code_client": code_client, "code_fournisseur": code_fournisseur, "capital": capital, "siren": siren, "siret": siret, "ape": ape, "tva_intra": tva_intra, "status": status, "note_public": note_public, "note_private": note_private, "parent": parent, "price_level": price_level, "outstanding_limit": outstanding_limit, "multicurrency_code": multicurrency_code}.items() if v is not None}
+    params = UpdateThirdPartyParam(
+        name=name, client=client, fournisseur=fournisseur,
+        address=address, zip=zip, town=town, country_id=country_id,
+        country_code=country_code, phone=phone, email=email, url=url,
+        code_client=code_client, code_fournisseur=code_fournisseur,
+        capital=capital, siren=siren, siret=siret, ape=ape,
+        tva_intra=tva_intra, status=status, note_public=note_public,
+        note_private=note_private, parent=parent, price_level=price_level,
+        outstanding_limit=outstanding_limit, multicurrency_code=multicurrency_code,
+    )
     return await get_client().thirdparties_update(
-        id, payload, get_user_token()
+        id, params.model_dump(exclude_none=True), get_user_token()
     )
 
 @mcp.tool()
@@ -1207,8 +1225,14 @@ async def contacts_update(
         poste: Job position.
         default_lang: Default language code.
     """
-    payload = {k: v for k, v in {"lastname": lastname, "socid": socid, "firstname": firstname, "address": address, "zip": zip, "town": town, "country_id": country_id, "phone": phone, "phone_mobile": phone_mobile, "email": email, "skype": skype, "note_public": note_public, "note_private": note_private, "status": status, "birthday": birthday, "poste": poste, "default_lang": default_lang}.items() if v is not None}
-    return await get_client().contacts_update(id, payload, get_user_token())
+    params = UpdateContactParam(
+        lastname=lastname, socid=socid, firstname=firstname,
+        address=address, zip=zip, town=town, country_id=country_id,
+        phone=phone, phone_mobile=phone_mobile, email=email, skype=skype,
+        note_public=note_public, note_private=note_private, status=status,
+        birthday=birthday, poste=poste, default_lang=default_lang,
+    )
+    return await get_client().contacts_update(id, params.model_dump(exclude_none=True), get_user_token())
 
 @mcp.tool()
 async def contacts_delete(id: int, ctx: Context = None) -> dict[str, Any]:
@@ -1779,8 +1803,16 @@ async def proposals_create(socid: int, date: str, ref: str = "", status: int = 0
         payment_terms: Payment terms.
         delivery_date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
     """
-    payload = {k: _normalize_datetime(v) if isinstance(v, str) else v for k, v in {"socid": socid, "date": date, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc, "multicurrency_code": multicurrency_code, "payment_terms": payment_terms, "delivery_date": delivery_date}.items()}
-    return await get_client().proposals_create(payload, get_user_token())
+    params = CreateProposalParam(
+        socid=socid, date=_normalize_datetime(date), ref=ref,
+        status=status, note_public=note_public,
+        note_private=note_private, total_ht=total_ht,
+        total_tva=total_tva, total_ttc=total_ttc,
+        multicurrency_code=multicurrency_code,
+        payment_terms=payment_terms,
+        delivery_date=_normalize_datetime(delivery_date),
+    )
+    return await get_client().proposals_create(params.model_dump(), get_user_token())
 
 @mcp.tool()
 async def proposals_update(id: int, socid: Optional[int] = None, date: Optional[str] = None, ref: Optional[str] = None, status: Optional[int] = None, note_public: Optional[str] = None, note_private: Optional[str] = None, total_ht: Optional[float] = None, total_tva: Optional[float] = None, total_ttc: Optional[float] = None, multicurrency_code: Optional[str] = None, payment_terms: Optional[int] = None, delivery_date: Optional[str] = None, ctx: Context = None) -> dict[str, Any]:
@@ -1991,8 +2023,16 @@ async def orders_create(socid: int, date: str, ref: str = "", status: int = 0, n
         payment_terms: Payment terms.
         delivery_date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
     """
-    payload = {k: _normalize_datetime(v) if isinstance(v, str) else v for k, v in {"socid": socid, "date": date, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc, "multicurrency_code": multicurrency_code, "payment_terms": payment_terms, "delivery_date": delivery_date}.items()}
-    return await get_client().orders_create(payload, get_user_token())
+    params = CreateOrderParam(
+        socid=socid, date=_normalize_datetime(date), ref=ref,
+        status=status, note_public=note_public,
+        note_private=note_private, total_ht=total_ht,
+        total_tva=total_tva, total_ttc=total_ttc,
+        multicurrency_code=multicurrency_code,
+        payment_terms=payment_terms,
+        delivery_date=_normalize_datetime(delivery_date),
+    )
+    return await get_client().orders_create(params.model_dump(), get_user_token())
 
 @mcp.tool()
 async def orders_update(id: int, socid: Optional[int] = None, date: Optional[str] = None, ref: Optional[str] = None, status: Optional[int] = None, note_public: Optional[str] = None, note_private: Optional[str] = None, total_ht: Optional[float] = None, total_tva: Optional[float] = None, total_ttc: Optional[float] = None, multicurrency_code: Optional[str] = None, payment_terms: Optional[int] = None, delivery_date: Optional[str] = None, ctx: Context = None) -> dict[str, Any]:
@@ -2236,8 +2276,15 @@ async def invoices_create(socid: int, date: str, type: int, ref: str = "", statu
         multicurrency_code: Multi-currency code.
         payment_terms: Payment terms.
     """
-    payload = {k: _normalize_datetime(v) if isinstance(v, str) else v for k, v in {"socid": socid, "date": date, "type": type, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc, "multicurrency_code": multicurrency_code, "payment_terms": payment_terms}.items()}
-    return await get_client().invoices_create(payload, get_user_token())
+    params = CreateInvoiceParam(
+        socid=socid, date=_normalize_datetime(date), type=type, ref=ref,
+        status=status, note_public=note_public,
+        note_private=note_private, total_ht=total_ht,
+        total_tva=total_tva, total_ttc=total_ttc,
+        multicurrency_code=multicurrency_code,
+        payment_terms=payment_terms,
+    )
+    return await get_client().invoices_create(params.model_dump(), get_user_token())
 
 @mcp.tool()
 async def invoices_update(id: int, socid: Optional[int] = None, date: Optional[str] = None, type: Optional[int] = None, ref: Optional[str] = None, status: Optional[int] = None, note_public: Optional[str] = None, note_private: Optional[str] = None, total_ht: Optional[float] = None, total_tva: Optional[float] = None, total_ttc: Optional[float] = None, multicurrency_code: Optional[str] = None, payment_terms: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
@@ -2742,8 +2789,14 @@ async def supplier_orders_create(socid: int, date: str, ref: str = "", status: i
         total_ttc: Total including tax.
         multicurrency_code: Multi-currency code.
     """
-    payload = {k: _normalize_datetime(v) if isinstance(v, str) else v for k, v in {"socid": socid, "date": date, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc, "multicurrency_code": multicurrency_code}.items()}
-    return await get_client().supplier_orders_create(payload, get_user_token())
+    params = CreateSupplierOrderParam(
+        socid=socid, date=_normalize_datetime(date), ref=ref,
+        status=status, note_public=note_public,
+        note_private=note_private, total_ht=total_ht,
+        total_tva=total_tva, total_ttc=total_ttc,
+        multicurrency_code=multicurrency_code,
+    )
+    return await get_client().supplier_orders_create(params.model_dump(), get_user_token())
 
 @mcp.tool()
 async def supplier_orders_update(id: int, socid: Optional[int] = None, date: Optional[str] = None, ref: Optional[str] = None, status: Optional[int] = None, note_public: Optional[str] = None, note_private: Optional[str] = None, total_ht: Optional[float] = None, total_tva: Optional[float] = None, total_ttc: Optional[float] = None, multicurrency_code: Optional[str] = None, ctx: Context = None) -> dict[str, Any]:
@@ -2909,8 +2962,14 @@ async def supplier_invoices_create(socid: int, date: str, ref: str = "", status:
         total_ttc: Total including tax.
         multicurrency_code: Multi-currency code.
     """
-    payload = {k: _normalize_datetime(v) if isinstance(v, str) else v for k, v in {"socid": socid, "date": date, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc, "multicurrency_code": multicurrency_code}.items()}
-    return await get_client().supplier_invoices_create(payload, get_user_token())
+    params = CreateSupplierInvoiceParam(
+        socid=socid, date=_normalize_datetime(date), ref=ref,
+        status=status, note_public=note_public,
+        note_private=note_private, total_ht=total_ht,
+        total_tva=total_tva, total_ttc=total_ttc,
+        multicurrency_code=multicurrency_code,
+    )
+    return await get_client().supplier_invoices_create(params.model_dump(), get_user_token())
 
 @mcp.tool()
 async def supplier_invoices_update(id: int, socid: Optional[int] = None, date: Optional[str] = None, ref: Optional[str] = None, status: Optional[int] = None, note_public: Optional[str] = None, note_private: Optional[str] = None, total_ht: Optional[float] = None, total_tva: Optional[float] = None, total_ttc: Optional[float] = None, multicurrency_code: Optional[str] = None, ctx: Context = None) -> dict[str, Any]:
@@ -3089,8 +3148,13 @@ async def supplier_proposals_create(socid: int, date: str, ref: str = "", status
         total_tva: Total VAT.
         total_ttc: Total including tax.
     """
-    payload = {k: _normalize_datetime(v) if isinstance(v, str) else v for k, v in {"socid": socid, "date": date, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc}.items()}
-    return await get_client().supplier_proposals_create(payload, get_user_token())
+    params = CreateSupplierProposalParam(
+        socid=socid, date=_normalize_datetime(date), ref=ref,
+        status=status, note_public=note_public,
+        note_private=note_private, total_ht=total_ht,
+        total_tva=total_tva, total_ttc=total_ttc,
+    )
+    return await get_client().supplier_proposals_create(params.model_dump(), get_user_token())
 
 @mcp.tool()
 async def supplier_proposals_update(id: int, socid: Optional[int] = None, date: Optional[str] = None, ref: Optional[str] = None, status: Optional[int] = None, note_public: Optional[str] = None, note_private: Optional[str] = None, total_ht: Optional[float] = None, total_tva: Optional[float] = None, total_ttc: Optional[float] = None, ctx: Context = None) -> dict[str, Any]:
@@ -4260,8 +4324,15 @@ async def expense_reports_create(fk_user: int, date_debut: str, date_fin: str, f
         total_ttc: Total including tax.
         fk_project: Project ID.
     """
-    payload = {k: _normalize_datetime(v) if isinstance(v, str) else v for k, v in {"fk_user": fk_user, "date_debut": date_debut, "date_fin": date_fin, "fk_user_author": fk_user_author, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc, "fk_project": fk_project}.items()}
-    return await get_client().expense_reports_create(payload, get_user_token())
+    params = CreateExpenseReportParam(
+        fk_user=fk_user, date_debut=_normalize_datetime(date_debut),
+        date_fin=_normalize_datetime(date_fin),
+        fk_user_author=fk_user_author, ref=ref, status=status,
+        note_public=note_public, note_private=note_private,
+        total_ht=total_ht, total_tva=total_tva,
+        total_ttc=total_ttc, fk_project=fk_project,
+    )
+    return await get_client().expense_reports_create(params.model_dump(), get_user_token())
 
 @mcp.tool()
 async def expense_reports_update(id: int, fk_user: Optional[int] = None, date_debut: Optional[str] = None, date_fin: Optional[str] = None, fk_user_author: Optional[int] = None, ref: Optional[str] = None, status: Optional[int] = None, note_public: Optional[str] = None, note_private: Optional[str] = None, total_ht: Optional[float] = None, total_tva: Optional[float] = None, total_ttc: Optional[float] = None, fk_project: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
