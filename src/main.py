@@ -294,7 +294,7 @@ class CreateInvoicePaymentParam(BaseModel):
     datepaye: str
     paymentid: int
     accountid: int
-    closepaidinvoices: int = 0
+    closepaidinvoices: str = "no"
     num_payment: str = ""
     comment: str = ""
     chqemetteur: str = ""
@@ -2496,7 +2496,7 @@ async def invoices_get_payments(id: int, ctx: Context = None) -> dict[str, Any]:
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
-async def invoices_add_payment(id: int, datepaye: str, paymentid: int, accountid: int, closepaidinvoices: int = 0, num_payment: str = "", comment: str = "", chqemetteur: str = "", chqbank: str = "", ctx: Context = None) -> dict[str, Any]:
+async def invoices_add_payment(id: int, datepaye: str, paymentid: int, accountid: int, closepaidinvoices: str = "no", num_payment: str = "", comment: str = "", chqemetteur: str = "", chqbank: str = "", ctx: Context = None) -> dict[str, Any]:
     """Add a payment to an invoice.
 
     Args:
@@ -2504,7 +2504,7 @@ async def invoices_add_payment(id: int, datepaye: str, paymentid: int, accountid
         datepaye: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
         paymentid: Payment type ID (required).
         accountid: Account ID (required).
-        closepaidinvoices: Close paid invoices flag.
+        closepaidinvoices: Close paid invoices flag ("yes" or "no").
         num_payment: Payment number.
         comment: Comment.
         chqemetteur: Check issuer.
@@ -3603,13 +3603,27 @@ async def mos_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     return await get_client().mos_delete(id, get_user_token())
 
 @mcp.tool()
-async def mos_produce_and_consume(id: int, ctx: Context = None) -> dict[str, Any]:
-    """Mos Produce And Consume.
+async def mos_produce_and_consume(id: int, inventorylabel: str, inventorycode: str, arraytoconsume: Optional[list] = None, arraytoproduce: Optional[list] = None, autoclose: int = 1, ctx: Context = None) -> dict[str, Any]:
+    """Record consumption of raw materials and production of finished product for a manufacturing order.
+
+    The MO must be in Validated (1) or In Progress (2) status.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the MO (required).
+        inventorylabel: Inventory movement label (required).
+        inventorycode: Inventory movement code (required).
+        arraytoconsume: Array of objects to consume, each with objectid (MoLine rowid), qty, fk_warehouse.
+        arraytoproduce: Array of objects to produce, each with objectid (MoLine rowid), qty, fk_warehouse.
+        autoclose: Auto-close MO after production (1=yes, 0=no).
     """
-    return await get_client().mos_produce_and_consume(id, {}, get_user_token())
+    payload = {
+        "inventorylabel": inventorylabel,
+        "inventorycode": inventorycode,
+        "autoclose": autoclose,
+        "arraytoconsume": arraytoconsume or [],
+        "arraytoproduce": arraytoproduce or [],
+    }
+    return await get_client().mos_produce_and_consume(id, payload, get_user_token())
 
 # ============================================================
 # Projects

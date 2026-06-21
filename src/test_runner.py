@@ -409,7 +409,6 @@ RESOURCE_TESTS = [
         "label": "Payments",
         "list": "payments_list",
         "get": "payments_get",
-        "update": ("payments_update", {}),
         "delete": "payments_delete",
         "store_key": "payment",
         "sub_tests": [],
@@ -682,6 +681,7 @@ PHASE4_TESTS = [
     ("P4_invoices_get_payments", "invoices_get_payments", {"id": "{invoice}"}),
     ("P4_invoices_create_from_order", "invoices_create_from_order", {"orderid": "{order}"}),
     ("P4_invoices_validate", "invoices_validate", {"id": "{invoice}"}),
+    ("P4_invoices_add_payment", "invoices_add_payment", {"id": "{invoice}", "datepaye": NOW, "paymentid": 1, "accountid": "{bankaccount}", "closepaidinvoices": "no"}, "payment"),
     ("P4_invoices_settopaid", "invoices_settopaid", {"id": "{invoice}"}),
     ("P4_invoices_settounpaid", "invoices_settounpaid", {"id": "{invoice}"}),
     ("P4_invoices_add_contact", "invoices_add_contact", {"id": "{invoice}", "fk_socpeople": "{contact}", "type_contact": "external"}),
@@ -716,7 +716,8 @@ PHASE4_TESTS = [
     ("P4_boms_create_line", "boms_create_line", {"id": "{bom}", "fk_product": "{product}", "qty": 1.0}),
 
     # ===== MOs =====
-    ("P4_mos_produce_and_consume", "mos_produce_and_consume", {"id": "{mo}"}),
+    ("P4_mos_validate", "mos_update", {"id": "{mo}", "status": 1}),
+    ("P4_mos_produce_and_consume", "mos_produce_and_consume", {"id": "{mo}", "inventorylabel": "Test produce", "inventorycode": "PROD-001", "arraytoconsume": [], "arraytoproduce": []}),
     # ===== Projects =====
     ("P4_projects_get_tasks", "projects_get_tasks", {"id": "{project}"}),
     ("P4_projects_get_timespent", "projects_get_timespent", {"id": "{project}"}),
@@ -866,8 +867,17 @@ async def main():
         # Phase 4: Extended Tool Tests (all domain-specific tools)
         # ------------------------------------------------------------------
         log("\n=== Phase 4: Domain-Specific Tools ===")
-        for label, tool, params in PHASE4_TESTS:
-            await run_test(session, label, tool, params)
+        for entry in PHASE4_TESTS:
+            if len(entry) == 4:
+                label, tool, params, store_key = entry
+                ok = await run_test_with_store(session, label, tool, params, store_key=store_key)
+                if ok and store_key:
+                    val = store.get(store_key)
+                    if val is not None and not isinstance(val, dict):
+                        store[store_key] = {"id": val}
+            else:
+                label, tool, params = entry
+                await run_test(session, label, tool, params)
 
         # ------------------------------------------------------------------
         # Phase 3B: Get by ID + Update + Sub-tests + Delete + Verify
