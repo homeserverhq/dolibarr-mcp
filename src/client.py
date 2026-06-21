@@ -37,7 +37,12 @@ TP_COMMON = "id,ref,name,client,fournisseur,code_client,code_fournisseur,address
 PROD_COMMON = "id,ref,label,type,status,price,price_ttc,tva_tx,stock,barcode,weight"
 INV_COMMON = "id,ref,socid,socname,total_ht,total_tva,total_ttc,status"
 CONTACT_COMMON = "id,lastname,firstname,socid,socname,email,phone,phone_mobile,status"
-TICKET_COMMON = "id,ref,subject,type_label,status"
+TICKET_COMMON = "id,ref,subject,type_label,status,track_id"
+LINE_COMMON = "id,product_label,qty,subprice,total_ht,total_ttc,tva_tx,desc"
+BOM_LINE_COMMON = "id,ref,fk_product,qty"
+EXPENSE_LINE_COMMON = "id,type_fees_libelle,qty,total_ht,total_ttc,tva_tx,date,projet_title"
+BANK_LINE_COMMON = "id,ref,label,amount,dateo,bank_account_label"
+PAYMENT_LINE_COMMON = "id,ref,amount,type,date"
 BASE_COMMON = "id,ref,label,status"
 USER_COMMON = "id,ref,login,firstname,lastname,status,entity"
 GROUP_COMMON = "id,ref,name,nom,entity"
@@ -105,7 +110,11 @@ class DolibarrClient:
             return {"text": response.text}
 
     async def get(self, path: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.request("GET", path, api_key, **kwargs)
+        data = await self.request("GET", path, api_key, **kwargs)
+        params = kwargs.get("params")
+        if isinstance(params, dict) and "properties" in params:
+            data = self._filter_fields(data, params["properties"])
+        return data
 
     async def post(self, path: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.request("POST", path, api_key, **kwargs)
@@ -116,10 +125,12 @@ class DolibarrClient:
     async def delete(self, path: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.request("DELETE", path, api_key, **kwargs)
 
-    def _filter_fields(self, data: dict[str, Any], common_fields: str) -> dict[str, Any]:
+    def _filter_fields(self, data: Any, common_fields: str) -> Any:
         keep = set(common_fields.split(","))
         if isinstance(data, dict):
             return {k: v for k, v in data.items() if k in keep}
+        if isinstance(data, list):
+            return [self._filter_fields(item, common_fields) for item in data]
         return data
 
     async def status_get(self, api_key: Optional[str] = None) -> Any:
@@ -178,22 +189,26 @@ class DolibarrClient:
     async def thirdparties_get_outstanding_proposals(self, id: int, api_key: Optional[str] = None, mode: str = "") -> Any:
         params = {}
         if mode: params["mode"] = mode
-        return await self.get(f"/thirdparties/{id}/outstandingproposals", api_key, params=params or None)
+        params["properties"] = BASE_COMMON
+        return await self.get(f"/thirdparties/{id}/outstandingproposals", api_key, params=params)
 
     async def thirdparties_get_outstanding_orders(self, id: int, api_key: Optional[str] = None, mode: str = "") -> Any:
         params = {}
         if mode: params["mode"] = mode
-        return await self.get(f"/thirdparties/{id}/outstandingorders", api_key, params=params or None)
+        params["properties"] = BASE_COMMON
+        return await self.get(f"/thirdparties/{id}/outstandingorders", api_key, params=params)
 
     async def thirdparties_get_outstanding_invoices(self, id: int, api_key: Optional[str] = None, mode: str = "") -> Any:
         params = {}
         if mode: params["mode"] = mode
-        return await self.get(f"/thirdparties/{id}/outstandinginvoices", api_key, params=params or None)
+        params["properties"] = BASE_COMMON
+        return await self.get(f"/thirdparties/{id}/outstandinginvoices", api_key, params=params)
 
     async def thirdparties_get_representatives(self, id: int, api_key: Optional[str] = None, mode: int = 0) -> Any:
         params = {}
         if mode: params["mode"] = mode
-        return await self.get(f"/thirdparties/{id}/representatives", api_key, params=params or None)
+        params["properties"] = CONTACT_COMMON
+        return await self.get(f"/thirdparties/{id}/representatives", api_key, params=params)
 
     async def thirdparties_get_categories(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
         params = {}
@@ -201,7 +216,8 @@ class DolibarrClient:
         if sortorder != "ASC": params["sortorder"] = sortorder
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
-        return await self.get(f"/thirdparties/{id}/categories", api_key, params=params or None)
+        params["properties"] = BASE_COMMON
+        return await self.get(f"/thirdparties/{id}/categories", api_key, params=params)
 
     # ============================================================
     # Contacts
@@ -239,7 +255,8 @@ class DolibarrClient:
         if sortorder != "ASC": params["sortorder"] = sortorder
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
-        return await self.get(f"/contacts/{id}/categories", api_key, params=params or None)
+        params["properties"] = BASE_COMMON
+        return await self.get(f"/contacts/{id}/categories", api_key, params=params)
 
     # ============================================================
     # Products
@@ -273,7 +290,8 @@ class DolibarrClient:
         return await self.delete(f"/products/{id}", api_key)
 
     async def products_get_subproducts(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.get(f"/products/{id}/subproducts", api_key)
+        params = {"properties": BASE_COMMON}
+        return await self.get(f"/products/{id}/subproducts", api_key, params=params)
 
     async def products_get_categories(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
         params = {}
@@ -281,7 +299,8 @@ class DolibarrClient:
         if sortorder != "ASC": params["sortorder"] = sortorder
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
-        return await self.get(f"/products/{id}/categories", api_key, params=params or None)
+        params["properties"] = BASE_COMMON
+        return await self.get(f"/products/{id}/categories", api_key, params=params)
 
     async def products_get_stock(self, id: int, api_key: Optional[str] = None, selected_warehouse_id: int = 0) -> Any:
         params = {}
@@ -291,7 +310,8 @@ class DolibarrClient:
     async def products_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
         params = {}
         if type: params["type"] = type
-        return await self.get(f"/products/{id}/contacts", api_key, params=params or None)
+        params["properties"] = CONTACT_COMMON
+        return await self.get(f"/products/{id}/contacts", api_key, params=params)
 
     # ============================================================
     # Warehouses
@@ -413,7 +433,8 @@ class DolibarrClient:
     async def proposals_get_lines(self, id: int, api_key: Optional[str] = None, sqlfilters: str = "") -> Any:
         params = {}
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        return await self.get(f"/proposals/{id}/lines", api_key, params=params or None)
+        params["properties"] = LINE_COMMON
+        return await self.get(f"/proposals/{id}/lines", api_key, params=params)
 
     async def proposals_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post(f"/proposals/{id}/lines", api_key, json=payload)
@@ -484,7 +505,8 @@ class DolibarrClient:
         return await self.delete(f"/orders/{id}", api_key)
 
     async def orders_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.get(f"/orders/{id}/lines", api_key)
+        params = {"properties": LINE_COMMON}
+        return await self.get(f"/orders/{id}/lines", api_key, params=params)
 
     async def orders_get_line(self, id: int, lineid: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/orders/{id}/lines/{lineid}", api_key)
@@ -535,7 +557,8 @@ class DolibarrClient:
     async def orders_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
         params = {}
         if type: params["type"] = type
-        return await self.get(f"/orders/{id}/contacts", api_key, params=params or None)
+        params["properties"] = CONTACT_COMMON
+        return await self.get(f"/orders/{id}/contacts", api_key, params=params)
 
     # ============================================================
     # Invoices
@@ -568,7 +591,8 @@ class DolibarrClient:
         return await self.delete(f"/invoices/{id}", api_key)
 
     async def invoices_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.get(f"/invoices/{id}/lines", api_key)
+        params = {"properties": LINE_COMMON}
+        return await self.get(f"/invoices/{id}/lines", api_key, params=params)
 
     async def invoices_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post(f"/invoices/{id}/lines", api_key, json=payload)
@@ -602,7 +626,8 @@ class DolibarrClient:
         return await self.post(f"/invoices/{id}/settounpaid", api_key)
 
     async def invoices_get_payments(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.get(f"/invoices/{id}/payments", api_key)
+        params = {"properties": PAYMENT_LINE_COMMON}
+        return await self.get(f"/invoices/{id}/payments", api_key, params=params)
 
     async def invoices_add_payment(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post(f"/invoices/{id}/payments", api_key, json=payload)
@@ -610,7 +635,8 @@ class DolibarrClient:
     async def invoices_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
         params = {}
         if type: params["type"] = type
-        return await self.get(f"/invoices/{id}/contacts", api_key, params=params or None)
+        params["properties"] = CONTACT_COMMON
+        return await self.get(f"/invoices/{id}/contacts", api_key, params=params)
 
     async def invoices_add_contact(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post(f"/invoices/{id}/contacts", api_key, json=payload)
@@ -684,7 +710,8 @@ class DolibarrClient:
     async def bankaccounts_get_lines(self, id: int, api_key: Optional[str] = None, sqlfilters: str = "") -> Any:
         params = {}
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        return await self.get(f"/bankaccounts/{id}/lines", api_key, params=params or None)
+        params["properties"] = BANK_LINE_COMMON
+        return await self.get(f"/bankaccounts/{id}/lines", api_key, params=params)
 
     async def bankaccounts_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         p = dict(payload)
@@ -742,7 +769,9 @@ class DolibarrClient:
     async def supplier_orders_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
         params = {}
         if type: params["type"] = type
-        return await self.get(f"/supplierorders/{id}/contacts", api_key, params=params or None)
+        params["source"] = "external"
+        data = await self.get(f"/supplierorders/{id}/contacts", api_key, params=params)
+        return self._filter_fields(data, CONTACT_COMMON)
 
     async def supplier_orders_add_contact(self, id: int, contactid: int, type: str, source: str, api_key: Optional[str] = None) -> Any:
         return await self.post(f"/supplierorders/{id}/contact/{contactid}/{type}/{source}", api_key)
@@ -799,7 +828,8 @@ class DolibarrClient:
         return await self.delete(f"/supplierinvoices/{id}", api_key)
 
     async def supplier_invoices_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.get(f"/supplierinvoices/{id}/lines", api_key)
+        params = {"properties": LINE_COMMON}
+        return await self.get(f"/supplierinvoices/{id}/lines", api_key, params=params)
 
     async def supplier_invoices_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post(f"/supplierinvoices/{id}/lines", api_key, json=payload)
@@ -823,7 +853,8 @@ class DolibarrClient:
         return await self.post(f"/supplierinvoices/{id}/settopaid", api_key, params=params or None)
 
     async def supplier_invoices_get_payments(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.get(f"/supplierinvoices/{id}/payments", api_key)
+        params = {"properties": PAYMENT_LINE_COMMON}
+        return await self.get(f"/supplierinvoices/{id}/payments", api_key, params=params)
 
     async def supplier_invoices_add_payment(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post(f"/supplierinvoices/{id}/payments", api_key, json=payload)
@@ -947,7 +978,8 @@ class DolibarrClient:
         return await self.delete(f"/boms/{id}", api_key)
 
     async def boms_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.get(f"/boms/{id}/lines", api_key)
+        params = {"properties": BOM_LINE_COMMON}
+        return await self.get(f"/boms/{id}/lines", api_key, params=params)
 
     async def boms_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post(f"/boms/{id}/lines", api_key, json=payload)
@@ -1019,7 +1051,8 @@ class DolibarrClient:
     async def projects_get_tasks(self, id: int, api_key: Optional[str] = None, includetimespent: int = 0) -> Any:
         params = {}
         if includetimespent: params["includetimespent"] = includetimespent
-        return await self.get(f"/projects/{id}/tasks", api_key, params=params or None)
+        params["properties"] = BASE_COMMON
+        return await self.get(f"/projects/{id}/tasks", api_key, params=params)
 
     async def projects_get_timespent(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.get(f"/projects/{id}/timespent", api_key)
@@ -1032,7 +1065,8 @@ class DolibarrClient:
     async def projects_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
         params = {}
         if type: params["type"] = type
-        return await self.get(f"/projects/{id}/contacts", api_key, params=params or None)
+        params["properties"] = CONTACT_COMMON
+        return await self.get(f"/projects/{id}/contacts", api_key, params=params)
 
     # ============================================================
     # Tasks
@@ -1079,7 +1113,8 @@ class DolibarrClient:
     async def tasks_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
         params = {}
         if type: params["type"] = type
-        return await self.get(f"/tasks/{id}/contacts", api_key, params=params or None)
+        params["properties"] = CONTACT_COMMON
+        return await self.get(f"/tasks/{id}/contacts", api_key, params=params)
 
     # ============================================================
     # Shipments
@@ -1219,7 +1254,8 @@ class DolibarrClient:
     async def interventions_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
         params = {}
         if type: params["type"] = type
-        return await self.get(f"/interventions/{id}/contacts", api_key, params=params or None)
+        params["properties"] = CONTACT_COMMON
+        return await self.get(f"/interventions/{id}/contacts", api_key, params=params)
 
     # ============================================================
     # Expense Reports
@@ -1251,7 +1287,8 @@ class DolibarrClient:
         return await self.delete(f"/expensereports/{id}", api_key)
 
     async def expense_reports_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.get(f"/expensereports/{id}/lines", api_key)
+        params = {"properties": EXPENSE_LINE_COMMON}
+        return await self.get(f"/expensereports/{id}/lines", api_key, params=params)
 
     async def expense_reports_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         p = dict(payload)
@@ -1480,7 +1517,8 @@ class DolibarrClient:
         return await self.delete(f"/multicurrencies/{id}", api_key)
 
     async def multi_currencies_get_rates(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.get(f"/multicurrencies/{id}/rates", api_key)
+        params = {"properties": BASE_COMMON}
+        return await self.get(f"/multicurrencies/{id}/rates", api_key, params=params)
 
     # ============================================================
     # Tickets
@@ -1619,4 +1657,5 @@ class DolibarrClient:
         return data
 
     async def users_get_user_groups(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.get(f"/users/{id}/groups", api_key)
+        params = {"properties": GROUP_COMMON}
+        return await self.get(f"/users/{id}/groups", api_key, params=params)

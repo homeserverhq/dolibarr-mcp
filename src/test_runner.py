@@ -13,6 +13,7 @@ import uuid
 from typing import Any, Optional
 
 import httpx
+from toon_mcp import toon_to_json
 
 MCP_SERVER_PORT = os.environ.get("MCP_SERVER_PORT", "6033")
 API_KEY = os.environ.get("API_KEY", "")
@@ -28,6 +29,130 @@ NOW = time.strftime('%Y-%m-%dT12:00:00+00:00')
 results: list[dict[str, Any]] = []
 store: dict[str, Any] = {}
 created: dict[str, str] = {}
+
+# =============================================================================
+# Field Filtering Verification — expected field sets (mirrors client.py)
+# =============================================================================
+
+EXPECTED_FIELDS: dict[str, set[str]] = {
+    "TP_COMMON": {"id","ref","name","client","fournisseur","code_client","code_fournisseur","address","zip","town","country_id","country_code","phone","email","status","tva_intra"},
+    "PROD_COMMON": {"id","ref","label","type","status","price","price_ttc","tva_tx","stock","barcode","weight"},
+    "INV_COMMON": {"id","ref","socid","socname","total_ht","total_tva","total_ttc","status"},
+    "CONTACT_COMMON": {"id","lastname","firstname","socid","socname","email","phone","phone_mobile","status"},
+    "TICKET_COMMON": {"id","ref","subject","type_label","status","track_id"},
+    "LINE_COMMON": {"id","product_label","qty","subprice","total_ht","total_ttc","tva_tx","desc"},
+    "BOM_LINE_COMMON": {"id","ref","fk_product","qty"},
+    "EXPENSE_LINE_COMMON": {"id","type_fees_libelle","qty","total_ht","total_ttc","tva_tx","date","projet_title"},
+    "BANK_LINE_COMMON": {"id","ref","label","amount","dateo","bank_account_label"},
+    "PAYMENT_LINE_COMMON": {"id","ref","amount","type","date"},
+    "BASE_COMMON": {"id","ref","label","status"},
+    "USER_COMMON": {"id","ref","login","firstname","lastname","status","entity"},
+    "GROUP_COMMON": {"id","ref","name","nom","entity"},
+}
+
+# Map every GET tool to its expected field set
+TOOL_FIELD_MAP: dict[str, set[str]] = {
+    # -- Single-GET (uses _filter_fields) --
+    "thirdparties_get": EXPECTED_FIELDS["TP_COMMON"],
+    "contacts_get": EXPECTED_FIELDS["CONTACT_COMMON"],
+    "products_get": EXPECTED_FIELDS["PROD_COMMON"],
+    "warehouses_get": EXPECTED_FIELDS["PROD_COMMON"],
+    "bankaccounts_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "stockmovements_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "productlots_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "proposals_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "orders_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "orders_get_line": EXPECTED_FIELDS["BASE_COMMON"],
+    "invoices_get": EXPECTED_FIELDS["INV_COMMON"],
+    "payments_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "supplier_orders_get": EXPECTED_FIELDS["INV_COMMON"],
+    "supplier_invoices_get": EXPECTED_FIELDS["INV_COMMON"],
+    "supplier_proposals_get": EXPECTED_FIELDS["INV_COMMON"],
+    "contracts_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "boms_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "mos_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "projects_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "tasks_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "shipments_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "receptions_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "interventions_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "expense_reports_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "holidays_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "agenda_events_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "categories_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "mailings_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "multi_currencies_get": EXPECTED_FIELDS["BASE_COMMON"],
+    "tickets_get": EXPECTED_FIELDS["TICKET_COMMON"],
+    "users_get": EXPECTED_FIELDS["USER_COMMON"],
+    "users_get_by_login": EXPECTED_FIELDS["USER_COMMON"],
+    "users_get_by_email": EXPECTED_FIELDS["USER_COMMON"],
+    "users_get_group": EXPECTED_FIELDS["GROUP_COMMON"],
+    "workstations_get": EXPECTED_FIELDS["BASE_COMMON"],
+    # -- List-GET (uses properties param) --
+    "thirdparties_list": EXPECTED_FIELDS["TP_COMMON"],
+    "contacts_list": EXPECTED_FIELDS["CONTACT_COMMON"],
+    "products_list": EXPECTED_FIELDS["PROD_COMMON"],
+    "warehouses_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "bankaccounts_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "stockmovements_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "productlots_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "proposals_list": EXPECTED_FIELDS["INV_COMMON"],
+    "orders_list": EXPECTED_FIELDS["INV_COMMON"],
+    "invoices_list": EXPECTED_FIELDS["INV_COMMON"],
+    "payments_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "supplier_orders_list": EXPECTED_FIELDS["INV_COMMON"],
+    "supplier_invoices_list": EXPECTED_FIELDS["INV_COMMON"],
+    "supplier_proposals_list": EXPECTED_FIELDS["INV_COMMON"],
+    "contracts_list": EXPECTED_FIELDS["INV_COMMON"],
+    "boms_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "mos_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "projects_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "tasks_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "shipments_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "receptions_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "interventions_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "expense_reports_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "holidays_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "agenda_events_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "categories_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "mailings_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "multi_currencies_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "tickets_list": EXPECTED_FIELDS["TICKET_COMMON"],
+    "documents_list": EXPECTED_FIELDS["BASE_COMMON"],
+    "users_list": EXPECTED_FIELDS["USER_COMMON"],
+    "users_list_groups": EXPECTED_FIELDS["GROUP_COMMON"],
+    "workstations_list": EXPECTED_FIELDS["BASE_COMMON"],
+    # -- Sub-resource GET (uses properties param) --
+    "proposals_get_lines": EXPECTED_FIELDS["LINE_COMMON"],
+    "orders_get_lines": EXPECTED_FIELDS["LINE_COMMON"],
+    "invoices_get_lines": EXPECTED_FIELDS["LINE_COMMON"],
+    "supplier_invoices_get_lines": EXPECTED_FIELDS["LINE_COMMON"],
+    "boms_get_lines": EXPECTED_FIELDS["BOM_LINE_COMMON"],
+    "expense_reports_get_lines": EXPECTED_FIELDS["EXPENSE_LINE_COMMON"],
+    "bankaccounts_get_lines": EXPECTED_FIELDS["BANK_LINE_COMMON"],
+    "invoices_get_payments": EXPECTED_FIELDS["PAYMENT_LINE_COMMON"],
+    "supplier_invoices_get_payments": EXPECTED_FIELDS["PAYMENT_LINE_COMMON"],
+    "thirdparties_get_outstanding_proposals": EXPECTED_FIELDS["BASE_COMMON"],
+    "thirdparties_get_outstanding_orders": EXPECTED_FIELDS["BASE_COMMON"],
+    "thirdparties_get_outstanding_invoices": EXPECTED_FIELDS["BASE_COMMON"],
+    "thirdparties_get_categories": EXPECTED_FIELDS["BASE_COMMON"],
+    "contacts_get_categories": EXPECTED_FIELDS["BASE_COMMON"],
+    "products_get_categories": EXPECTED_FIELDS["BASE_COMMON"],
+    "products_get_subproducts": EXPECTED_FIELDS["BASE_COMMON"],
+    "projects_get_tasks": EXPECTED_FIELDS["BASE_COMMON"],
+    "multi_currencies_get_rates": EXPECTED_FIELDS["BASE_COMMON"],
+    "products_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
+    "orders_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
+    "invoices_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
+    "supplier_orders_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
+    "interventions_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
+    "tasks_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
+    "projects_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
+    "thirdparties_get_representatives": EXPECTED_FIELDS["CONTACT_COMMON"],
+    "users_get_user_groups": EXPECTED_FIELDS["GROUP_COMMON"],
+    "contracts_get_lines": EXPECTED_FIELDS["BASE_COMMON"],
+    "warehouses_list_products": EXPECTED_FIELDS["PROD_COMMON"],
+}
 
 
 class MCPSession:
@@ -664,7 +789,7 @@ PHASE4_TESTS = [
 
     # ===== Orders (state transitions + sub-resources) =====
     ("P4_orders_get_lines", "orders_get_lines", {"id": "{order}"}),
-    ("P4_orders_create_line", "orders_create_line", {"id": "{order}", "desc": "Test line", "qty": 1, "subprice": 10.0}),
+    ("P4_orders_create_line", "orders_create_line", {"id": "{order}", "desc": "Test line", "qty": 1, "subprice": 10.0}, "order_line"),
     ("P4_orders_get_contacts", "orders_get_contacts", {"id": "{order}"}),
     ("P4_orders_validate", "orders_validate", {"id": "{order}"}),
     ("P4_orders_close", "orders_close", {"id": "{order}"}),
@@ -786,6 +911,186 @@ PHASE4_TESTS = [
 ]
 
 # =============================================================================
+# Filtering Verification — all GET endpoints with expected field sets
+# =============================================================================
+
+FILTERING_CHECKS = [
+    # -- Single-GET --
+    ("F1 thirdparties_get", "thirdparties_get", {"id": "{thirdparty}"}),
+    ("F1 contacts_get", "contacts_get", {"id": "{contact}"}),
+    ("F1 products_get", "products_get", {"id": "{product}"}),
+    ("F1 warehouses_get", "warehouses_get", {"id": "{warehouse}"}),
+    ("F1 bankaccounts_get", "bankaccounts_get", {"id": "{bankaccount}"}),
+    ("F1 stockmovements_get", "stockmovements_get", {"id": "{stockmovement}"}),
+    ("F1 productlots_get", "productlots_get", {"id": "{productlot}"}),
+    ("F1 proposals_get", "proposals_get", {"id": "{proposal}"}),
+    ("F1 orders_get", "orders_get", {"id": "{order}"}),
+    ("F1 orders_get_line", "orders_get_line", {"id": "{order}", "lineid": "{order_line.id}"}),
+    ("F1 invoices_get", "invoices_get", {"id": "{invoice}"}),
+    ("F1 payments_get", "payments_get", {"id": "{payment}"}),
+    ("F1 supplier_orders_get", "supplier_orders_get", {"id": "{supplier_order}"}),
+    ("F1 supplier_invoices_get", "supplier_invoices_get", {"id": "{supplier_invoice}"}),
+    ("F1 supplier_proposals_get", "supplier_proposals_get", {"id": "{supplier_proposal}"}),
+    ("F1 contracts_get", "contracts_get", {"id": "{contract}"}),
+    ("F1 boms_get", "boms_get", {"id": "{bom}"}),
+    ("F1 mos_get", "mos_get", {"id": "{mo}"}),
+    ("F1 projects_get", "projects_get", {"id": "{project}"}),
+    ("F1 tasks_get", "tasks_get", {"id": "{task}"}),
+    ("F1 shipments_get", "shipments_get", {"id": "{shipment}"}),
+    ("F1 receptions_get", "receptions_get", {"id": "{reception}"}),
+    ("F1 interventions_get", "interventions_get", {"id": "{intervention}"}),
+    ("F1 expense_reports_get", "expense_reports_get", {"id": "{expense_report}"}),
+    ("F1 holidays_get", "holidays_get", {"id": "{holiday}"}),
+    ("F1 agenda_events_get", "agenda_events_get", {"id": "{agenda_event}"}),
+    ("F1 categories_get", "categories_get", {"id": "{category}"}),
+    ("F1 mailings_get", "mailings_get", {"id": "{mailing}"}),
+    ("F1 multi_currencies_get", "multi_currencies_get", {"id": "{multi_currency}"}),
+    ("F1 tickets_get", "tickets_get", {"id": "{ticket}"}),
+    ("F1 users_get", "users_get", {"id": 1}),
+    ("F1 users_get_by_login", "users_get_by_login", {"login": "admin"}),
+    ("F1 users_get_by_email", "users_get_by_email", {"email": "admin@example.com"}),
+    ("F1 users_get_group", "users_get_group", {"group": 1}),
+    ("F1 workstations_get", "workstations_get", {"id": 1}),
+
+    # -- List-GET --
+    ("F2 thirdparties_list", "thirdparties_list", {}),
+    ("F2 contacts_list", "contacts_list", {}),
+    ("F2 products_list", "products_list", {}),
+    ("F2 warehouses_list", "warehouses_list", {}),
+    ("F2 bankaccounts_list", "bankaccounts_list", {}),
+    ("F2 stockmovements_list", "stockmovements_list", {}),
+    ("F2 productlots_list", "productlots_list", {}),
+    ("F2 proposals_list", "proposals_list", {}),
+    ("F2 orders_list", "orders_list", {}),
+    ("F2 invoices_list", "invoices_list", {}),
+    ("F2 payments_list", "payments_list", {}),
+    ("F2 supplier_orders_list", "supplier_orders_list", {}),
+    ("F2 supplier_invoices_list", "supplier_invoices_list", {}),
+    ("F2 supplier_proposals_list", "supplier_proposals_list", {}),
+    ("F2 contracts_list", "contracts_list", {}),
+    ("F2 boms_list", "boms_list", {}),
+    ("F2 mos_list", "mos_list", {}),
+    ("F2 projects_list", "projects_list", {}),
+    ("F2 tasks_list", "tasks_list", {}),
+    ("F2 shipments_list", "shipments_list", {}),
+    ("F2 receptions_list", "receptions_list", {}),
+    ("F2 interventions_list", "interventions_list", {}),
+    ("F2 expense_reports_list", "expense_reports_list", {}),
+    ("F2 holidays_list", "holidays_list", {}),
+    ("F2 agenda_events_list", "agenda_events_list", {}),
+    ("F2 categories_list", "categories_list", {}),
+    ("F2 mailings_list", "mailings_list", {}),
+    ("F2 multi_currencies_list", "multi_currencies_list", {}),
+    ("F2 tickets_list", "tickets_list", {}),
+    ("F2 documents_list", "documents_list", {"modulepart": "propal", "id": 1}),
+    ("F2 users_list", "users_list", {}),
+    ("F2 users_list_groups", "users_list_groups", {}),
+    ("F2 workstations_list", "workstations_list", {}),
+
+    # -- Sub-resource GET --
+    ("F3 proposals_get_lines", "proposals_get_lines", {"id": "{proposal}"}),
+    ("F3 orders_get_lines", "orders_get_lines", {"id": "{order}"}),
+    ("F3 invoices_get_lines", "invoices_get_lines", {"id": "{invoice}"}),
+    ("F3 supplier_invoices_get_lines", "supplier_invoices_get_lines", {"id": "{supplier_invoice}"}),
+    ("F3 boms_get_lines", "boms_get_lines", {"id": "{bom}"}),
+    ("F3 expense_reports_get_lines", "expense_reports_get_lines", {"id": "{expense_report}"}),
+    ("F3 bankaccounts_get_lines", "bankaccounts_get_lines", {"id": "{bankaccount}"}),
+    ("F3 invoices_get_payments", "invoices_get_payments", {"id": "{invoice}"}),
+    ("F3 supplier_invoices_get_payments", "supplier_invoices_get_payments", {"id": "{supplier_invoice}"}),
+    ("F3 thirdparties_get_outstanding_proposals", "thirdparties_get_outstanding_proposals", {"id": "{thirdparty}"}),
+    ("F3 thirdparties_get_outstanding_orders", "thirdparties_get_outstanding_orders", {"id": "{thirdparty}"}),
+    ("F3 thirdparties_get_outstanding_invoices", "thirdparties_get_outstanding_invoices", {"id": "{thirdparty}"}),
+    ("F3 thirdparties_get_categories", "thirdparties_get_categories", {"id": "{thirdparty}"}),
+    ("F3 contacts_get_categories", "contacts_get_categories", {"id": "{contact}"}),
+    ("F3 products_get_categories", "products_get_categories", {"id": "{product}"}),
+    ("F3 products_get_subproducts", "products_get_subproducts", {"id": "{product}"}),
+    ("F3 projects_get_tasks", "projects_get_tasks", {"id": "{project}"}),
+    ("F3 multi_currencies_get_rates", "multi_currencies_get_rates", {"id": "{multi_currency}"}),
+    ("F3 products_get_contacts", "products_get_contacts", {"id": "{product}"}),
+    ("F3 orders_get_contacts", "orders_get_contacts", {"id": "{order}"}),
+    ("F3 invoices_get_contacts", "invoices_get_contacts", {"id": "{invoice}"}),
+    ("F3 supplier_orders_get_contacts", "supplier_orders_get_contacts", {"id": "{supplier_order}"}),
+    ("F3 interventions_get_contacts", "interventions_get_contacts", {"id": "{intervention}"}),
+    ("F3 tasks_get_contacts", "tasks_get_contacts", {"id": "{task}"}),
+    ("F3 projects_get_contacts", "projects_get_contacts", {"id": "{project}"}),
+    ("F3 thirdparties_get_representatives", "thirdparties_get_representatives", {"id": "{thirdparty}"}),
+    ("F3 users_get_user_groups", "users_get_user_groups", {"id": 1}),
+    ("F3 contracts_get_lines", "contracts_get_lines", {"id": "{contract}"}),
+    ("F3 warehouses_list_products", "warehouses_list_products", {"id": "{warehouse}"}),
+]
+
+
+async def run_filtering_check(
+    session: MCPSession,
+    label: str,
+    tool: str,
+    params: dict[str, Any],
+) -> bool:
+    """Call a GET tool and verify every returned key is within the allowed set."""
+    expected = TOOL_FIELD_MAP.get(tool)
+    if expected is None:
+        results.append({"label": label, "tool": tool, "status": "SKIPPED", "reason": f"No field mapping for {tool}"})
+        log(f"  SKIP {label}: no field mapping")
+        return False
+
+    params = resolve_params(params)
+    try:
+        result = await session.call_tool(tool, params)
+        err = is_error(result)
+        if err:
+            results.append({"label": label, "tool": tool, "status": "FAILED", "reason": err})
+            log(f"  FAIL {label}: {err}")
+            return False
+
+        data = extract_content(result)
+
+        # Unwrap {"items": ..., ...} → [...] for Dolibarr paginated responses
+        if isinstance(data, dict) and "items" in data:
+            items_val = data["items"]
+            if isinstance(items_val, list):
+                data = items_val
+            elif isinstance(items_val, str):
+                try:
+                    data = toon_to_json(items_val)
+                except Exception:
+                    results.append({"label": label, "tool": tool, "status": "FAILED", "reason": "Failed to parse TOON response"})
+                    log(f"  FAIL {label}: TOON parse error")
+                    return False
+
+        if isinstance(data, list):
+            if len(data) == 0:
+                results.append({"label": label, "tool": tool, "status": "PASSED", "data": {"note": "empty list (nothing to check)"}})
+                log(f"  PASS {label} (empty list)")
+                return True
+            items = data
+        elif isinstance(data, dict):
+            items = [data]
+        else:
+            results.append({"label": label, "tool": tool, "status": "SKIPPED", "reason": f"Non-dict/non-list response: {type(data).__name__}"})
+            log(f"  SKIP {label}: {type(data).__name__}")
+            return False
+
+        for idx, item in enumerate(items):
+            if not isinstance(item, dict):
+                continue
+            extra = sorted(k for k in item if k not in expected)
+            if extra:
+                results.append({"label": label, "tool": tool, "status": "FAILED", "reason": f"Item {idx}: unexpected fields: {extra}"})
+                log(f"  FAIL {label}: item {idx} has extra fields: {extra}")
+                return False
+
+        total_items = len(items)
+        total_fields = len(expected)
+        note = f"{total_items} items checked, all fields in allowed set ({total_fields} fields)"
+        results.append({"label": label, "tool": tool, "status": "PASSED", "data": {"note": note}})
+        log(f"  PASS {label} ({note})")
+        return True
+    except Exception as e:
+        results.append({"label": label, "tool": tool, "status": "FAILED", "reason": str(e)})
+        log(f"  FAIL {label}: {e}")
+        return False
+
+# =============================================================================
 # Main Test Runner
 # =============================================================================
 
@@ -880,6 +1185,13 @@ async def main():
             else:
                 label, tool, params = entry
                 await run_test(session, label, tool, params)
+
+        # ------------------------------------------------------------------
+        # Phase 5: Field Filtering Verification (before delete cycle)
+        # ------------------------------------------------------------------
+        log("\n=== Phase 5: Field Filtering Verification ===")
+        for label, tool, params in FILTERING_CHECKS:
+            await run_filtering_check(session, label, tool, params)
 
         # ------------------------------------------------------------------
         # Phase 3B: Get by ID + Update + Sub-tests + Delete + Verify
