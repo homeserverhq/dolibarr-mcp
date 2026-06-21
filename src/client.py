@@ -37,6 +37,7 @@ TP_COMMON = "id,ref,name,client,fournisseur,code_client,code_fournisseur,address
 PROD_COMMON = "id,ref,label,type,status,price,price_ttc,tva_tx,stock,barcode,weight"
 INV_COMMON = "id,ref,socid,socname,total_ht,total_tva,total_ttc,status"
 CONTACT_COMMON = "id,lastname,firstname,socid,socname,email,phone,phone_mobile,status"
+TICKET_COMMON = "id,ref,subject,type_label,status"
 BASE_COMMON = "id,ref,label,status"
 USER_COMMON = "id,ref,login,firstname,lastname,status,entity"
 GROUP_COMMON = "id,ref,name,nom,entity"
@@ -1492,13 +1493,13 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if socid: params["socid"] = socid
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = TICKET_COMMON
         return await self.get("/tickets/", api_key, params=params)
 
     async def tickets_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/tickets/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, TICKET_COMMON)
         return data
 
     async def tickets_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
