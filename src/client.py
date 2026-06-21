@@ -34,13 +34,13 @@ def _to_timestamp(value: str) -> int:
 
 
 TP_COMMON = "id,ref,name,client,fournisseur,code_client,code_fournisseur,address,zip,town,country_id,country_code,phone,email,status,tva_intra"
-PROD_COMMON = "id,ref,label,type,status,price,price_ttc,tva_tx,stock,barcode,weight"
-INV_COMMON = "id,ref,socid,socname,total_ht,total_tva,total_ttc,status"
+PROD_COMMON = "id,ref,label,type,status,price_ttc,stock,barcode,weight"
+INV_COMMON = "id,ref,socid,socname,total_ttc,status"
 CONTACT_COMMON = "id,lastname,firstname,socid,socname,email,phone,phone_mobile,status"
 TICKET_COMMON = "id,ref,subject,type_label,status,track_id"
-LINE_COMMON = "id,product_label,qty,subprice,total_ht,total_ttc,tva_tx,desc"
+LINE_COMMON = "id,product_label,qty,subprice,total_ttc,desc"
 BOM_LINE_COMMON = "id,ref,fk_product,qty"
-EXPENSE_LINE_COMMON = "id,type_fees_libelle,qty,total_ht,total_ttc,tva_tx,date,projet_title"
+EXPENSE_LINE_COMMON = "id,type_fees_libelle,qty,total_ttc,date,projet_title"
 BANK_LINE_COMMON = "id,ref,label,amount,dateo,bank_account_label"
 PAYMENT_LINE_COMMON = "id,ref,amount,type,date"
 BASE_COMMON = "id,ref,label,status"
