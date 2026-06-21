@@ -2,7 +2,7 @@
 
 This repository contains a Model Context Protocol (MCP) server that acts as a secure, multi-tenant proxy between an AI Assistant and the Dolibarr ERP/CRM backend API. It exposes **295 MCP tools** covering 34 resource domains with full CRUD, domain-specific tools, and relationship management.
 
-## Features
+## ✨ Features
 
 - **Identity Passthrough** — Extracts the `Authorization: Bearer <token>` header from incoming HTTP requests and forwards it to the Dolibarr API without server-side authentication.
 - **Multi-Tenancy** — Uses Python `contextvars` to maintain thread-safe user identity isolation, ensuring all AI-driven actions are scoped to the authenticated user's permissions.
@@ -10,14 +10,14 @@ This repository contains a Model Context Protocol (MCP) server that acts as a se
 - **TOON Optimization** — Bulk list responses are automatically compressed using TOON (Token-Optimized Object Notation) to reduce token consumption and maximize context window efficiency.
 - **Efficient Gets** — GET responses return only commonly used fields by default. Full objects are available via an `include_all_fields` flag.
 
-## Environment Variables
+## 🔧 Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `DOLIBARR_BASE_URL` | Yes | Docker-internal URL of the Dolibarr API |
 | `MCP_SERVER_PORT` | Yes | Port number the MCP server listens on |
 
-## Installation & Local Development
+## 📦 Installation & Local Development
 
 1. Ensure you have Python 3.12+ installed.
 2. Install dependencies:
@@ -31,29 +31,27 @@ This repository contains a Model Context Protocol (MCP) server that acts as a se
     python -m src.main
     ```
 
-## Docker Deployment
+## 🐳 Docker Deployment
 
 Build and run the server using Docker:
 
 ```bash
 docker build -t dolibarr-mcp:latest .
 docker run -d --name dolibarr-mcp \
-    --network dock-ext \
     -e DOLIBARR_BASE_URL="http://dolibarr-app:80/api/index.php" \
     -e MCP_SERVER_PORT=6033 \
-    -p 6033:6033 \
     dolibarr-mcp:latest
 ```
 
-The MCP server serves at `http://localhost:6033/mcp` (Streamable HTTP).
+The MCP server serves at `http://dolibarr-mcp:6033/mcp` (Streamable HTTP).
 
-## Important Notes
+## ⚠️ Important Notes
 
 - **`include_all_fields`** — The `include_all_fields` parameter (available on all `get_*` and `list_*` tools) controls whether all available fields are included in responses. Defaults to `False` for performance; set to `True` only when additional fields are needed.
 - **TOON Compression** — All bulk list responses are automatically compressed using TOON (Token-Optimized Object Notation) to reduce token consumption by 30-60%.
 - **Required Fields & Defaults** — Each `create_*` tool requires specific key fields (e.g. `name` for third parties). All other fields default to empty strings or reasonable values. The owner/user assignment field is automatically set to the authenticated user for most resources.
 
-## API Tool Mapping
+## 🛠️ API Tool Mapping
 
 The server implements 295 MCP tools organized into the following categories:
 
