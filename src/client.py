@@ -43,9 +43,28 @@ BOM_LINE_COMMON = "id,ref,fk_product,qty"
 EXPENSE_LINE_COMMON = "id,type_fees_libelle,qty,total_ttc,date,projet_title"
 BANK_LINE_COMMON = "id,ref,label,amount,dateo,bank_account_label"
 PAYMENT_LINE_COMMON = "id,ref,amount,type,date"
-BASE_COMMON = "id,ref,label,status"
 USER_COMMON = "id,ref,login,firstname,lastname,status,entity"
 GROUP_COMMON = "id,ref,name,nom,entity"
+CATEGORY_COMMON = "id,ref,label,type,fk_parent"
+WAREHOUSE_COMMON = "id,ref,label,type,status,lieu"
+STOCK_MOVEMENT_COMMON = "id,ref,product_label,qty,datem"
+PRODUCT_LOT_COMMON = "id,ref,batch,qty,product_ref"
+OUTSTANDING_COMMON = "id,ref,total_ttc,status,date"
+BANK_ACCOUNT_COMMON = "id,ref,label,type,currency,courant,ban"
+MULTI_CURRENCY_COMMON = "id,ref,label,rate,date"
+EXPENSE_REPORT_COMMON = "id,ref,total_ttc,status,date,projet_title"
+HOLIDAY_COMMON = "id,ref,fk_user,date_debut,date_fin,nbjour,status"
+PROJECT_COMMON = "id,ref,title,status,socid,budget_amount"
+TASK_COMMON = "id,ref,label,status,progress,planned_workload"
+SHIPMENT_COMMON = "id,ref,socname,status,total_ttc,date_delivery"
+RECEPTION_COMMON = "id,ref,socname,status,date_reception"
+INTERVENTION_COMMON = "id,ref,socname,status,date"
+AGENDA_EVENT_COMMON = "id,ref,label,type,datep,status"
+MAILING_COMMON = "id,ref,label,status,nbemail,date_creation"
+BOM_COMMON = "id,ref,label,status,fk_product"
+MO_COMMON = "id,ref,label,status,fk_product,qty"
+WORKSTATION_COMMON = "id,ref,label,status,type,cost"
+DOC_COMMON = "id,ref,label,module,type,date_c"
 
 MODULEPART_MAP = {
     "societe": "societe", "thirdparty": "societe", "company": "societe",
@@ -153,7 +172,7 @@ class DolibarrClient:
         if page != 0:
             params["page"] = page
         if not include_all_fields:
-            params["properties"] = BASE_COMMON
+            params["properties"] = DOC_COMMON
         return await self.get("/documents/", api_key, params=params)
 
     # ============================================================
@@ -189,19 +208,19 @@ class DolibarrClient:
     async def thirdparties_get_outstanding_proposals(self, id: int, api_key: Optional[str] = None, mode: str = "") -> Any:
         params = {}
         if mode: params["mode"] = mode
-        params["properties"] = BASE_COMMON
+        params["properties"] = OUTSTANDING_COMMON
         return await self.get(f"/thirdparties/{id}/outstandingproposals", api_key, params=params)
 
     async def thirdparties_get_outstanding_orders(self, id: int, api_key: Optional[str] = None, mode: str = "") -> Any:
         params = {}
         if mode: params["mode"] = mode
-        params["properties"] = BASE_COMMON
+        params["properties"] = OUTSTANDING_COMMON
         return await self.get(f"/thirdparties/{id}/outstandingorders", api_key, params=params)
 
     async def thirdparties_get_outstanding_invoices(self, id: int, api_key: Optional[str] = None, mode: str = "") -> Any:
         params = {}
         if mode: params["mode"] = mode
-        params["properties"] = BASE_COMMON
+        params["properties"] = OUTSTANDING_COMMON
         return await self.get(f"/thirdparties/{id}/outstandinginvoices", api_key, params=params)
 
     async def thirdparties_get_representatives(self, id: int, api_key: Optional[str] = None, mode: int = 0) -> Any:
@@ -216,7 +235,7 @@ class DolibarrClient:
         if sortorder != "ASC": params["sortorder"] = sortorder
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
-        params["properties"] = BASE_COMMON
+        params["properties"] = CATEGORY_COMMON
         return await self.get(f"/thirdparties/{id}/categories", api_key, params=params)
 
     # ============================================================
@@ -255,7 +274,7 @@ class DolibarrClient:
         if sortorder != "ASC": params["sortorder"] = sortorder
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
-        params["properties"] = BASE_COMMON
+        params["properties"] = CATEGORY_COMMON
         return await self.get(f"/contacts/{id}/categories", api_key, params=params)
 
     # ============================================================
@@ -290,7 +309,7 @@ class DolibarrClient:
         return await self.delete(f"/products/{id}", api_key)
 
     async def products_get_subproducts(self, id: int, api_key: Optional[str] = None) -> Any:
-        params = {"properties": BASE_COMMON}
+        params = {"properties": PROD_COMMON}
         return await self.get(f"/products/{id}/subproducts", api_key, params=params)
 
     async def products_get_categories(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
@@ -299,7 +318,7 @@ class DolibarrClient:
         if sortorder != "ASC": params["sortorder"] = sortorder
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
-        params["properties"] = BASE_COMMON
+        params["properties"] = CATEGORY_COMMON
         return await self.get(f"/products/{id}/categories", api_key, params=params)
 
     async def products_get_stock(self, id: int, api_key: Optional[str] = None, selected_warehouse_id: int = 0) -> Any:
@@ -324,13 +343,13 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if category: params["category"] = category
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = WAREHOUSE_COMMON
         return await self.get("/warehouses/", api_key, params=params)
 
     async def warehouses_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/warehouses/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, PROD_COMMON)
+            data = self._filter_fields(data, WAREHOUSE_COMMON)
         return data
 
     async def warehouses_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -361,13 +380,13 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = STOCK_MOVEMENT_COMMON
         return await self.get("/stockmovements/", api_key, params=params)
 
     async def stockmovements_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/stockmovements/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, STOCK_MOVEMENT_COMMON)
         return data
 
     async def stockmovements_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -383,13 +402,13 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = PRODUCT_LOT_COMMON
         return await self.get("/productlots/", api_key, params=params)
 
     async def productlots_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/productlots/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, PRODUCT_LOT_COMMON)
         return data
 
     async def productlots_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -418,7 +437,7 @@ class DolibarrClient:
     async def proposals_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/proposals/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, INV_COMMON)
         return data
 
     async def proposals_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -492,7 +511,7 @@ class DolibarrClient:
     async def orders_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/orders/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, INV_COMMON)
         return data
 
     async def orders_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -511,7 +530,7 @@ class DolibarrClient:
     async def orders_get_line(self, id: int, lineid: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/orders/{id}/lines/{lineid}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, LINE_COMMON)
         return data
 
     async def orders_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -660,13 +679,13 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = PAYMENT_LINE_COMMON
         return await self.get("/paiements/", api_key, params=params)
 
     async def payments_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/paiements/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, PAYMENT_LINE_COMMON)
         return data
 
     async def payments_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -686,13 +705,13 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if category: params["category"] = category
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = BANK_ACCOUNT_COMMON
         return await self.get("/bankaccounts/", api_key, params=params)
 
     async def bankaccounts_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/bankaccounts/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, BANK_ACCOUNT_COMMON)
         return data
 
     async def bankaccounts_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -905,7 +924,7 @@ class DolibarrClient:
     async def contracts_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/contracts/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, INV_COMMON)
         return data
 
     async def contracts_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -924,7 +943,7 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = LINE_COMMON
         return await self.get(f"/contracts/{id}/lines", api_key, params=params or None)
 
     async def contracts_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -959,13 +978,13 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = BOM_COMMON
         return await self.get("/boms/", api_key, params=params)
 
     async def boms_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/boms/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, BOM_COMMON)
         return data
 
     async def boms_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -997,13 +1016,13 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = MO_COMMON
         return await self.get("/mos/", api_key, params=params)
 
     async def mos_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/mos/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, MO_COMMON)
         return data
 
     async def mos_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -1030,13 +1049,13 @@ class DolibarrClient:
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if category: params["category"] = category
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = PROJECT_COMMON
         return await self.get("/projects/", api_key, params=params)
 
     async def projects_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/projects/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, PROJECT_COMMON)
         return data
 
     async def projects_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -1051,7 +1070,7 @@ class DolibarrClient:
     async def projects_get_tasks(self, id: int, api_key: Optional[str] = None, includetimespent: int = 0) -> Any:
         params = {}
         if includetimespent: params["includetimespent"] = includetimespent
-        params["properties"] = BASE_COMMON
+        params["properties"] = TASK_COMMON
         return await self.get(f"/projects/{id}/tasks", api_key, params=params)
 
     async def projects_get_timespent(self, id: int, api_key: Optional[str] = None) -> Any:
@@ -1078,7 +1097,7 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = TASK_COMMON
         return await self.get("/tasks/", api_key, params=params)
 
     async def tasks_get(self, id: int, api_key: Optional[str] = None, includetimespent: int = 0, include_all_fields: bool = False) -> Any:
@@ -1086,7 +1105,7 @@ class DolibarrClient:
         if includetimespent: params["includetimespent"] = includetimespent
         data = await self.get(f"/tasks/{id}", api_key, params=params or None)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, TASK_COMMON)
         return data
 
     async def tasks_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -1127,13 +1146,13 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = SHIPMENT_COMMON
         return await self.get("/shipments/", api_key, params=params)
 
     async def shipments_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/shipments/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, SHIPMENT_COMMON)
         return data
 
     async def shipments_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -1166,13 +1185,13 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = RECEPTION_COMMON
         return await self.get("/receptions/", api_key, params=params)
 
     async def receptions_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/receptions/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, RECEPTION_COMMON)
         return data
 
     async def receptions_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -1205,13 +1224,13 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = INTERVENTION_COMMON
         return await self.get("/interventions/", api_key, params=params)
 
     async def interventions_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/interventions/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, INTERVENTION_COMMON)
         return data
 
     async def interventions_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -1268,13 +1287,13 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if user_ids: params["user_ids"] = user_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = EXPENSE_REPORT_COMMON
         return await self.get("/expensereports/", api_key, params=params)
 
     async def expense_reports_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/expensereports/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, EXPENSE_REPORT_COMMON)
         return data
 
     async def expense_reports_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -1338,13 +1357,13 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if user_ids: params["user_ids"] = user_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = HOLIDAY_COMMON
         return await self.get("/holidays/", api_key, params=params)
 
     async def holidays_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/holidays/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, HOLIDAY_COMMON)
         return data
 
     async def holidays_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -1388,13 +1407,13 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if user_ids: params["user_ids"] = user_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = AGENDA_EVENT_COMMON
         return await self.get("/agendaevents/", api_key, params=params)
 
     async def agenda_events_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/agendaevents/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, AGENDA_EVENT_COMMON)
         return data
 
     async def agenda_events_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -1417,7 +1436,7 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if type: params["type"] = type
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = CATEGORY_COMMON
         return await self.get("/categories/", api_key, params=params)
 
     async def categories_get(self, id: int, api_key: Optional[str] = None, include_childs: bool = False, include_all_fields: bool = False) -> Any:
@@ -1425,7 +1444,7 @@ class DolibarrClient:
         if include_childs: params["include_childs"] = "true"
         data = await self.get(f"/categories/{id}", api_key, params=params or None)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, CATEGORY_COMMON)
         return data
 
     async def categories_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -1467,13 +1486,13 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = MAILING_COMMON
         return await self.get("/mailings/", api_key, params=params)
 
     async def mailings_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/mailings/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, MAILING_COMMON)
         return data
 
     async def mailings_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -1498,13 +1517,13 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = MULTI_CURRENCY_COMMON
         return await self.get("/multicurrencies/", api_key, params=params)
 
     async def multi_currencies_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/multicurrencies/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, MULTI_CURRENCY_COMMON)
         return data
 
     async def multi_currencies_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -1517,7 +1536,7 @@ class DolibarrClient:
         return await self.delete(f"/multicurrencies/{id}", api_key)
 
     async def multi_currencies_get_rates(self, id: int, api_key: Optional[str] = None) -> Any:
-        params = {"properties": BASE_COMMON}
+        params = {"properties": MULTI_CURRENCY_COMMON}
         return await self.get(f"/multicurrencies/{id}/rates", api_key, params=params)
 
     # ============================================================
@@ -1562,13 +1581,13 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = WORKSTATION_COMMON
         return await self.get("/workstations/", api_key, params=params)
 
     async def workstations_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/workstations/{id}", api_key)
         if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BASE_COMMON)
+            data = self._filter_fields(data, WORKSTATION_COMMON)
         return data
 
     # ============================================================
