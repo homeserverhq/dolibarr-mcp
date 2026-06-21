@@ -585,7 +585,7 @@ class CreateInterventionParam(BaseModel):
 
 
 class CreateInterventionLineParam(BaseModel):
-    desc: str = ""
+    description: str = ""
     duration: float = 0.0
     product_id: int = 0
     qty: float = 0.0
@@ -618,7 +618,7 @@ class CreateExpenseReportLineParam(BaseModel):
     value_unit: float
     product_id: int = 0
     comment: str = ""
-    tva_tx: float = 0.0
+    vatrate: float = 0.0
     localtax1_tx: float = 0.0
     localtax2_tx: float = 0.0
     fk_project: int = 0
@@ -764,8 +764,35 @@ async def documents_list(
 ) -> dict[str, Any]:
     """List documents/attachments for a given element.
 
+    Use documents_list_types first to discover which modulepart values are available.
+
     Args:
-        modulepart: Module type (e.g. invoice, order, product) (required).
+        modulepart: Object type to list documents for. Accepted values (any common alias works):
+            "thirdparty"/"societe"/"company" - Third parties
+            "user" - Users
+            "member"/"adherent" - Members
+            "proposal"/"propal" - Commercial proposals
+            "supplier_proposal" - Supplier proposals
+            "order"/"commande" - Customer orders
+            "supplier_order"/"commande_fournisseur" - Supplier orders
+            "shipment"/"expedition"/"shipping" - Shipments
+            "invoice"/"facture" - Customer invoices
+            "supplier_invoice"/"facture_fournisseur" - Supplier invoices
+            "product"/"produit"/"service" - Products and services
+            "event"/"agenda"/"action" - Agenda events
+            "expense_report"/"expensereport" - Expense reports
+            "holiday" - Leave requests
+            "ticket" - Tickets
+            "knowledge"/"knowledgemanagement" - Knowledge records
+            "category"/"categorie" - Categories
+            "contract"/"contrat" - Contracts
+            "intervention"/"fichinter" - Interventions
+            "project"/"projet" - Projects
+            "task"/"project_task" - Project tasks
+            "mrp"/"manufacturing_order" - Manufacturing orders
+            "contact"/"socpeople" - Contacts
+            "stock"/"warehouse"/"entrepot" - Warehouses/stock
+            "bank"/"banque"/"bankaccount" - Bank accounts (required).
         id: The unique ID of the resource (required).
         ref: Reference.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
@@ -780,6 +807,45 @@ async def documents_list(
         sortorder=sortorder, limit=limit, page=page
     )
     return {"items": json_to_toon(data)}
+
+
+@mcp.tool()
+async def documents_list_types(ctx: Context = None) -> dict[str, Any]:
+    """List all available document module types that can be used with documents_list.
+
+    Use this tool first to discover valid modulepart values,
+    then call documents_list with the chosen modulepart and an object ID.
+    """
+    return {
+        "types": [
+            {"type": "thirdparty", "aliases": ["societe", "company"], "description": "Third parties"},
+            {"type": "user", "aliases": [], "description": "Users"},
+            {"type": "member", "aliases": ["adherent"], "description": "Members"},
+            {"type": "proposal", "aliases": ["propal"], "description": "Commercial proposals"},
+            {"type": "supplier_proposal", "aliases": [], "description": "Supplier proposals"},
+            {"type": "order", "aliases": ["commande"], "description": "Customer orders"},
+            {"type": "supplier_order", "aliases": ["commande_fournisseur"], "description": "Supplier orders"},
+            {"type": "shipment", "aliases": ["expedition", "shipping"], "description": "Shipments"},
+            {"type": "invoice", "aliases": ["facture"], "description": "Customer invoices"},
+            {"type": "supplier_invoice", "aliases": ["facture_fournisseur"], "description": "Supplier invoices"},
+            {"type": "product", "aliases": ["produit", "service"], "description": "Products and services"},
+            {"type": "event", "aliases": ["agenda", "action"], "description": "Agenda events"},
+            {"type": "expense_report", "aliases": ["expensereport"], "description": "Expense reports"},
+            {"type": "holiday", "aliases": [], "description": "Leave requests"},
+            {"type": "ticket", "aliases": [], "description": "Tickets"},
+            {"type": "knowledge", "aliases": ["knowledgemanagement"], "description": "Knowledge records"},
+            {"type": "category", "aliases": ["categorie"], "description": "Categories"},
+            {"type": "contract", "aliases": ["contrat"], "description": "Contracts"},
+            {"type": "intervention", "aliases": ["fichinter"], "description": "Interventions"},
+            {"type": "project", "aliases": ["projet"], "description": "Projects"},
+            {"type": "task", "aliases": ["project_task"], "description": "Project tasks"},
+            {"type": "mrp", "aliases": ["manufacturing_order"], "description": "Manufacturing orders"},
+            {"type": "contact", "aliases": ["socpeople"], "description": "Contacts"},
+            {"type": "stock", "aliases": ["warehouse", "entrepot"], "description": "Warehouses and stock"},
+            {"type": "bank", "aliases": ["banque", "bankaccount"], "description": "Bank accounts"},
+        ]
+    }
+
 
 # ============================================================
 # Third Parties
@@ -4113,12 +4179,12 @@ async def interventions_get_lines(id: int, ctx: Context = None) -> dict[str, Any
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
-async def interventions_create_line(id: int, desc: str = "", duration: float = 0.0, product_id: int = 0, qty: float = 0.0, subprice: float = 0.0, tva_tx: float = 0.0, date: str = "", price_base_type: str = "HT", rang: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def interventions_create_line(id: int, description: str = "", duration: float = 0.0, product_id: int = 0, qty: float = 0.0, subprice: float = 0.0, tva_tx: float = 0.0, date: str = "", price_base_type: str = "HT", rang: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Add a line to an intervention.
 
     Args:
         id: The unique ID of the resource (required).
-        desc: Desc.
+        description: Description.
         duration: Duration.
         product_id: Product ID.
         qty: Quantity.
@@ -4128,7 +4194,7 @@ async def interventions_create_line(id: int, desc: str = "", duration: float = 0
         price_base_type: Price base type (HT or TTC).
         rang: Line position.
     """
-    params = CreateInterventionLineParam(desc=desc, duration=duration, product_id=product_id, qty=qty, subprice=subprice, tva_tx=tva_tx, date=date, price_base_type=price_base_type, rang=rang)
+    params = CreateInterventionLineParam(description=description, duration=duration, product_id=product_id, qty=qty, subprice=subprice, tva_tx=tva_tx, date=date, price_base_type=price_base_type, rang=rang)
     return await get_client().interventions_create_line(id, params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool()
@@ -4300,7 +4366,7 @@ async def expense_reports_get_lines(id: int, ctx: Context = None) -> dict[str, A
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
-async def expense_reports_create_line(id: int, date: str, fk_c_type_fees: int, qty: float, value_unit: float, product_id: int = 0, comment: str = "", tva_tx: float = 0.0, localtax1_tx: float = 0.0, localtax2_tx: float = 0.0, fk_project: int = 0, fk_soc: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def expense_reports_create_line(id: int, date: str, fk_c_type_fees: int, qty: float, value_unit: float, product_id: int = 0, comment: str = "", vatrate: float = 0.0, localtax1_tx: float = 0.0, localtax2_tx: float = 0.0, fk_project: int = 0, fk_soc: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Expense Reports Create Line.
 
     Args:
@@ -4311,13 +4377,13 @@ async def expense_reports_create_line(id: int, date: str, fk_c_type_fees: int, q
         value_unit: Value Unit (required).
         product_id: Product ID.
         comment: Comment.
-        tva_tx: VAT rate.
+        vatrate: VAT rate.
         localtax1_tx: Localtax1 Tx.
         localtax2_tx: Localtax2 Tx.
         fk_project: Project ID.
         fk_soc: Third party ID.
     """
-    params = CreateExpenseReportLineParam(date=date, fk_c_type_fees=fk_c_type_fees, qty=qty, value_unit=value_unit, product_id=product_id, comment=comment, tva_tx=tva_tx, localtax1_tx=localtax1_tx, localtax2_tx=localtax2_tx, fk_project=fk_project, fk_soc=fk_soc)
+    params = CreateExpenseReportLineParam(date=date, fk_c_type_fees=fk_c_type_fees, qty=qty, value_unit=value_unit, product_id=product_id, comment=comment, vatrate=vatrate, localtax1_tx=localtax1_tx, localtax2_tx=localtax2_tx, fk_project=fk_project, fk_soc=fk_soc)
     return await get_client().expense_reports_create_line(id, params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool()

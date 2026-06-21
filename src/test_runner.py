@@ -630,7 +630,7 @@ RESOURCE_TESTS = [
 ]
 
 LIST_ONLY_TESTS = [
-    ("Documents", "documents_list", {"modulepart": "product", "id": 1}),
+    ("Documents", "documents_list", {"modulepart": "propal", "id": 1}),
     ("Users", "users_list", {}),
     ("Workstations", "workstations_list", {}),
 ]
@@ -660,7 +660,7 @@ PHASE4_TESTS = [
     ("P4_proposals_get_lines", "proposals_get_lines", {"id": "{proposal}"}),
     ("P4_proposals_create_line", "proposals_create_line", {"id": "{proposal}", "desc": "Test line", "qty": 1, "subprice": 10.0, "product_id": "{product}"}),
     ("P4_proposals_get_contacts", "proposals_get_contacts", {"id": "{proposal}"}),
-    ("P4_proposals_add_contact", "proposals_add_contact", {"id": "{proposal}", "contactid": "{contact}", "type": "external"}),
+    ("P4_proposals_add_contact", "proposals_add_contact", {"id": "{proposal}", "contactid": "{contact}", "type": "CUSTOMER"}),
     ("P4_proposals_validate", "proposals_validate", {"id": "{proposal}"}),
     ("P4_proposals_close", "proposals_close", {"id": "{proposal}", "status": 2}),
     ("P4_proposals_setinvoiced", "proposals_setinvoiced", {"id": "{proposal}"}),
@@ -737,7 +737,7 @@ PHASE4_TESTS = [
     ("P4_receptions_close", "receptions_close", {"id": "{reception}"}),
 
     # ===== Interventions (state transitions) =====
-    ("P4_interventions_create_line", "interventions_create_line", {"id": "{intervention}", "desc": "Test intervention line", "duration": 60, "product_id": "{product}", "qty": 1}),
+    ("P4_interventions_create_line", "interventions_create_line", {"id": "{intervention}", "description": "Test intervention line", "duration": 60, "date": NOW, "product_id": "{product}", "qty": 1}),
     ("P4_interventions_get_contacts", "interventions_get_contacts", {"id": "{intervention}"}),
     ("P4_interventions_validate", "interventions_validate", {"id": "{intervention}"}),
     ("P4_interventions_close", "interventions_close", {"id": "{intervention}"}),

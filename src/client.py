@@ -19,11 +19,57 @@ def _normalize_datetime(value: str) -> str:
     return value
 
 
+def _to_timestamp(value: str) -> int:
+    if re.match(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$', value):
+        parsed = dt.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+        parsed = parsed.replace(tzinfo=dt.timezone.utc)
+        return int(parsed.timestamp())
+    if re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$', value):
+        parsed = dt.datetime.fromisoformat(value)
+        return int(parsed.timestamp())
+    if re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}', value):
+        parsed = dt.datetime.fromisoformat(value).replace(tzinfo=dt.timezone.utc)
+        return int(parsed.timestamp())
+    raise ValueError(f"Cannot convert to timestamp: {value}")
+
+
 TP_COMMON = "id,ref,nom,client,fournisseur,code_client,code_fournisseur,address,zip,town,country_id,country_code,phone,email,status,tva_intra,date_creation,date_modification"
 PROD_COMMON = "id,ref,label,type,status,price,price_ttc,tva_tx,stock,barcode,weight,date_creation"
 INV_COMMON = "id,ref,socid,socname,total_ht,total_tva,total_ttc,status,date_creation,date_validation"
 CONTACT_COMMON = "id,lastname,firstname,socid,socname,email,phone,phone_mobile,status"
 BASE_COMMON = "id,ref,label,status,date_creation,date_modification"
+
+MODULEPART_MAP = {
+    "societe": "societe", "thirdparty": "societe", "company": "societe",
+    "user": "user",
+    "adherent": "adherent", "member": "adherent",
+    "propal": "propal", "proposal": "propal", "propale": "propal",
+    "supplier_proposal": "supplier_proposal",
+    "commande": "commande", "order": "commande",
+    "commande_fournisseur": "commande_fournisseur", "supplier_order": "commande_fournisseur",
+    "expedition": "expedition", "shipment": "expedition", "shipping": "expedition",
+    "facture": "facture", "invoice": "facture",
+    "facture_fournisseur": "facture_fournisseur", "supplier_invoice": "facture_fournisseur",
+    "produit": "produit", "product": "produit", "service": "produit",
+    "agenda": "agenda", "actioncomm": "agenda", "action": "agenda", "event": "agenda",
+    "expensereport": "expensereport", "expense_report": "expensereport",
+    "holiday": "holiday",
+    "ticket": "ticket",
+    "knowledgemanagement": "knowledgemanagement", "knowledge": "knowledgemanagement",
+    "categorie": "categorie", "category": "categorie",
+    "contrat": "contrat", "contract": "contrat",
+    "ficheinter": "fichinter", "fichinter": "fichinter", "intervention": "fichinter",
+    "projet": "projet", "project": "projet",
+    "project_task": "project_task", "task": "project_task",
+    "mrp": "mrp", "manufacturing_order": "mrp",
+    "contact": "contact", "socpeople": "contact",
+    "stock": "stock", "warehouse": "stock", "entrepot": "stock",
+    "banque": "banque", "bank": "banque", "bankaccount": "banque",
+}
+
+
+def _normalize_modulepart(value: str) -> str:
+    return MODULEPART_MAP.get(value.lower(), value)
 
 
 class DolibarrClient:
@@ -73,7 +119,7 @@ class DolibarrClient:
     async def documents_list(self, api_key: Optional[str] = None, modulepart: str = "", id: int = 0, ref: str = "", include_all_fields: bool = False, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
         params = {}
         if modulepart:
-            params["modulepart"] = modulepart
+            params["modulepart"] = _normalize_modulepart(modulepart)
         if id:
             params["id"] = id
         if ref:
@@ -626,7 +672,10 @@ class DolibarrClient:
         return await self.get(f"/bankaccounts/{id}/lines", api_key, params=params or None)
 
     async def bankaccounts_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.post(f"/bankaccounts/{id}/lines", api_key, json=payload)
+        p = dict(payload)
+        if "date" in p and isinstance(p["date"], str):
+            p["date"] = _to_timestamp(p["date"])
+        return await self.post(f"/bankaccounts/{id}/lines", api_key, json=p)
 
     async def bankaccounts_get_line(self, line_id: int, api_key: Optional[str] = None) -> Any:
         return await self.get(f"/bankaccounts/lines/{line_id}", api_key)
@@ -1116,7 +1165,10 @@ class DolibarrClient:
         return await self.get(f"/interventions/{id}/lines", api_key)
 
     async def interventions_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.post(f"/interventions/{id}/lines", api_key, json=payload)
+        p = dict(payload)
+        if "date" in p and isinstance(p["date"], str):
+            p["date"] = _normalize_datetime(p["date"])
+        return await self.post(f"/interventions/{id}/lines", api_key, json=p)
 
     async def interventions_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.put(f"/interventions/{id}/lines/{lineid}", api_key, json=payload)
@@ -1174,7 +1226,10 @@ class DolibarrClient:
         return await self.get(f"/expensereports/{id}/lines", api_key)
 
     async def expense_reports_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.post(f"/expensereports/{id}/line", api_key, json=payload)
+        p = dict(payload)
+        if "date" in p and isinstance(p["date"], str):
+            p["date"] = _normalize_datetime(p["date"])
+        return await self.post(f"/expensereports/{id}/line", api_key, json=p)
 
     async def expense_reports_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.put(f"/expensereports/{id}/lines/{lineid}", api_key, json=payload)
