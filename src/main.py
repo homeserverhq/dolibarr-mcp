@@ -308,6 +308,14 @@ class CreateInvoiceContactParam(BaseModel):
     notrigger: int = 0
 
 
+class CreateTicketMessageParam(BaseModel):
+    track_id: str
+    message: str
+    fk_user_author: int = 0
+    note_public: str = ""
+    note_private: str = ""
+
+
 class CreateBankAccountParam(BaseModel):
     ref: str
     label: str
@@ -5025,6 +5033,24 @@ async def tickets_delete(id: int, ctx: Context = None) -> dict[str, Any]:
         id: The unique ID of the resource (required).
     """
     return await get_client().tickets_delete(id, get_user_token())
+
+
+@mcp.tool()
+async def tickets_create_message(track_id: str, message: str, fk_user_author: int = 0, note_public: str = "", note_private: str = "", ctx: Context = None) -> dict[str, Any]:
+    """Create a message on a ticket identified by its track_id.
+
+    Args:
+        track_id: The ticket's track_id (UUID string, not numeric ID).
+        message: The message text.
+        fk_user_author: User author ID.
+        note_public: Public note.
+        note_private: Private note.
+    """
+    params = CreateTicketMessageParam(track_id=track_id, message=message, fk_user_author=fk_user_author, note_public=note_public, note_private=note_private)
+    result = await get_client().tickets_create_message(params.model_dump(exclude_unset=True), get_user_token())
+    if not isinstance(result, dict):
+        return {"id": result}
+    return result
 
 # ============================================================
 # Workstations

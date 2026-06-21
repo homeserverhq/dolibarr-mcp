@@ -779,6 +779,10 @@ PHASE4_TESTS = [
     ("P4_users_list_groups", "users_list_groups", {}),
     ("P4_users_get_group", "users_get_group", {"group": 1}),
     ("P4_users_get_user_groups", "users_get_user_groups", {"id": 1}),
+
+    # ===== Tickets =====
+    ("P4_tickets_refetch", "tickets_get", {"id": "{ticket}"}, "ticket"),
+    ("P4_tickets_create_message", "tickets_create_message", {"track_id": "{ticket.track_id}", "message": "Test ticket message"}),
 ]
 
 # =============================================================================

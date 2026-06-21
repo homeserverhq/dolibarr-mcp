@@ -1,12 +1,12 @@
 # Dolibarr MCP Multi-Tenant Proxy Server
 
-This repository contains a Model Context Protocol (MCP) server that acts as a secure, multi-tenant proxy between an AI Assistant and the Dolibarr ERP/CRM backend API. It exposes **295 MCP tools** covering 34 resource domains with full CRUD, domain-specific tools, and relationship management.
+This repository contains a Model Context Protocol (MCP) server that acts as a secure, multi-tenant proxy between an AI Assistant and the Dolibarr ERP/CRM backend API. It exposes **285 MCP tools** covering 34 resource domains with full CRUD, domain-specific tools, and relationship management.
 
 ## ✨ Features
 
 - **🔑 Identity Passthrough** — Extracts the `Authorization: Bearer <token>` header from incoming HTTP requests and forwards it to the Dolibarr API without server-side authentication.
 - **👥 Multi-Tenancy** — Uses Python `contextvars` to maintain thread-safe user identity isolation, ensuring all AI-driven actions are scoped to the authenticated user's permissions.
-- **📊 Full Dolibarr Coverage** — 295 tools mapped to Dolibarr API endpoints across 34 resource domains.
+- **📊 Full Dolibarr Coverage** — 285 tools mapped to Dolibarr API endpoints across 34 resource domains.
 - **⚡ TOON Optimization** — Bulk list responses are automatically compressed using TOON (Token-Optimized Object Notation) to reduce token consumption and maximize context window efficiency.
 - **🚀 Efficient Gets** — GET responses return only commonly used fields by default. Full objects are available via an `include_all_fields` flag.
 
@@ -53,15 +53,16 @@ The MCP server serves at `http://dolibarr-mcp:6033/mcp` (Streamable HTTP).
 
 ## 🛠️ API Tool Mapping
 
-The server implements 295 MCP tools organized into the following categories:
+The server implements 285 MCP tools organized into the following categories:
 
 ### ✅ Status (1 tool)
 - `status_get` — Health check endpoint for backend connectivity
 
-### 📄 Documents (1 tool)
+### 📄 Documents (2 tools)
 - `documents_list` — List documents/attachments for a given element
+- `documents_list_types` — List available document types
 
-### 🏢 Third Parties (11 tools)
+### 🏢 Third Parties (10 tools)
 - `thirdparties_list` — List all third parties
 - `thirdparties_get` — Get a third party by ID
 - `thirdparties_create` — Create a new third party
@@ -100,12 +101,10 @@ The server implements 295 MCP tools organized into the following categories:
 - `warehouses_delete` — Delete a warehouse by ID
 - `warehouses_list_products` — List products in a warehouse
 
-### 📊 Stock Movements (5 tools)
+### 📊 Stock Movements (3 tools)
 - `stockmovements_list` — List all stock movements
 - `stockmovements_get` — Get a stock movement by ID
 - `stockmovements_create` — Create a new stock movement
-- `stockmovements_update` — Update an existing stock movement
-- `stockmovements_delete` — Delete a stock movement by ID
 
 ### 🏷️ Product Lots (5 tools)
 - `productlots_list` — List all product lots
@@ -114,7 +113,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `productlots_update` — Update an existing product lot
 - `productlots_delete` — Delete a product lot by ID
 
-### 📝 Proposals (16 tools)
+### 📝 Proposals (15 tools)
 - `proposals_list` — List all proposals
 - `proposals_get` — Get a proposal by ID
 - `proposals_create` — Create a new proposal
@@ -195,7 +194,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `bankaccounts_delete_line` — Delete a bank account line
 - `bankaccounts_get_balance` — Get the balance of a bank account
 
-### 🚚 Supplier Orders (13 tools)
+### 🚚 Supplier Orders (12 tools)
 - `supplier_orders_list` — List all supplier orders
 - `supplier_orders_get` — Get a supplier order by ID
 - `supplier_orders_create` — Create a new supplier order
@@ -209,7 +208,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `supplier_orders_approve` — Approve a supplier order
 - `supplier_orders_receive` — Receive a supplier order
 
-### 📋 Supplier Invoices (15 tools)
+### 📋 Supplier Invoices (13 tools)
 - `supplier_invoices_list` — List all supplier invoices
 - `supplier_invoices_get` — Get a supplier invoice by ID
 - `supplier_invoices_create` — Create a new supplier invoice
@@ -255,23 +254,21 @@ The server implements 295 MCP tools organized into the following categories:
 - `boms_create_line` — Create a line on a BOM
 - `boms_delete_line` — Delete a line from a BOM
 
-### 🏗️ Manufacturing Orders (7 tools)
+### 🏗️ Manufacturing Orders (6 tools)
 - `mos_list` — List all manufacturing orders
 - `mos_get` — Get a manufacturing order by ID
 - `mos_create` — Create a new manufacturing order
 - `mos_update` — Update an existing manufacturing order
 - `mos_delete` — Delete a manufacturing order by ID
 - `mos_produce_and_consume` — Produce and consume for an MO
-- `mos_get_categories` — Get categories for a manufacturing order
 
-### 🎯 Projects (10 tools)
+### 🎯 Projects (9 tools)
 - `projects_list` — List all projects
 - `projects_get` — Get a project by ID
 - `projects_create` — Create a new project
 - `projects_update` — Update an existing project
 - `projects_delete` — Delete a project by ID
 - `projects_get_tasks` — Get tasks for a project
-- `projects_create_task` — Create a task in a project
 - `projects_get_timespent` — Get time spent on a project
 - `projects_validate` — Validate a project
 - `projects_get_contacts` — Get contacts for a project
@@ -288,19 +285,16 @@ The server implements 295 MCP tools organized into the following categories:
 - `tasks_delete_timespent` — Delete time spent from a task
 - `tasks_get_contacts` — Get contacts for a task
 
-### 📦 Shipments (10 tools)
+### 📦 Shipments (7 tools)
 - `shipments_list` — List all shipments
 - `shipments_get` — Get a shipment by ID
 - `shipments_create` — Create a new shipment
 - `shipments_update` — Update an existing shipment
 - `shipments_delete` — Delete a shipment by ID
-- `shipments_create_from_order` — Create a shipment from an order
 - `shipments_validate` — Validate a shipment
 - `shipments_close` — Close a shipment
-- `shipments_setinvoiced` — Mark a shipment as invoiced
-- `shipments_get_lines` — Get lines of a shipment
 
-### 📥 Receptions (8 tools)
+### 📥 Receptions (7 tools)
 - `receptions_list` — List all receptions
 - `receptions_get` — Get a reception by ID
 - `receptions_create` — Create a new reception
@@ -308,7 +302,6 @@ The server implements 295 MCP tools organized into the following categories:
 - `receptions_delete` — Delete a reception by ID
 - `receptions_validate` — Validate a reception
 - `receptions_close` — Close a reception
-- `receptions_get_lines` — Get lines of a reception
 
 ### 🔧 Interventions (13 tools)
 - `interventions_list` — List all interventions
@@ -325,7 +318,7 @@ The server implements 295 MCP tools organized into the following categories:
 - `interventions_close` — Close an intervention
 - `interventions_get_contacts` — Get contacts for an intervention
 
-### 💸 Expense Reports (15 tools)
+### 💸 Expense Reports (14 tools)
 - `expense_reports_list` — List all expense reports
 - `expense_reports_get` — Get an expense report by ID
 - `expense_reports_create` — Create a new expense report
@@ -339,7 +332,6 @@ The server implements 295 MCP tools organized into the following categories:
 - `expense_reports_validate` — Validate an expense report
 - `expense_reports_approve` — Approve an expense report
 - `expense_reports_deny` — Deny an expense report
-- `expense_reports_setpaid` — Mark an expense report as paid
 - `expense_reports_cancel` — Cancel an expense report
 
 ### 🏖️ Holidays (9 tools)
@@ -388,15 +380,13 @@ The server implements 295 MCP tools organized into the following categories:
 - `multi_currencies_delete` — Delete a multi-currency by ID
 - `multi_currencies_get_rates` — Get rates for a multi-currency
 
-### 🎫 Tickets (8 tools)
+### 🎫 Tickets (6 tools)
 - `tickets_list` — List all tickets
 - `tickets_get` — Get a ticket by ID
 - `tickets_create` — Create a new ticket
 - `tickets_update` — Update an existing ticket
 - `tickets_delete` — Delete a ticket by ID
 - `tickets_create_message` — Create a message on a ticket
-- `tickets_add_contact` — Add a contact to a ticket
-- `tickets_delete_contact` — Remove a contact from a ticket
 
 ### 🖥️ Workstations (2 tools)
 - `workstations_list` — List all workstations

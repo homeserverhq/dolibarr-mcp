@@ -1470,6 +1470,9 @@ class DolibarrClient:
     async def tickets_delete(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.delete(f"/tickets/{id}", api_key)
 
+    async def tickets_create_message(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+        return await self.post("/tickets/newMessage/", api_key, json=payload)
+
     # ============================================================
     # Workstations
     # ============================================================
