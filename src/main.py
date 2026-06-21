@@ -9,6 +9,8 @@ from toon_mcp import json_to_toon
 
 from .client import DolibarrClient, _normalize_datetime
 
+ALLOW_ALL_AGGREGATE = False
+
 _current_user_token: ContextVar[Optional[str]] = ContextVar(
     "current_user_token", default=None
 )
@@ -811,7 +813,7 @@ async def documents_list(
     """
     data = await get_client().documents_list(
         get_user_token(), modulepart=modulepart, id=id, ref=ref,
-        include_all_fields=include_all_fields, sortfield=sortfield,
+        include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False, sortfield=sortfield,
         sortorder=sortorder, limit=limit, page=page
     )
     return {"items": json_to_toon(data)}
@@ -885,7 +887,7 @@ async def thirdparties_list(
     data = await get_client().thirdparties_list(
         get_user_token(), sortfield=sortfield, sortorder=sortorder,
         limit=limit, page=page, mode=mode, category=category,
-        sqlfilters=sqlfilters, include_all_fields=include_all_fields
+        sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False
     )
     return {"items": json_to_toon(data)}
 
@@ -1175,7 +1177,7 @@ async def contacts_list(
         get_user_token(), sortfield=sortfield, sortorder=sortorder,
         limit=limit, page=page, thirdparty_ids=thirdparty_ids,
         category=category, sqlfilters=sqlfilters,
-        include_all_fields=include_all_fields
+        include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False
     )
     return {"items": json_to_toon(data)}
 
@@ -1360,7 +1362,7 @@ async def products_list(
         get_user_token(), sortfield=sortfield, sortorder=sortorder,
         limit=limit, page=page, mode=mode, category=category,
         sqlfilters=sqlfilters, variant_filter=variant_filter,
-        include_all_fields=include_all_fields
+        include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False
     )
     return {"items": json_to_toon(data)}
 
@@ -1579,7 +1581,7 @@ async def warehouses_list(
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().warehouses_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, category=category, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().warehouses_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, category=category, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -1674,7 +1676,7 @@ async def stockmovements_list(sortfield: str = "", sortorder: str = "ASC", limit
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().stockmovements_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().stockmovements_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -1724,7 +1726,7 @@ async def productlots_list(sortfield: str = "", sortorder: str = "ASC", limit: i
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().productlots_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().productlots_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -1803,7 +1805,7 @@ async def proposals_list(sortfield: str = "", sortorder: str = "ASC", limit: int
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().proposals_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().proposals_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -2023,7 +2025,7 @@ async def orders_list(sortfield: str = "", sortorder: str = "ASC", limit: int = 
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().orders_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().orders_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -2276,7 +2278,7 @@ async def invoices_list(sortfield: str = "", sortorder: str = "ASC", limit: int 
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().invoices_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, status=status, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().invoices_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, status=status, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -2559,7 +2561,7 @@ async def payments_list(sortfield: str = "", sortorder: str = "ASC", limit: int 
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().payments_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().payments_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -2606,7 +2608,7 @@ async def bankaccounts_list(sortfield: str = "", sortorder: str = "ASC", limit: 
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().bankaccounts_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, category=category, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().bankaccounts_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, category=category, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -2791,7 +2793,7 @@ async def supplier_orders_list(sortfield: str = "", sortorder: str = "ASC", limi
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().supplier_orders_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, product_ids=product_ids, status=status, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().supplier_orders_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, product_ids=product_ids, status=status, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -2964,7 +2966,7 @@ async def supplier_invoices_list(sortfield: str = "", sortorder: str = "ASC", li
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().supplier_invoices_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, status=status, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().supplier_invoices_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, status=status, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -3151,7 +3153,7 @@ async def supplier_proposals_list(sortfield: str = "", sortorder: str = "ASC", l
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().supplier_proposals_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().supplier_proposals_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -3231,7 +3233,7 @@ async def contracts_list(sortfield: str = "", sortorder: str = "ASC", limit: int
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().contracts_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().contracts_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -3400,7 +3402,7 @@ async def boms_list(sortfield: str = "", sortorder: str = "ASC", limit: int = 10
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().boms_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().boms_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -3514,7 +3516,7 @@ async def mos_list(sortfield: str = "", sortorder: str = "ASC", limit: int = 100
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().mos_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().mos_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -3618,7 +3620,7 @@ async def projects_list(sortfield: str = "", sortorder: str = "ASC", limit: int 
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().projects_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, category=category, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().projects_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, category=category, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -3748,7 +3750,7 @@ async def tasks_list(sortfield: str = "", sortorder: str = "ASC", limit: int = 1
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().tasks_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().tasks_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -3893,7 +3895,7 @@ async def shipments_list(sortfield: str = "", sortorder: str = "ASC", limit: int
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().shipments_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().shipments_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -3998,7 +4000,7 @@ async def receptions_list(sortfield: str = "", sortorder: str = "ASC", limit: in
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().receptions_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().receptions_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -4097,7 +4099,7 @@ async def interventions_list(sortfield: str = "", sortorder: str = "ASC", limit:
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().interventions_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().interventions_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -4273,7 +4275,7 @@ async def expense_reports_list(sortfield: str = "", sortorder: str = "ASC", limi
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().expense_reports_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, user_ids=user_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().expense_reports_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, user_ids=user_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -4475,7 +4477,7 @@ async def holidays_list(sortfield: str = "", sortorder: str = "ASC", limit: int 
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().holidays_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, user_ids=user_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().holidays_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, user_ids=user_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -4588,7 +4590,7 @@ async def agenda_events_list(sortfield: str = "", sortorder: str = "ASC", limit:
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().agenda_events_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, user_ids=user_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().agenda_events_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, user_ids=user_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -4673,7 +4675,7 @@ async def categories_list(sortfield: str = "", sortorder: str = "ASC", limit: in
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().categories_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, type=type, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().categories_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, type=type, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -4802,7 +4804,7 @@ async def mailings_list(sortfield: str = "", sortorder: str = "ASC", limit: int 
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().mailings_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().mailings_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -4891,7 +4893,7 @@ async def multi_currencies_list(sortfield: str = "", sortorder: str = "ASC", lim
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().multi_currencies_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().multi_currencies_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -4968,7 +4970,7 @@ async def tickets_list(sortfield: str = "", sortorder: str = "ASC", limit: int =
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().tickets_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, socid=socid, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().tickets_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, socid=socid, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -5067,7 +5069,7 @@ async def workstations_list(sortfield: str = "", sortorder: str = "ASC", limit: 
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().workstations_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().workstations_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -5146,7 +5148,7 @@ async def users_list(sortfield: str = "", sortorder: str = "ASC", limit: int = 1
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().users_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, user_ids=user_ids, category=category, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
+    data = await get_client().users_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, user_ids=user_ids, category=category, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
     return {"items": json_to_toon(data)}
 
 @mcp.tool()

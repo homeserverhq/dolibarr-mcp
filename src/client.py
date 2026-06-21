@@ -33,11 +33,13 @@ def _to_timestamp(value: str) -> int:
     raise ValueError(f"Cannot convert to timestamp: {value}")
 
 
-TP_COMMON = "id,ref,nom,client,fournisseur,code_client,code_fournisseur,address,zip,town,country_id,country_code,phone,email,status,tva_intra,date_creation,date_modification"
-PROD_COMMON = "id,ref,label,type,status,price,price_ttc,tva_tx,stock,barcode,weight,date_creation"
-INV_COMMON = "id,ref,socid,socname,total_ht,total_tva,total_ttc,status,date_creation,date_validation"
+TP_COMMON = "id,ref,name,client,fournisseur,code_client,code_fournisseur,address,zip,town,country_id,country_code,phone,email,status,tva_intra"
+PROD_COMMON = "id,ref,label,type,status,price,price_ttc,tva_tx,stock,barcode,weight"
+INV_COMMON = "id,ref,socid,socname,total_ht,total_tva,total_ttc,status"
 CONTACT_COMMON = "id,lastname,firstname,socid,socname,email,phone,phone_mobile,status"
-BASE_COMMON = "id,ref,label,status,date_creation,date_modification"
+BASE_COMMON = "id,ref,label,status"
+USER_COMMON = "id,ref,login,firstname,lastname,status,entity"
+GROUP_COMMON = "id,ref,name,nom,entity"
 
 MODULEPART_MAP = {
     "societe": "societe", "thirdparty": "societe", "company": "societe",
@@ -113,6 +115,12 @@ class DolibarrClient:
     async def delete(self, path: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.request("DELETE", path, api_key, **kwargs)
 
+    def _filter_fields(self, data: dict[str, Any], common_fields: str) -> dict[str, Any]:
+        keep = set(common_fields.split(","))
+        if isinstance(data, dict):
+            return {k: v for k, v in data.items() if k in keep}
+        return data
+
     async def status_get(self, api_key: Optional[str] = None) -> Any:
         return await self.get("/status/", api_key)
 
@@ -152,9 +160,10 @@ class DolibarrClient:
         return await self.get("/thirdparties/", api_key, params=params)
 
     async def thirdparties_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = TP_COMMON
-        return await self.get(f"/thirdparties/{id}", api_key, params=params or None)
+        data = await self.get(f"/thirdparties/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, TP_COMMON)
+        return data
 
     async def thirdparties_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/thirdparties/", api_key, json=payload)
@@ -209,9 +218,10 @@ class DolibarrClient:
         return await self.get("/contacts/", api_key, params=params)
 
     async def contacts_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = CONTACT_COMMON
-        return await self.get(f"/contacts/{id}", api_key, params=params or None)
+        data = await self.get(f"/contacts/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, CONTACT_COMMON)
+        return data
 
     async def contacts_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/contacts/", api_key, json=payload)
@@ -247,9 +257,10 @@ class DolibarrClient:
         return await self.get("/products/", api_key, params=params)
 
     async def products_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = PROD_COMMON
-        return await self.get(f"/products/{id}", api_key, params=params or None)
+        data = await self.get(f"/products/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, PROD_COMMON)
+        return data
 
     async def products_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/products/", api_key, json=payload)
@@ -296,9 +307,10 @@ class DolibarrClient:
         return await self.get("/warehouses/", api_key, params=params)
 
     async def warehouses_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/warehouses/{id}", api_key, params=params or None)
+        data = await self.get(f"/warehouses/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, PROD_COMMON)
+        return data
 
     async def warehouses_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/warehouses/", api_key, json=payload)
@@ -332,9 +344,10 @@ class DolibarrClient:
         return await self.get("/stockmovements/", api_key, params=params)
 
     async def stockmovements_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/stockmovements/{id}", api_key, params=params or None)
+        data = await self.get(f"/stockmovements/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def stockmovements_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/stockmovements/", api_key, json=payload)
@@ -353,9 +366,10 @@ class DolibarrClient:
         return await self.get("/productlots/", api_key, params=params)
 
     async def productlots_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/productlots/{id}", api_key, params=params or None)
+        data = await self.get(f"/productlots/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def productlots_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/productlots/", api_key, json=payload)
@@ -381,9 +395,10 @@ class DolibarrClient:
         return await self.get("/proposals/", api_key, params=params)
 
     async def proposals_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = INV_COMMON
-        return await self.get(f"/proposals/{id}", api_key, params=params or None)
+        data = await self.get(f"/proposals/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def proposals_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/proposals/", api_key, json=payload)
@@ -453,9 +468,10 @@ class DolibarrClient:
         return await self.get("/orders/", api_key, params=params)
 
     async def orders_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = INV_COMMON
-        return await self.get(f"/orders/{id}", api_key, params=params or None)
+        data = await self.get(f"/orders/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def orders_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/orders/", api_key, json=payload)
@@ -470,9 +486,10 @@ class DolibarrClient:
         return await self.get(f"/orders/{id}/lines", api_key)
 
     async def orders_get_line(self, id: int, lineid: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/orders/{id}/lines/{lineid}", api_key, params=params or None)
+        data = await self.get(f"/orders/{id}/lines/{lineid}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def orders_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post(f"/orders/{id}/lines", api_key, json=payload)
@@ -535,9 +552,10 @@ class DolibarrClient:
         return await self.get("/invoices/", api_key, params=params)
 
     async def invoices_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = INV_COMMON
-        return await self.get(f"/invoices/{id}", api_key, params=params or None)
+        data = await self.get(f"/invoices/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, INV_COMMON)
+        return data
 
     async def invoices_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/invoices/", api_key, json=payload)
@@ -619,9 +637,10 @@ class DolibarrClient:
         return await self.get("/paiements/", api_key, params=params)
 
     async def payments_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/paiements/{id}", api_key, params=params or None)
+        data = await self.get(f"/paiements/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def payments_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.put(f"/paiements/{id}", api_key, json=payload)
@@ -644,9 +663,10 @@ class DolibarrClient:
         return await self.get("/bankaccounts/", api_key, params=params)
 
     async def bankaccounts_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/bankaccounts/{id}", api_key, params=params or None)
+        data = await self.get(f"/bankaccounts/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def bankaccounts_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/bankaccounts/", api_key, json=payload)
@@ -701,9 +721,10 @@ class DolibarrClient:
         return await self.get("/supplierorders/", api_key, params=params)
 
     async def supplier_orders_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = INV_COMMON
-        return await self.get(f"/supplierorders/{id}", api_key, params=params or None)
+        data = await self.get(f"/supplierorders/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, INV_COMMON)
+        return data
 
     async def supplier_orders_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/supplierorders/", api_key, json=payload)
@@ -762,9 +783,10 @@ class DolibarrClient:
         return await self.get("/supplierinvoices/", api_key, params=params)
 
     async def supplier_invoices_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = INV_COMMON
-        return await self.get(f"/supplierinvoices/{id}", api_key, params=params or None)
+        data = await self.get(f"/supplierinvoices/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, INV_COMMON)
+        return data
 
     async def supplier_invoices_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/supplierinvoices/", api_key, json=payload)
@@ -820,9 +842,10 @@ class DolibarrClient:
         return await self.get("/supplierproposals/", api_key, params=params)
 
     async def supplier_proposals_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = INV_COMMON
-        return await self.get(f"/supplierproposals/{id}", api_key, params=params or None)
+        data = await self.get(f"/supplierproposals/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, INV_COMMON)
+        return data
 
     async def supplier_proposals_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/supplierproposals/", api_key, json=payload)
@@ -848,9 +871,10 @@ class DolibarrClient:
         return await self.get("/contracts/", api_key, params=params)
 
     async def contracts_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = INV_COMMON
-        return await self.get(f"/contracts/{id}", api_key, params=params or None)
+        data = await self.get(f"/contracts/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def contracts_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/contracts/", api_key, json=payload)
@@ -907,9 +931,10 @@ class DolibarrClient:
         return await self.get("/boms/", api_key, params=params)
 
     async def boms_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/boms/{id}", api_key, params=params or None)
+        data = await self.get(f"/boms/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def boms_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/boms/", api_key, json=payload)
@@ -943,9 +968,10 @@ class DolibarrClient:
         return await self.get("/mos/", api_key, params=params)
 
     async def mos_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/mos/{id}", api_key, params=params or None)
+        data = await self.get(f"/mos/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def mos_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/mos/", api_key, json=payload)
@@ -975,9 +1001,10 @@ class DolibarrClient:
         return await self.get("/projects/", api_key, params=params)
 
     async def projects_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/projects/{id}", api_key, params=params or None)
+        data = await self.get(f"/projects/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def projects_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/projects/", api_key, json=payload)
@@ -1022,8 +1049,10 @@ class DolibarrClient:
     async def tasks_get(self, id: int, api_key: Optional[str] = None, includetimespent: int = 0, include_all_fields: bool = False) -> Any:
         params = {}
         if includetimespent: params["includetimespent"] = includetimespent
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/tasks/{id}", api_key, params=params or None)
+        data = await self.get(f"/tasks/{id}", api_key, params=params or None)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def tasks_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/tasks/", api_key, json=payload)
@@ -1066,9 +1095,10 @@ class DolibarrClient:
         return await self.get("/shipments/", api_key, params=params)
 
     async def shipments_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/shipments/{id}", api_key, params=params or None)
+        data = await self.get(f"/shipments/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def shipments_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/shipments/", api_key, json=payload)
@@ -1104,9 +1134,10 @@ class DolibarrClient:
         return await self.get("/receptions/", api_key, params=params)
 
     async def receptions_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/receptions/{id}", api_key, params=params or None)
+        data = await self.get(f"/receptions/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def receptions_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/receptions/", api_key, json=payload)
@@ -1142,9 +1173,10 @@ class DolibarrClient:
         return await self.get("/interventions/", api_key, params=params)
 
     async def interventions_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/interventions/{id}", api_key, params=params or None)
+        data = await self.get(f"/interventions/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def interventions_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/interventions/", api_key, json=payload)
@@ -1203,9 +1235,10 @@ class DolibarrClient:
         return await self.get("/expensereports/", api_key, params=params)
 
     async def expense_reports_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/expensereports/{id}", api_key, params=params or None)
+        data = await self.get(f"/expensereports/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def expense_reports_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/expensereports/", api_key, json=payload)
@@ -1271,9 +1304,10 @@ class DolibarrClient:
         return await self.get("/holidays/", api_key, params=params)
 
     async def holidays_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/holidays/{id}", api_key, params=params or None)
+        data = await self.get(f"/holidays/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def holidays_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/holidays/", api_key, json=payload)
@@ -1320,9 +1354,10 @@ class DolibarrClient:
         return await self.get("/agendaevents/", api_key, params=params)
 
     async def agenda_events_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/agendaevents/{id}", api_key, params=params or None)
+        data = await self.get(f"/agendaevents/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def agenda_events_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/agendaevents/", api_key, json=payload)
@@ -1350,8 +1385,10 @@ class DolibarrClient:
     async def categories_get(self, id: int, api_key: Optional[str] = None, include_childs: bool = False, include_all_fields: bool = False) -> Any:
         params = {}
         if include_childs: params["include_childs"] = "true"
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/categories/{id}", api_key, params=params or None)
+        data = await self.get(f"/categories/{id}", api_key, params=params or None)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def categories_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/categories/", api_key, json=payload)
@@ -1396,9 +1433,10 @@ class DolibarrClient:
         return await self.get("/mailings/", api_key, params=params)
 
     async def mailings_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/mailings/{id}", api_key, params=params or None)
+        data = await self.get(f"/mailings/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def mailings_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/mailings/", api_key, json=payload)
@@ -1426,9 +1464,10 @@ class DolibarrClient:
         return await self.get("/multicurrencies/", api_key, params=params)
 
     async def multi_currencies_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/multicurrencies/{id}", api_key, params=params or None)
+        data = await self.get(f"/multicurrencies/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def multi_currencies_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/multicurrencies/", api_key, json=payload)
@@ -1457,9 +1496,10 @@ class DolibarrClient:
         return await self.get("/tickets/", api_key, params=params)
 
     async def tickets_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/tickets/{id}", api_key, params=params or None)
+        data = await self.get(f"/tickets/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     async def tickets_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/tickets/", api_key, json=payload)
@@ -1487,9 +1527,10 @@ class DolibarrClient:
         return await self.get("/workstations/", api_key, params=params)
 
     async def workstations_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
-        params = {}
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/workstations/{id}", api_key, params=params or None)
+        data = await self.get(f"/workstations/{id}", api_key)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, BASE_COMMON)
+        return data
 
     # ============================================================
     # Object Links
@@ -1524,26 +1565,32 @@ class DolibarrClient:
         if user_ids: params["user_ids"] = user_ids
         if category: params["category"] = category
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = USER_COMMON
         return await self.get("/users/", api_key, params=params)
 
     async def users_get(self, id: int, api_key: Optional[str] = None, includepermissions: int = 0, include_all_fields: bool = False) -> Any:
         params = {}
         if includepermissions: params["includepermissions"] = includepermissions
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/users/{id}", api_key, params=params or None)
+        data = await self.get(f"/users/{id}", api_key, params=params or None)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, USER_COMMON)
+        return data
 
     async def users_get_by_login(self, login: str, api_key: Optional[str] = None, includepermissions: int = 0, include_all_fields: bool = False) -> Any:
         params = {}
         if includepermissions: params["includepermissions"] = includepermissions
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/users/login/{login}", api_key, params=params or None)
+        data = await self.get(f"/users/login/{login}", api_key, params=params or None)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, USER_COMMON)
+        return data
 
     async def users_get_by_email(self, email: str, api_key: Optional[str] = None, includepermissions: int = 0, include_all_fields: bool = False) -> Any:
         params = {}
         if includepermissions: params["includepermissions"] = includepermissions
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/users/email/{email}", api_key, params=params or None)
+        data = await self.get(f"/users/email/{email}", api_key, params=params or None)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, USER_COMMON)
+        return data
 
     async def users_get_info(self, api_key: Optional[str] = None, includepermissions: int = 0) -> Any:
         params = {}
@@ -1558,15 +1605,17 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if group_ids: params["group_ids"] = group_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BASE_COMMON
+        if not include_all_fields: params["properties"] = GROUP_COMMON
         return await self.get("/users/groups", api_key, params=params)
 
     async def users_get_group(self, group: int, api_key: Optional[str] = None, load_members: int = 0, includepermissions: int = 0, include_all_fields: bool = False) -> Any:
         params = {}
         if load_members: params["load_members"] = load_members
         if includepermissions: params["includepermissions"] = includepermissions
-        if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/users/groups/{group}", api_key, params=params or None)
+        data = await self.get(f"/users/groups/{group}", api_key, params=params or None)
+        if not include_all_fields and isinstance(data, dict):
+            data = self._filter_fields(data, GROUP_COMMON)
+        return data
 
     async def users_get_user_groups(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.get(f"/users/{id}/groups", api_key)
