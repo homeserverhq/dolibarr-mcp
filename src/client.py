@@ -576,18 +576,18 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
         if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get("/payments/", api_key, params=params)
+        return await self.get("/paiements/", api_key, params=params)
 
     async def payments_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         params = {}
         if not include_all_fields: params["properties"] = BASE_COMMON
-        return await self.get(f"/payments/{id}", api_key, params=params or None)
+        return await self.get(f"/paiements/{id}", api_key, params=params or None)
 
     async def payments_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.put(f"/payments/{id}", api_key, json=payload)
+        return await self.put(f"/paiements/{id}", api_key, json=payload)
 
     async def payments_delete(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.delete(f"/payments/{id}", api_key)
+        return await self.delete(f"/paiements/{id}", api_key)
 
     # ============================================================
     # Bank Accounts
@@ -655,53 +655,53 @@ class DolibarrClient:
         if status: params["status"] = status
         if sqlfilters: params["sqlfilters"] = sqlfilters
         if not include_all_fields: params["properties"] = INV_COMMON
-        return await self.get("/supplier_orders/", api_key, params=params)
+        return await self.get("/supplierorders/", api_key, params=params)
 
     async def supplier_orders_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         params = {}
         if not include_all_fields: params["properties"] = INV_COMMON
-        return await self.get(f"/supplier_orders/{id}", api_key, params=params or None)
+        return await self.get(f"/supplierorders/{id}", api_key, params=params or None)
 
     async def supplier_orders_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.post("/supplier_orders/", api_key, json=payload)
+        return await self.post("/supplierorders/", api_key, json=payload)
 
     async def supplier_orders_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.put(f"/supplier_orders/{id}", api_key, json=payload)
+        return await self.put(f"/supplierorders/{id}", api_key, json=payload)
 
     async def supplier_orders_delete(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.delete(f"/supplier_orders/{id}", api_key)
+        return await self.delete(f"/supplierorders/{id}", api_key)
 
     async def supplier_orders_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.post(f"/supplier_orders/{id}/lines", api_key, json=payload)
+        return await self.post(f"/supplierorders/{id}/lines", api_key, json=payload)
 
     async def supplier_orders_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
         params = {}
         if type: params["type"] = type
-        return await self.get(f"/supplier_orders/{id}/contacts", api_key, params=params or None)
+        return await self.get(f"/supplierorders/{id}/contacts", api_key, params=params or None)
 
     async def supplier_orders_add_contact(self, id: int, contactid: int, type: str, source: str, api_key: Optional[str] = None) -> Any:
-        return await self.post(f"/supplier_orders/{id}/contact/{contactid}/{type}/{source}", api_key)
+        return await self.post(f"/supplierorders/{id}/contact/{contactid}/{type}/{source}", api_key)
 
     async def supplier_orders_delete_contact(self, id: int, contactid: int, type: str, source: str, api_key: Optional[str] = None) -> Any:
-        return await self.delete(f"/supplier_orders/{id}/contact/{contactid}/{type}/{source}", api_key)
+        return await self.delete(f"/supplierorders/{id}/contact/{contactid}/{type}/{source}", api_key)
 
     async def supplier_orders_validate(self, id: int, api_key: Optional[str] = None, idwarehouse: int = 0, notrigger: int = 0) -> Any:
         params = {}
         if idwarehouse: params["idwarehouse"] = idwarehouse
         if notrigger: params["notrigger"] = notrigger
-        return await self.post(f"/supplier_orders/{id}/validate", api_key, params=params or None)
+        return await self.post(f"/supplierorders/{id}/validate", api_key, params=params or None)
 
     async def supplier_orders_approve(self, id: int, api_key: Optional[str] = None, idwarehouse: int = 0, secondlevel: int = 0) -> Any:
         params = {}
         if idwarehouse: params["idwarehouse"] = idwarehouse
         if secondlevel: params["secondlevel"] = secondlevel
-        return await self.post(f"/supplier_orders/{id}/approve", api_key, params=params or None)
+        return await self.post(f"/supplierorders/{id}/approve", api_key, params=params or None)
 
     async def supplier_orders_receive(self, id: int, api_key: Optional[str] = None, closeopenorder: int = 0, comment: str = "") -> Any:
         params = {}
         if closeopenorder: params["closeopenorder"] = closeopenorder
         if comment: params["comment"] = comment
-        return await self.post(f"/supplier_orders/{id}/receive", api_key, params=params or None)
+        return await self.post(f"/supplierorders/{id}/receive", api_key, params=params or None)
 
     # ============================================================
     # Supplier Invoices
@@ -716,51 +716,51 @@ class DolibarrClient:
         if status: params["status"] = status
         if sqlfilters: params["sqlfilters"] = sqlfilters
         if not include_all_fields: params["properties"] = INV_COMMON
-        return await self.get("/supplier_invoices/", api_key, params=params)
+        return await self.get("/supplierinvoices/", api_key, params=params)
 
     async def supplier_invoices_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         params = {}
         if not include_all_fields: params["properties"] = INV_COMMON
-        return await self.get(f"/supplier_invoices/{id}", api_key, params=params or None)
+        return await self.get(f"/supplierinvoices/{id}", api_key, params=params or None)
 
     async def supplier_invoices_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.post("/supplier_invoices/", api_key, json=payload)
+        return await self.post("/supplierinvoices/", api_key, json=payload)
 
     async def supplier_invoices_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.put(f"/supplier_invoices/{id}", api_key, json=payload)
+        return await self.put(f"/supplierinvoices/{id}", api_key, json=payload)
 
     async def supplier_invoices_delete(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.delete(f"/supplier_invoices/{id}", api_key)
+        return await self.delete(f"/supplierinvoices/{id}", api_key)
 
     async def supplier_invoices_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.get(f"/supplier_invoices/{id}/lines", api_key)
+        return await self.get(f"/supplierinvoices/{id}/lines", api_key)
 
     async def supplier_invoices_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.post(f"/supplier_invoices/{id}/lines", api_key, json=payload)
+        return await self.post(f"/supplierinvoices/{id}/lines", api_key, json=payload)
 
     async def supplier_invoices_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.put(f"/supplier_invoices/{id}/lines/{lineid}", api_key, json=payload)
+        return await self.put(f"/supplierinvoices/{id}/lines/{lineid}", api_key, json=payload)
 
     async def supplier_invoices_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None) -> Any:
-        return await self.delete(f"/supplier_invoices/{id}/lines/{lineid}", api_key)
+        return await self.delete(f"/supplierinvoices/{id}/lines/{lineid}", api_key)
 
     async def supplier_invoices_validate(self, id: int, api_key: Optional[str] = None, idwarehouse: int = 0, notrigger: int = 0) -> Any:
         params = {}
         if idwarehouse: params["idwarehouse"] = idwarehouse
         if notrigger: params["notrigger"] = notrigger
-        return await self.post(f"/supplier_invoices/{id}/validate", api_key, params=params or None)
+        return await self.post(f"/supplierinvoices/{id}/validate", api_key, params=params or None)
 
     async def supplier_invoices_settopaid(self, id: int, api_key: Optional[str] = None, close_code: str = "", close_note: str = "") -> Any:
         params = {}
         if close_code: params["close_code"] = close_code
         if close_note: params["close_note"] = close_note
-        return await self.post(f"/supplier_invoices/{id}/settopaid", api_key, params=params or None)
+        return await self.post(f"/supplierinvoices/{id}/settopaid", api_key, params=params or None)
 
     async def supplier_invoices_get_payments(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.get(f"/supplier_invoices/{id}/payments", api_key)
+        return await self.get(f"/supplierinvoices/{id}/payments", api_key)
 
     async def supplier_invoices_add_payment(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.post(f"/supplier_invoices/{id}/payments", api_key, json=payload)
+        return await self.post(f"/supplierinvoices/{id}/payments", api_key, json=payload)
 
     # ============================================================
     # Supplier Proposals
@@ -774,21 +774,21 @@ class DolibarrClient:
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
         if not include_all_fields: params["properties"] = INV_COMMON
-        return await self.get("/supplier_proposals/", api_key, params=params)
+        return await self.get("/supplierproposals/", api_key, params=params)
 
     async def supplier_proposals_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         params = {}
         if not include_all_fields: params["properties"] = INV_COMMON
-        return await self.get(f"/supplier_proposals/{id}", api_key, params=params or None)
+        return await self.get(f"/supplierproposals/{id}", api_key, params=params or None)
 
     async def supplier_proposals_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.post("/supplier_proposals/", api_key, json=payload)
+        return await self.post("/supplierproposals/", api_key, json=payload)
 
     async def supplier_proposals_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.put(f"/supplier_proposals/{id}", api_key, json=payload)
+        return await self.put(f"/supplierproposals/{id}", api_key, json=payload)
 
     async def supplier_proposals_delete(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.delete(f"/supplier_proposals/{id}", api_key)
+        return await self.delete(f"/supplierproposals/{id}", api_key)
 
     # ============================================================
     # Contracts
@@ -916,14 +916,6 @@ class DolibarrClient:
     async def mos_produce_and_consume(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post(f"/mos/{id}/produceandconsume", api_key, json=payload)
 
-    async def mos_get_categories(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
-        params = {}
-        if sortfield: params["sortfield"] = sortfield
-        if sortorder != "ASC": params["sortorder"] = sortorder
-        if limit != 100: params["limit"] = limit
-        if page != 0: params["page"] = page
-        return await self.get(f"/mos/{id}/categories", api_key, params=params or None)
-
     # ============================================================
     # Projects
     # ============================================================
@@ -957,9 +949,6 @@ class DolibarrClient:
         params = {}
         if includetimespent: params["includetimespent"] = includetimespent
         return await self.get(f"/projects/{id}/tasks", api_key, params=params or None)
-
-    async def projects_create_task(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.post(f"/projects/{id}/tasks", api_key, json=payload)
 
     async def projects_get_timespent(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.get(f"/projects/{id}/timespent", api_key)
@@ -1047,9 +1036,6 @@ class DolibarrClient:
     async def shipments_delete(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.delete(f"/shipments/{id}", api_key)
 
-    async def shipments_create_from_order(self, orderid: int, api_key: Optional[str] = None) -> Any:
-        return await self.post(f"/shipments/createfromorder/{orderid}", api_key)
-
     async def shipments_validate(self, id: int, api_key: Optional[str] = None, notrigger: int = 0) -> Any:
         params = {}
         if notrigger: params["notrigger"] = notrigger
@@ -1059,12 +1045,6 @@ class DolibarrClient:
         params = {}
         if notrigger: params["notrigger"] = notrigger
         return await self.post(f"/shipments/{id}/close", api_key, params=params or None)
-
-    async def shipments_setinvoiced(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.post(f"/shipments/{id}/setinvoiced", api_key)
-
-    async def shipments_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.get(f"/shipments/{id}/lines", api_key)
 
     # ============================================================
     # Receptions
@@ -1103,9 +1083,6 @@ class DolibarrClient:
         params = {}
         if notrigger: params["notrigger"] = notrigger
         return await self.post(f"/receptions/{id}/close", api_key, params=params or None)
-
-    async def receptions_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
-        return await self.get(f"/receptions/{id}/lines", api_key)
 
     # ============================================================
     # Interventions
@@ -1223,11 +1200,6 @@ class DolibarrClient:
         if details: params["details"] = details
         if notrigger: params["notrigger"] = notrigger
         return await self.post(f"/expensereports/{id}/deny", api_key, params=params or None)
-
-    async def expense_reports_setpaid(self, id: int, api_key: Optional[str] = None, notrigger: int = 0) -> Any:
-        params = {}
-        if notrigger: params["notrigger"] = notrigger
-        return await self.post(f"/expensereports/{id}/setpaid", api_key, params=params or None)
 
     async def expense_reports_cancel(self, id: int, api_key: Optional[str] = None, detail: str = "", notrigger: int = 0) -> Any:
         params = {}
@@ -1448,17 +1420,6 @@ class DolibarrClient:
 
     async def tickets_delete(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.delete(f"/tickets/{id}", api_key)
-
-    async def tickets_create_message(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.post("/tickets/messages/", api_key, json=payload)
-
-    async def tickets_add_contact(self, id: int, contactid: int, type: str, api_key: Optional[str] = None, source: str = "external", notrigger: int = 0) -> Any:
-        payload = {"source": source}
-        if notrigger: payload["notrigger"] = notrigger
-        return await self.post(f"/tickets/{id}/contact/{contactid}/{type}", api_key, json=payload)
-
-    async def tickets_delete_contact(self, id: int, contactid: int, type: str, api_key: Optional[str] = None) -> Any:
-        return await self.delete(f"/tickets/{id}/contact/{contactid}/{type}", api_key)
 
     # ============================================================
     # Workstations

@@ -431,6 +431,8 @@ class CreateContractParam(BaseModel):
     socid: int
     ref: str
     date_contrat: str
+    commercial_signature_id: int = 0
+    commercial_suivi_id: int = 0
     status: int = 0
     note_public: str = ""
     note_private: str = ""
@@ -459,6 +461,7 @@ class CreateBomParam(BaseModel):
     label: str
     fk_product: int
     qty: float
+    bomtype: int = 0
     status: int = 0
     description: str = ""
     note_public: str = ""
@@ -482,6 +485,7 @@ class CreateMOParam(BaseModel):
     fk_product: int
     qty: float
     fk_warehouse: int
+    mrptype: int = 0
     status: int = 0
     note_public: str = ""
     note_private: str = ""
@@ -508,19 +512,6 @@ class CreateProjectParam(BaseModel):
     public: int = 0
     percent: int = 0
 
-
-class CreateProjectTaskParam(BaseModel):
-    ref: str
-    label: str
-    description: str = ""
-    note_public: str = ""
-    note_private: str = ""
-    status: int = 0
-    date_start: str = ""
-    date_end: str = ""
-    planned_workload: float = 0.0
-    progress: int = 0
-    budget_amount: float = 0.0
 
 
 class CreateTaskParam(BaseModel):
@@ -550,6 +541,8 @@ class CreateTaskTimeSpentParam(BaseModel):
 class CreateShipmentParam(BaseModel):
     socid: int
     ref: str
+    origin_id: int = 0
+    origin_type: str = ""
     status: int = 0
     note_public: str = ""
     note_private: str = ""
@@ -566,6 +559,8 @@ class CreateShipmentParam(BaseModel):
 class CreateReceptionParam(BaseModel):
     socid: int
     ref: str
+    origin_id: int = 0
+    origin_type: str = ""
     status: int = 0
     note_public: str = ""
     note_private: str = ""
@@ -636,6 +631,7 @@ class CreateHolidayParam(BaseModel):
     date_fin: str
     halfday: int
     fk_type: int
+    fk_validator: int = 0
     note: str = ""
     status: int = 0
 
@@ -691,13 +687,13 @@ class CreateCategoryParam(BaseModel):
 
 class CreateMailingParam(BaseModel):
     title: str
-    mail_template_id: int
-    mail_subject: str
+    sujet: str
+    body: str
+    email_from: str
+    mail_template_id: int = 0
+    mail_subject: str = ""
     note: str = ""
     status: int = 0
-    sujet: str = ""
-    body: str = ""
-    email_from: str = ""
     email_to: str = ""
     email_cc: str = ""
     email_bcc: str = ""
@@ -727,13 +723,6 @@ class CreateTicketParam(BaseModel):
     origin_id: int = 0
     message: str = ""
 
-
-class CreateTicketMessageParam(BaseModel):
-    ticket_id: int
-    message: str
-    fk_user_author: int = 0
-    note_public: str = ""
-    note_private: str = ""
 
 
 class CreateObjectLinkParam(BaseModel):
@@ -3214,18 +3203,20 @@ async def contracts_get(id: int, include_all_fields: bool = False, ctx: Context 
     return await get_client().contracts_get(id, get_user_token(), include_all_fields=include_all_fields)
 
 @mcp.tool()
-async def contracts_create(socid: int, ref: str, date_contrat: str, status: int = 0, note_public: str = "", note_private: str = "", ctx: Context = None) -> dict[str, Any]:
+async def contracts_create(socid: int, ref: str, date_contrat: str, commercial_signature_id: int = 0, commercial_suivi_id: int = 0, status: int = 0, note_public: str = "", note_private: str = "", ctx: Context = None) -> dict[str, Any]:
     """Create a new contract.
 
     Args:
         socid: Third party ID (required).
         ref: Reference (required).
         date_contrat: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
+        commercial_signature_id: Commercial signature contact ID.
+        commercial_suivi_id: Commercial follow-up contact ID.
         status: Status.
         note_public: Public note.
         note_private: Private note.
     """
-    params = CreateContractParam(socid=socid, ref=ref, date_contrat=date_contrat, status=status, note_public=note_public, note_private=note_private)
+    params = CreateContractParam(socid=socid, ref=ref, date_contrat=date_contrat, commercial_signature_id=commercial_signature_id, commercial_suivi_id=commercial_suivi_id, status=status, note_public=note_public, note_private=note_private)
     return await get_client().contracts_create(params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool()
@@ -3381,7 +3372,7 @@ async def boms_get(id: int, include_all_fields: bool = False, ctx: Context = Non
     return await get_client().boms_get(id, get_user_token(), include_all_fields=include_all_fields)
 
 @mcp.tool()
-async def boms_create(ref: str, label: str, fk_product: int, qty: float, status: int = 0, description: str = "", note_public: str = "", note_private: str = "", duration: float = 0.0, efficiency: float = 0.0, warehouse_id: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def boms_create(ref: str, label: str, fk_product: int, qty: float, bomtype: int = 0, status: int = 0, description: str = "", note_public: str = "", note_private: str = "", duration: float = 0.0, efficiency: float = 0.0, warehouse_id: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Create a new bill of materials.
 
     Args:
@@ -3389,6 +3380,7 @@ async def boms_create(ref: str, label: str, fk_product: int, qty: float, status:
         label: Label (required).
         fk_product: Product ID (required).
         qty: Quantity (required).
+        bomtype: BOM type (0=manufacturing, 1=...).
         status: Status.
         description: Description.
         note_public: Public note.
@@ -3397,7 +3389,7 @@ async def boms_create(ref: str, label: str, fk_product: int, qty: float, status:
         efficiency: Efficiency rate.
         warehouse_id: Warehouse ID.
     """
-    params = CreateBomParam(ref=ref, label=label, fk_product=fk_product, qty=qty, status=status, description=description, note_public=note_public, note_private=note_private, duration=duration, efficiency=efficiency, warehouse_id=warehouse_id)
+    params = CreateBomParam(ref=ref, label=label, fk_product=fk_product, qty=qty, bomtype=bomtype, status=status, description=description, note_public=note_public, note_private=note_private, duration=duration, efficiency=efficiency, warehouse_id=warehouse_id)
     return await get_client().boms_create(params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool()
@@ -3494,7 +3486,7 @@ async def mos_get(id: int, include_all_fields: bool = False, ctx: Context = None
     return await get_client().mos_get(id, get_user_token(), include_all_fields=include_all_fields)
 
 @mcp.tool()
-async def mos_create(ref: str, label: str, fk_product: int, qty: float, fk_warehouse: int, status: int = 0, note_public: str = "", note_private: str = "", date_planned: str = "", bom_id: int = 0, priority: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def mos_create(ref: str, label: str, fk_product: int, qty: float, fk_warehouse: int, mrptype: int = 0, status: int = 0, note_public: str = "", note_private: str = "", date_planned: str = "", bom_id: int = 0, priority: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Mos Create.
 
     Args:
@@ -3503,6 +3495,7 @@ async def mos_create(ref: str, label: str, fk_product: int, qty: float, fk_wareh
         fk_product: Product ID (required).
         qty: Quantity (required).
         fk_warehouse: Warehouse ID (required).
+        mrptype: MO type (0=...).
         status: Status.
         note_public: Public note.
         note_private: Private note.
@@ -3510,7 +3503,7 @@ async def mos_create(ref: str, label: str, fk_product: int, qty: float, fk_wareh
         bom_id: BOM ID.
         priority: Priority.
     """
-    params = CreateMOParam(ref=ref, label=label, fk_product=fk_product, qty=qty, fk_warehouse=fk_warehouse, status=status, note_public=note_public, note_private=note_private, date_planned=date_planned, bom_id=bom_id, priority=priority)
+    params = CreateMOParam(ref=ref, label=label, fk_product=fk_product, qty=qty, fk_warehouse=fk_warehouse, mrptype=mrptype, status=status, note_public=note_public, note_private=note_private, date_planned=date_planned, bom_id=bom_id, priority=priority)
     return await get_client().mos_create(params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool()
@@ -3551,20 +3544,6 @@ async def mos_produce_and_consume(id: int, ctx: Context = None) -> dict[str, Any
         id: The unique ID of the resource (required).
     """
     return await get_client().mos_produce_and_consume(id, {}, get_user_token())
-
-@mcp.tool()
-async def mos_get_categories(id: int, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0, ctx: Context = None) -> dict[str, Any]:
-    """Mos Get Categories.
-
-    Args:
-        id: The unique ID of the resource (required).
-        sortfield: Field to sort by.
-        sortorder: Sort order (ASC or DESC).
-        limit: Maximum number of results.
-        page: Page number (0-based).
-    """
-    data = await get_client().mos_get_categories(id, get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page)
-    return {"items": json_to_toon(data)}
 
 # ============================================================
 # Projects
@@ -3666,27 +3645,6 @@ async def projects_get_tasks(id: int, includetimespent: int = 0, ctx: Context = 
     """
     data = await get_client().projects_get_tasks(id, get_user_token(), includetimespent=includetimespent)
     return {"items": json_to_toon(data)}
-
-@mcp.tool()
-async def projects_create_task(id: int, ref: str, label: str, description: str = "", note_public: str = "", note_private: str = "", status: int = 0, date_start: str = "", date_end: str = "", planned_workload: float = 0.0, progress: int = 0, budget_amount: float = 0.0, ctx: Context = None) -> dict[str, Any]:
-    """Projects Create Task.
-
-    Args:
-        id: The unique ID of the resource (required).
-        ref: Reference (required).
-        label: Label (required).
-        description: Description.
-        note_public: Public note.
-        note_private: Private note.
-        status: Status.
-        date_start: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        date_end: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        planned_workload: Planned workload.
-        progress: Progress percentage.
-        budget_amount: Budget amount.
-    """
-    params = CreateProjectTaskParam(ref=ref, label=label, description=description, note_public=note_public, note_private=note_private, status=status, date_start=date_start, date_end=date_end, planned_workload=planned_workload, progress=progress, budget_amount=budget_amount)
-    return await get_client().projects_create_task(id, params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool()
 async def projects_get_timespent(id: int, ctx: Context = None) -> dict[str, Any]:
@@ -3893,12 +3851,14 @@ async def shipments_get(id: int, include_all_fields: bool = False, ctx: Context 
     return await get_client().shipments_get(id, get_user_token(), include_all_fields=include_all_fields)
 
 @mcp.tool()
-async def shipments_create(socid: int, ref: str, status: int = 0, note_public: str = "", note_private: str = "", date_delivery: str = "", shipping_method_id: int = 0, warehouse_id: int = 0, total_ht: float = 0.0, total_tva: float = 0.0, total_ttc: float = 0.0, weight: float = 0.0, volume: float = 0.0, ctx: Context = None) -> dict[str, Any]:
+async def shipments_create(socid: int, ref: str, origin_id: int = 0, origin_type: str = "", status: int = 0, note_public: str = "", note_private: str = "", date_delivery: str = "", shipping_method_id: int = 0, warehouse_id: int = 0, total_ht: float = 0.0, total_tva: float = 0.0, total_ttc: float = 0.0, weight: float = 0.0, volume: float = 0.0, ctx: Context = None) -> dict[str, Any]:
     """Create a new shipment.
 
     Args:
         socid: Third party ID (required).
         ref: Reference (required).
+        origin_id: Origin object ID.
+        origin_type: Origin object type (e.g. commande).
         status: Status.
         note_public: Public note.
         note_private: Private note.
@@ -3911,7 +3871,7 @@ async def shipments_create(socid: int, ref: str, status: int = 0, note_public: s
         weight: Weight.
         volume: Volume.
     """
-    params = CreateShipmentParam(socid=socid, ref=ref, status=status, note_public=note_public, note_private=note_private, date_delivery=date_delivery, shipping_method_id=shipping_method_id, warehouse_id=warehouse_id, total_ht=total_ht, total_tva=total_tva, total_ttc=total_ttc, weight=weight, volume=volume)
+    params = CreateShipmentParam(socid=socid, ref=ref, origin_id=origin_id, origin_type=origin_type, status=status, note_public=note_public, note_private=note_private, date_delivery=date_delivery, shipping_method_id=shipping_method_id, warehouse_id=warehouse_id, total_ht=total_ht, total_tva=total_tva, total_ttc=total_ttc, weight=weight, volume=volume)
     return await get_client().shipments_create(params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool()
@@ -3947,15 +3907,6 @@ async def shipments_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     return await get_client().shipments_delete(id, get_user_token())
 
 @mcp.tool()
-async def shipments_create_from_order(orderid: int, ctx: Context = None) -> dict[str, Any]:
-    """Shipments Create From Order.
-
-    Args:
-        orderid: Order ID (required).
-    """
-    return await get_client().shipments_create_from_order(orderid, get_user_token())
-
-@mcp.tool()
 async def shipments_validate(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Validate a shipment.
 
@@ -3974,25 +3925,6 @@ async def shipments_close(id: int, notrigger: int = 0, ctx: Context = None) -> d
         notrigger: Disable triggers flag.
     """
     return await get_client().shipments_close(id, get_user_token(), notrigger=notrigger)
-
-@mcp.tool()
-async def shipments_setinvoiced(id: int, ctx: Context = None) -> dict[str, Any]:
-    """Shipments Setinvoiced.
-
-    Args:
-        id: The unique ID of the resource (required).
-    """
-    return await get_client().shipments_setinvoiced(id, get_user_token())
-
-@mcp.tool()
-async def shipments_get_lines(id: int, ctx: Context = None) -> dict[str, Any]:
-    """Get lines for a shipment.
-
-    Args:
-        id: The unique ID of the resource (required).
-    """
-    data = await get_client().shipments_get_lines(id, get_user_token())
-    return {"items": json_to_toon(data)}
 
 # ============================================================
 # Receptions
@@ -4024,12 +3956,14 @@ async def receptions_get(id: int, include_all_fields: bool = False, ctx: Context
     return await get_client().receptions_get(id, get_user_token(), include_all_fields=include_all_fields)
 
 @mcp.tool()
-async def receptions_create(socid: int, ref: str, status: int = 0, note_public: str = "", note_private: str = "", date_delivery: str = "", warehouse_id: int = 0, total_ht: float = 0.0, total_tva: float = 0.0, total_ttc: float = 0.0, ctx: Context = None) -> dict[str, Any]:
+async def receptions_create(socid: int, ref: str, origin_id: int = 0, origin_type: str = "", status: int = 0, note_public: str = "", note_private: str = "", date_delivery: str = "", warehouse_id: int = 0, total_ht: float = 0.0, total_tva: float = 0.0, total_ttc: float = 0.0, ctx: Context = None) -> dict[str, Any]:
     """Create a new reception.
 
     Args:
         socid: Third party ID (required).
         ref: Reference (required).
+        origin_id: Origin object ID.
+        origin_type: Origin object type (e.g. commande_fournisseur).
         status: Status.
         note_public: Public note.
         note_private: Private note.
@@ -4039,7 +3973,7 @@ async def receptions_create(socid: int, ref: str, status: int = 0, note_public: 
         total_tva: Total VAT.
         total_ttc: Total including tax.
     """
-    params = CreateReceptionParam(socid=socid, ref=ref, status=status, note_public=note_public, note_private=note_private, date_delivery=date_delivery, warehouse_id=warehouse_id, total_ht=total_ht, total_tva=total_tva, total_ttc=total_ttc)
+    params = CreateReceptionParam(socid=socid, ref=ref, origin_id=origin_id, origin_type=origin_type, status=status, note_public=note_public, note_private=note_private, date_delivery=date_delivery, warehouse_id=warehouse_id, total_ht=total_ht, total_tva=total_tva, total_ttc=total_ttc)
     return await get_client().receptions_create(params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool()
@@ -4090,16 +4024,6 @@ async def receptions_close(id: int, notrigger: int = 0, ctx: Context = None) -> 
         notrigger: Disable triggers flag.
     """
     return await get_client().receptions_close(id, get_user_token(), notrigger=notrigger)
-
-@mcp.tool()
-async def receptions_get_lines(id: int, ctx: Context = None) -> dict[str, Any]:
-    """Get lines for a reception.
-
-    Args:
-        id: The unique ID of the resource (required).
-    """
-    data = await get_client().receptions_get_lines(id, get_user_token())
-    return {"items": json_to_toon(data)}
 
 # ============================================================
 # Interventions
@@ -4469,16 +4393,6 @@ async def expense_reports_deny(id: int, details: str = "", notrigger: int = 0, c
     return await get_client().expense_reports_deny(id, get_user_token(), details=details, notrigger=notrigger)
 
 @mcp.tool()
-async def expense_reports_setpaid(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
-    """Expense Reports Setpaid.
-
-    Args:
-        id: The unique ID of the resource (required).
-        notrigger: Disable triggers flag.
-    """
-    return await get_client().expense_reports_setpaid(id, get_user_token(), notrigger=notrigger)
-
-@mcp.tool()
 async def expense_reports_cancel(id: int, detail: str = "", notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Expense Reports Cancel.
 
@@ -4519,7 +4433,7 @@ async def holidays_get(id: int, include_all_fields: bool = False, ctx: Context =
     return await get_client().holidays_get(id, get_user_token(), include_all_fields=include_all_fields)
 
 @mcp.tool()
-async def holidays_create(fk_user: int, date_debut: str, date_fin: str, halfday: int, fk_type: int, note: str = "", status: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def holidays_create(fk_user: int, date_debut: str, date_fin: str, halfday: int, fk_type: int, fk_validator: int = 0, note: str = "", status: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Create a new leave/holiday request.
 
     Args:
@@ -4528,10 +4442,11 @@ async def holidays_create(fk_user: int, date_debut: str, date_fin: str, halfday:
         date_fin: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
         halfday: Half day flag (0=full, 1=morning, 2=afternoon) (required).
         fk_type: Leave type ID (required).
+        fk_validator: Validator user ID.
         note: Note.
         status: Status.
     """
-    params = CreateHolidayParam(fk_user=fk_user, date_debut=date_debut, date_fin=date_fin, halfday=halfday, fk_type=fk_type, note=note, status=status)
+    params = CreateHolidayParam(fk_user=fk_user, date_debut=date_debut, date_fin=date_fin, halfday=halfday, fk_type=fk_type, fk_validator=fk_validator, note=note, status=status)
     return await get_client().holidays_create(params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool()
@@ -4845,24 +4760,24 @@ async def mailings_get(id: int, include_all_fields: bool = False, ctx: Context =
     return await get_client().mailings_get(id, get_user_token(), include_all_fields=include_all_fields)
 
 @mcp.tool()
-async def mailings_create(title: str, mail_template_id: int, mail_subject: str, note: str = "", status: int = 0, sujet: str = "", body: str = "", email_from: str = "", email_to: str = "", email_cc: str = "", email_bcc: str = "", lang: str = "", ctx: Context = None) -> dict[str, Any]:
+async def mailings_create(title: str, sujet: str, body: str, email_from: str, mail_template_id: int = 0, mail_subject: str = "", note: str = "", status: int = 0, email_to: str = "", email_cc: str = "", email_bcc: str = "", lang: str = "", ctx: Context = None) -> dict[str, Any]:
     """Create a new mailing.
 
     Args:
         title: Title (required).
-        mail_template_id: Mail template ID (required).
-        mail_subject: Mail subject (required).
+        sujet: Subject (required).
+        body: Body (required).
+        email_from: From email (required).
+        mail_template_id: Mail template ID.
+        mail_subject: Mail subject.
         note: Note.
         status: Status.
-        sujet: Subject.
-        body: Body.
-        email_from: From email.
         email_to: To email.
         email_cc: CC email.
         email_bcc: BCC email.
         lang: Language code.
     """
-    params = CreateMailingParam(title=title, mail_template_id=mail_template_id, mail_subject=mail_subject, note=note, status=status, sujet=sujet, body=body, email_from=email_from, email_to=email_to, email_cc=email_cc, email_bcc=email_bcc, lang=lang)
+    params = CreateMailingParam(title=title, sujet=sujet, body=body, email_from=email_from, mail_template_id=mail_template_id, mail_subject=mail_subject, note=note, status=status, email_to=email_to, email_cc=email_cc, email_bcc=email_bcc, lang=lang)
     return await get_client().mailings_create(params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool()
@@ -5062,44 +4977,6 @@ async def tickets_delete(id: int, ctx: Context = None) -> dict[str, Any]:
         id: The unique ID of the resource (required).
     """
     return await get_client().tickets_delete(id, get_user_token())
-
-@mcp.tool()
-async def tickets_create_message(ticket_id: int, message: str, fk_user_author: int = 0, note_public: str = "", note_private: str = "", ctx: Context = None) -> dict[str, Any]:
-    """Add a message to a ticket.
-
-    Args:
-        ticket_id: Ticket ID (required).
-        message: Message (required).
-        fk_user_author: Author user ID.
-        note_public: Public note.
-        note_private: Private note.
-    """
-    params = CreateTicketMessageParam(ticket_id=ticket_id, message=message, fk_user_author=fk_user_author, note_public=note_public, note_private=note_private)
-    return await get_client().tickets_create_message(params.model_dump(exclude_unset=True), get_user_token())
-
-@mcp.tool()
-async def tickets_add_contact(id: int, contactid: int, type: str, source: str = "external", notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
-    """Tickets Add Contact.
-
-    Args:
-        id: The unique ID of the resource (required).
-        contactid: Contact ID (required).
-        type: Type (required).
-        source: Source.
-        notrigger: Disable triggers flag.
-    """
-    return await get_client().tickets_add_contact(id, contactid, type, get_user_token(), source=source, notrigger=notrigger)
-
-@mcp.tool()
-async def tickets_delete_contact(id: int, contactid: int, type: str, ctx: Context = None) -> dict[str, Any]:
-    """Tickets Delete Contact.
-
-    Args:
-        id: The unique ID of the resource (required).
-        contactid: Contact ID (required).
-        type: Type (required).
-    """
-    return await get_client().tickets_delete_contact(id, contactid, type, get_user_token())
 
 # ============================================================
 # Workstations

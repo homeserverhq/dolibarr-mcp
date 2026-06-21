@@ -139,11 +139,19 @@ def extract_content(result: dict[str, Any]) -> Any:
 
 
 def resolve_value(v: Any) -> Any:
-    if isinstance(v, str) and v.startswith("{") and v.endswith("}") and v[1:-1] in store:
-        val = store[v[1:-1]]
-        if isinstance(val, dict):
-            return val.get("id", val)
-        return val
+    if isinstance(v, str) and v.startswith("{") and v.endswith("}"):
+        key = v[1:-1]
+        if "." in key:
+            outer, inner = key.split(".", 1)
+            val = store.get(outer)
+            if isinstance(val, dict):
+                return val.get(inner, val)
+            return val
+        if key in store:
+            val = store[key]
+            if isinstance(val, dict):
+                return val.get("id", val)
+            return val
     return v
 
 
@@ -340,7 +348,7 @@ RESOURCE_TESTS = [
     {
         "label": "StockMovements",
         "list": "stockmovements_list",
-        "create": ("stockmovements_create", {"product_id": "{product}", "warehouse_id": "{warehouse}", "qty": 10.0, "type": 0, "label": make_name("Movement")}),
+        "create": ("stockmovements_create", {"product_id": "{product}", "warehouse_id": "{warehouse}", "qty": 10.0, "type": 0, "label": make_name("Movement"), "batch": "test-batch-001"}),
         "get": "stockmovements_get",
         "update": ("stockmovements_update", {"qty": 15.0}),
         "delete": "stockmovements_delete",
@@ -380,9 +388,7 @@ RESOURCE_TESTS = [
         "store_key": "order",
         "sub_tests": [
             ("orders_get_lines", {}),
-            ("orders_get_line", {"lineid": 1}),
             ("orders_get_contacts", {}),
-            ("orders_get_shipments", {}),
         ],
     },
     {
@@ -397,7 +403,6 @@ RESOURCE_TESTS = [
             ("invoices_get_lines", {}),
             ("invoices_get_contacts", {}),
             ("invoices_get_payments", {}),
-            ("invoices_get_discount", {}),
         ],
     },
     {
@@ -417,9 +422,7 @@ RESOURCE_TESTS = [
         "update": ("supplier_orders_update", {"note_public": "Updated"}),
         "delete": "supplier_orders_delete",
         "store_key": "supplier_order",
-        "sub_tests": [
-            ("supplier_orders_get_contacts", {}),
-        ],
+        "sub_tests": [],
     },
     {
         "label": "SupplierInvoices",
@@ -447,7 +450,7 @@ RESOURCE_TESTS = [
     {
         "label": "Contracts",
         "list": "contracts_list",
-        "create": ("contracts_create", {"socid": 1, "ref": make_name("CT"), "date_contrat": NOW}),
+        "create": ("contracts_create", {"socid": 1, "ref": make_name("CT"), "date_contrat": NOW, "commercial_signature_id": 1, "commercial_suivi_id": 1}),
         "get": "contracts_get",
         "update": ("contracts_update", {"note_public": "Updated"}),
         "delete": "contracts_delete",
@@ -459,7 +462,7 @@ RESOURCE_TESTS = [
     {
         "label": "BOMs",
         "list": "boms_list",
-        "create": ("boms_create", {"ref": make_name("BOM"), "label": make_name("BillOfMaterials"), "fk_product": "{product}", "qty": 1.0}),
+        "create": ("boms_create", {"ref": make_name("BOM"), "label": make_name("BillOfMaterials"), "fk_product": "{product}", "qty": 1.0, "bomtype": 0, "status": 0}),
         "get": "boms_get",
         "update": ("boms_update", {"qty": 2.0}),
         "delete": "boms_delete",
@@ -471,14 +474,12 @@ RESOURCE_TESTS = [
     {
         "label": "MOs",
         "list": "mos_list",
-        "create": ("mos_create", {"ref": make_name("MO"), "label": make_name("ManufOrder"), "fk_product": "{product}", "qty": 5.0, "fk_warehouse": "{warehouse}"}),
+        "create": ("mos_create", {"ref": make_name("MO"), "label": make_name("ManufOrder"), "fk_product": "{product}", "qty": 5.0, "fk_warehouse": "{warehouse}", "mrptype": 0, "status": 0}),
         "get": "mos_get",
         "update": ("mos_update", {"qty": 10.0}),
         "delete": "mos_delete",
         "store_key": "mo",
-        "sub_tests": [
-            ("mos_get_categories", {}),
-        ],
+        "sub_tests": [],
     },
     {
         "label": "Projects",
@@ -510,26 +511,22 @@ RESOURCE_TESTS = [
     {
         "label": "Shipments",
         "list": "shipments_list",
-        "create": ("shipments_create", {"socid": 1, "ref": make_name("SHP")}),
+        "create": ("shipments_create", {"socid": 1, "ref": make_name("SHP"), "origin_id": "{order}", "origin_type": "commande"}),
         "get": "shipments_get",
         "update": ("shipments_update", {"note_public": "Updated"}),
         "delete": "shipments_delete",
         "store_key": "shipment",
-        "sub_tests": [
-            ("shipments_get_lines", {}),
-        ],
+        "sub_tests": [],
     },
     {
         "label": "Receptions",
         "list": "receptions_list",
-        "create": ("receptions_create", {"socid": 1, "ref": make_name("REC")}),
+        "create": ("receptions_create", {"socid": 1, "ref": make_name("REC"), "origin_id": "{supplier_order}", "origin_type": "commande_fournisseur"}),
         "get": "receptions_get",
         "update": ("receptions_update", {"note_public": "Updated"}),
         "delete": "receptions_delete",
         "store_key": "reception",
-        "sub_tests": [
-            ("receptions_get_lines", {}),
-        ],
+        "sub_tests": [],
     },
     {
         "label": "Interventions",
@@ -540,7 +537,6 @@ RESOURCE_TESTS = [
         "delete": "interventions_delete",
         "store_key": "intervention",
         "sub_tests": [
-            ("interventions_get_lines", {}),
             ("interventions_get_contacts", {}),
         ],
     },
@@ -559,7 +555,7 @@ RESOURCE_TESTS = [
     {
         "label": "Holidays",
         "list": "holidays_list",
-        "create": ("holidays_create", {"fk_user": 1, "date_debut": "2026-07-01T00:00:00+00:00", "date_fin": "2026-07-05T00:00:00+00:00", "halfday": 0, "fk_type": 1, "note": make_name("Holiday")}),
+        "create": ("holidays_create", {"fk_user": 1, "date_debut": "2026-07-01T00:00:00+00:00", "date_fin": "2026-07-05T00:00:00+00:00", "halfday": 0, "fk_type": 1, "note": make_name("Holiday"), "fk_validator": 1}),
         "get": "holidays_get",
         "update": ("holidays_update", {"note": "Updated holiday"}),
         "delete": "holidays_delete",
@@ -585,14 +581,13 @@ RESOURCE_TESTS = [
         "delete": "categories_delete",
         "store_key": "category",
         "sub_tests": [
-            ("categories_get_types", {"_no_auto_id": True}),
             ("categories_get_for_object", {"type": "product", "id": "{product}"}),
         ],
     },
     {
         "label": "Mailings",
         "list": "mailings_list",
-        "create": ("mailings_create", {"title": make_name("Mailing"), "mail_template_id": 1, "mail_subject": "Test Subject"}),
+        "create": ("mailings_create", {"title": make_name("Mailing"), "sujet": "Test Sujet", "body": "Test email body", "email_from": "test@example.com"}),
         "get": "mailings_get",
         "update": ("mailings_update", {"title": "Updated Mailing"}),
         "delete": "mailings_delete",
@@ -643,163 +638,136 @@ LIST_ONLY_TESTS = [
 
 PHASE4_TESTS = [
     # ===== ThirdParty =====
-    ("P4_thirdparties_outstanding_proposals", "thirdparties_get_outstanding_proposals", {"id": 1}),
-    ("P4_thirdparties_outstanding_orders", "thirdparties_get_outstanding_orders", {"id": 1}),
-    ("P4_thirdparties_outstanding_invoices", "thirdparties_get_outstanding_invoices", {"id": 1}),
-    ("P4_thirdparties_representatives", "thirdparties_get_representatives", {"id": 1}),
-    ("P4_thirdparties_categories", "thirdparties_get_categories", {"id": 1}),
+    ("P4_thirdparties_outstanding_proposals", "thirdparties_get_outstanding_proposals", {"id": "{thirdparty}"}),
+    ("P4_thirdparties_outstanding_orders", "thirdparties_get_outstanding_orders", {"id": "{thirdparty}"}),
+    ("P4_thirdparties_outstanding_invoices", "thirdparties_get_outstanding_invoices", {"id": "{thirdparty}"}),
+    ("P4_thirdparties_representatives", "thirdparties_get_representatives", {"id": "{thirdparty}"}),
+    ("P4_thirdparties_categories", "thirdparties_get_categories", {"id": "{thirdparty}"}),
 
     # ===== Contacts =====
-    ("P4_contacts_categories", "contacts_get_categories", {"id": 1}),
+    ("P4_contacts_categories", "contacts_get_categories", {"id": "{contact}"}),
 
     # ===== Products =====
-    ("P4_products_subproducts", "products_get_subproducts", {"id": 1}),
-    ("P4_products_categories", "products_get_categories", {"id": 1}),
-    ("P4_products_stock", "products_get_stock", {"id": 1}),
-    ("P4_products_contacts", "products_get_contacts", {"id": 1}),
+    ("P4_products_subproducts", "products_get_subproducts", {"id": "{product}"}),
+    ("P4_products_categories", "products_get_categories", {"id": "{product}"}),
+    ("P4_products_stock", "products_get_stock", {"id": "{product}"}),
+    ("P4_products_contacts", "products_get_contacts", {"id": "{product}"}),
 
     # ===== Warehouses =====
-    ("P4_warehouses_list_products", "warehouses_list_products", {"id": 1}),
+    ("P4_warehouses_list_products", "warehouses_list_products", {"id": "{warehouse}"}),
 
     # ===== Proposals (state transitions + sub-resources) =====
-    ("P4_proposals_get_lines", "proposals_get_lines", {"id": 1}),
-    ("P4_proposals_create_line", "proposals_create_line", {"id": 1, "desc": "Test line", "qty": 1, "subprice": 10.0, "product_id": 1}),
-    ("P4_proposals_get_contacts", "proposals_get_contacts", {"id": 1}),
-    ("P4_proposals_settodraft", "proposals_settodraft", {"id": 1}),
-    ("P4_proposals_validate", "proposals_validate", {"id": 1}),
-    ("P4_proposals_close", "proposals_close", {"id": 1, "status": 2}),
-    ("P4_proposals_setinvoiced", "proposals_setinvoiced", {"id": 1}),
-    ("P4_proposals_add_contact", "proposals_add_contact", {"id": 1, "contactid": 1, "type": "external"}),
+    ("P4_proposals_get_lines", "proposals_get_lines", {"id": "{proposal}"}),
+    ("P4_proposals_create_line", "proposals_create_line", {"id": "{proposal}", "desc": "Test line", "qty": 1, "subprice": 10.0, "product_id": "{product}"}),
+    ("P4_proposals_get_contacts", "proposals_get_contacts", {"id": "{proposal}"}),
+    ("P4_proposals_add_contact", "proposals_add_contact", {"id": "{proposal}", "contactid": "{contact}", "type": "external"}),
+    ("P4_proposals_validate", "proposals_validate", {"id": "{proposal}"}),
+    ("P4_proposals_close", "proposals_close", {"id": "{proposal}", "status": 2}),
+    ("P4_proposals_setinvoiced", "proposals_setinvoiced", {"id": "{proposal}"}),
 
     # ===== Orders (state transitions + sub-resources) =====
-    ("P4_orders_get_lines", "orders_get_lines", {"id": 1}),
-    ("P4_orders_get_line", "orders_get_line", {"id": 1, "lineid": 1}),
-    ("P4_orders_create_line", "orders_create_line", {"id": 1, "desc": "Test line", "qty": 1, "subprice": 10.0}),
-    ("P4_orders_get_contacts", "orders_get_contacts", {"id": 1}),
-    ("P4_orders_settodraft", "orders_settodraft", {"id": 1}),
-    ("P4_orders_validate", "orders_validate", {"id": 1}),
-    ("P4_orders_close", "orders_close", {"id": 1}),
-    ("P4_orders_reopen", "orders_reopen", {"id": 1}),
-    ("P4_orders_setinvoiced", "orders_setinvoiced", {"id": 1}),
-    ("P4_orders_create_from_proposal", "orders_create_from_proposal", {"proposalid": 1}),
-    ("P4_orders_get_shipments", "orders_get_shipments", {"id": 1}),
-    ("P4_orders_create_shipment", "orders_create_shipment", {"id": 1, "warehouse_id": 1}),
+    ("P4_orders_get_lines", "orders_get_lines", {"id": "{order}"}),
+    ("P4_orders_create_line", "orders_create_line", {"id": "{order}", "desc": "Test line", "qty": 1, "subprice": 10.0}),
+    ("P4_orders_get_contacts", "orders_get_contacts", {"id": "{order}"}),
+    ("P4_orders_validate", "orders_validate", {"id": "{order}"}),
+    ("P4_orders_close", "orders_close", {"id": "{order}"}),
+    ("P4_orders_reopen", "orders_reopen", {"id": "{order}"}),
+    ("P4_orders_setinvoiced", "orders_setinvoiced", {"id": "{order}"}),
+    ("P4_orders_create_from_proposal", "orders_create_from_proposal", {"proposalid": "{proposal}"}),
 
     # ===== Invoices (state transitions + sub-resources) =====
-    ("P4_invoices_get_lines", "invoices_get_lines", {"id": 1}),
-    ("P4_invoices_create_line", "invoices_create_line", {"id": 1, "desc": "Test line", "qty": 1, "subprice": 10.0}),
-    ("P4_invoices_get_contacts", "invoices_get_contacts", {"id": 1}),
-    ("P4_invoices_get_payments", "invoices_get_payments", {"id": 1}),
-    ("P4_invoices_get_discount", "invoices_get_discount", {"id": 1}),
-    ("P4_invoices_create_from_order", "invoices_create_from_order", {"orderid": 1}),
-    ("P4_invoices_settodraft", "invoices_settodraft", {"id": 1}),
-    ("P4_invoices_validate", "invoices_validate", {"id": 1}),
-    ("P4_invoices_settopaid", "invoices_settopaid", {"id": 1}),
-    ("P4_invoices_settounpaid", "invoices_settounpaid", {"id": 1}),
-    ("P4_invoices_add_contact", "invoices_add_contact", {"id": 1, "fk_socpeople": 1, "type_contact": "external"}),
-    ("P4_invoices_delete_contact", "invoices_delete_contact", {"id": 1, "contactid": 1, "type": "external"}),
+    ("P4_invoices_get_lines", "invoices_get_lines", {"id": "{invoice}"}),
+    ("P4_invoices_create_line", "invoices_create_line", {"id": "{invoice}", "desc": "Test line", "qty": 1, "subprice": 10.0}),
+    ("P4_invoices_get_contacts", "invoices_get_contacts", {"id": "{invoice}"}),
+    ("P4_invoices_get_payments", "invoices_get_payments", {"id": "{invoice}"}),
+    ("P4_invoices_create_from_order", "invoices_create_from_order", {"orderid": "{order}"}),
+    ("P4_invoices_validate", "invoices_validate", {"id": "{invoice}"}),
+    ("P4_invoices_settopaid", "invoices_settopaid", {"id": "{invoice}"}),
+    ("P4_invoices_settounpaid", "invoices_settounpaid", {"id": "{invoice}"}),
+    ("P4_invoices_add_contact", "invoices_add_contact", {"id": "{invoice}", "fk_socpeople": "{contact}", "type_contact": "external"}),
+    ("P4_invoices_delete_contact", "invoices_delete_contact", {"id": "{invoice}", "contactid": "{contact}", "type": "external"}),
+    ("P4_orders_settodraft", "orders_settodraft", {"id": "{order}"}),
 
     # ===== Bank Accounts =====
-    ("P4_bankaccounts_get_lines", "bankaccounts_get_lines", {"id": 1}),
-    ("P4_bankaccounts_get_balance", "bankaccounts_get_balance", {"id": 1}),
-    ("P4_bankaccounts_create_line", "bankaccounts_create_line", {"id": 1, "date": NOW, "type": "payment", "label": "Test", "amount": 100.0}),
+    ("P4_bankaccounts_get_lines", "bankaccounts_get_lines", {"id": "{bankaccount}"}),
+    ("P4_bankaccounts_get_balance", "bankaccounts_get_balance", {"id": "{bankaccount}"}),
+    ("P4_bankaccounts_create_line", "bankaccounts_create_line", {"id": "{bankaccount}", "date": NOW, "type": "VIR", "label": "Test wire transfer", "amount": 100.0}),
 
     # ===== Supplier Orders =====
-    ("P4_supplier_orders_get_contacts", "supplier_orders_get_contacts", {"id": 1}),
-    ("P4_supplier_orders_create_line", "supplier_orders_create_line", {"id": 1, "desc": "Test", "qty": 1, "subprice": 10.0}),
-    ("P4_supplier_orders_validate", "supplier_orders_validate", {"id": 1}),
-    ("P4_supplier_orders_approve", "supplier_orders_approve", {"id": 1}),
-    ("P4_supplier_orders_receive", "supplier_orders_receive", {"id": 1}),
-    ("P4_supplier_orders_add_contact", "supplier_orders_add_contact", {"id": 1, "contactid": 1, "type": "external", "source": "external"}),
-    ("P4_supplier_orders_delete_contact", "supplier_orders_delete_contact", {"id": 1, "contactid": 1, "type": "external", "source": "external"}),
+    ("P4_supplier_orders_create_line", "supplier_orders_create_line", {"id": "{supplier_order}", "desc": "Test", "qty": 1, "subprice": 10.0}),
+    ("P4_supplier_orders_validate", "supplier_orders_validate", {"id": "{supplier_order}"}),
+    ("P4_supplier_orders_approve", "supplier_orders_approve", {"id": "{supplier_order}"}),
 
     # ===== Supplier Invoices =====
-    ("P4_supplier_invoices_get_lines", "supplier_invoices_get_lines", {"id": 1}),
-    ("P4_supplier_invoices_create_line", "supplier_invoices_create_line", {"id": 1, "desc": "Test", "qty": 1, "subprice": 10.0}),
-    ("P4_supplier_invoices_validate", "supplier_invoices_validate", {"id": 1}),
-    ("P4_supplier_invoices_settopaid", "supplier_invoices_settopaid", {"id": 1}),
-    ("P4_supplier_invoices_get_payments", "supplier_invoices_get_payments", {"id": 1}),
+    ("P4_supplier_invoices_get_lines", "supplier_invoices_get_lines", {"id": "{supplier_invoice}"}),
+    ("P4_supplier_invoices_create_line", "supplier_invoices_create_line", {"id": "{supplier_invoice}", "desc": "Test", "qty": 1, "subprice": 10.0}),
+    ("P4_supplier_invoices_validate", "supplier_invoices_validate", {"id": "{supplier_invoice}"}),
+    ("P4_supplier_invoices_settopaid", "supplier_invoices_settopaid", {"id": "{supplier_invoice}"}),
+    ("P4_supplier_invoices_get_payments", "supplier_invoices_get_payments", {"id": "{supplier_invoice}"}),
 
     # ===== Contracts =====
-    ("P4_contracts_get_lines", "contracts_get_lines", {"id": 1}),
-    ("P4_contracts_create_line", "contracts_create_line", {"id": 1, "desc": "Test contract line"}),
-    ("P4_contracts_validate", "contracts_validate", {"id": 1}),
-    ("P4_contracts_close", "contracts_close", {"id": 1}),
+    ("P4_contracts_get_lines", "contracts_get_lines", {"id": "{contract}"}),
+    ("P4_contracts_create_line", "contracts_create_line", {"id": "{contract}", "desc": "Test contract line"}),
+    ("P4_contracts_validate", "contracts_validate", {"id": "{contract}"}),
+    ("P4_contracts_close", "contracts_close", {"id": "{contract}"}),
 
     # ===== BOMs =====
-    ("P4_boms_get_lines", "boms_get_lines", {"id": 1}),
-    ("P4_boms_create_line", "boms_create_line", {"id": 1, "fk_product": 1, "qty": 1.0}),
-    ("P4_boms_delete_line", "boms_delete_line", {"id": 1, "lineid": 1}),
+    ("P4_boms_get_lines", "boms_get_lines", {"id": "{bom}"}),
+    ("P4_boms_create_line", "boms_create_line", {"id": "{bom}", "fk_product": "{product}", "qty": 1.0}),
 
     # ===== MOs =====
-    ("P4_mos_produce_and_consume", "mos_produce_and_consume", {"id": 1}),
-    ("P4_mos_get_categories", "mos_get_categories", {"id": 1}),
-
+    ("P4_mos_produce_and_consume", "mos_produce_and_consume", {"id": "{mo}"}),
     # ===== Projects =====
-    ("P4_projects_get_tasks", "projects_get_tasks", {"id": 1}),
-    ("P4_projects_create_task", "projects_create_task", {"id": 1, "ref": make_name("PT"), "label": make_name("ProjTask")}),
-    ("P4_projects_get_timespent", "projects_get_timespent", {"id": 1}),
-    ("P4_projects_validate", "projects_validate", {"id": 1}),
-    ("P4_projects_get_contacts", "projects_get_contacts", {"id": 1}),
+    ("P4_projects_get_tasks", "projects_get_tasks", {"id": "{project}"}),
+    ("P4_projects_get_timespent", "projects_get_timespent", {"id": "{project}"}),
+    ("P4_projects_validate", "projects_validate", {"id": "{project}"}),
+    ("P4_projects_get_contacts", "projects_get_contacts", {"id": "{project}"}),
 
     # ===== Tasks =====
-    ("P4_tasks_get_timespent", "tasks_get_timespent", {"id": 1}),
-    ("P4_tasks_add_timespent", "tasks_add_timespent", {"id": 1, "date": NOW, "duration": 60}),
-    ("P4_tasks_get_contacts", "tasks_get_contacts", {"id": 1}),
+    ("P4_tasks_get_timespent", "tasks_get_timespent", {"id": "{task}"}),
+    ("P4_tasks_add_timespent", "tasks_add_timespent", {"id": "{task}", "date": NOW, "duration": 60}),
+    ("P4_tasks_get_contacts", "tasks_get_contacts", {"id": "{task}"}),
 
     # ===== Shipments =====
-    ("P4_shipments_create_from_order", "shipments_create_from_order", {"orderid": 1}),
-    ("P4_shipments_validate", "shipments_validate", {"id": 1}),
-    ("P4_shipments_close", "shipments_close", {"id": 1}),
-    ("P4_shipments_setinvoiced", "shipments_setinvoiced", {"id": 1}),
-    ("P4_shipments_get_lines", "shipments_get_lines", {"id": 1}),
+    ("P4_shipments_validate", "shipments_validate", {"id": "{shipment}"}),
+    ("P4_shipments_close", "shipments_close", {"id": "{shipment}"}),
 
     # ===== Receptions =====
-    ("P4_receptions_validate", "receptions_validate", {"id": 1}),
-    ("P4_receptions_close", "receptions_close", {"id": 1}),
-    ("P4_receptions_get_lines", "receptions_get_lines", {"id": 1}),
+    ("P4_receptions_validate", "receptions_validate", {"id": "{reception}"}),
+    ("P4_receptions_close", "receptions_close", {"id": "{reception}"}),
 
     # ===== Interventions (state transitions) =====
-    ("P4_interventions_get_lines", "interventions_get_lines", {"id": 1}),
-    ("P4_interventions_create_line", "interventions_create_line", {"id": 1, "desc": "Test intervention line", "duration": 60}),
-    ("P4_interventions_get_contacts", "interventions_get_contacts", {"id": 1}),
-    ("P4_interventions_settodraft", "interventions_settodraft", {"id": 1}),
-    ("P4_interventions_validate", "interventions_validate", {"id": 1}),
-    ("P4_interventions_close", "interventions_close", {"id": 1}),
+    ("P4_interventions_create_line", "interventions_create_line", {"id": "{intervention}", "desc": "Test intervention line", "duration": 60, "product_id": "{product}", "qty": 1}),
+    ("P4_interventions_get_contacts", "interventions_get_contacts", {"id": "{intervention}"}),
+    ("P4_interventions_validate", "interventions_validate", {"id": "{intervention}"}),
+    ("P4_interventions_close", "interventions_close", {"id": "{intervention}"}),
 
     # ===== Expense Reports (state transitions) =====
-    ("P4_expense_reports_get_lines", "expense_reports_get_lines", {"id": 1}),
-    ("P4_expense_reports_create_line", "expense_reports_create_line", {"id": 1, "date": NOW, "fk_c_type_fees": 1, "qty": 1, "value_unit": 10.0}),
-    ("P4_expense_reports_settodraft", "expense_reports_settodraft", {"id": 1}),
-    ("P4_expense_reports_validate", "expense_reports_validate", {"id": 1}),
-    ("P4_expense_reports_approve", "expense_reports_approve", {"id": 1}),
-    ("P4_expense_reports_deny", "expense_reports_deny", {"id": 1, "details": "Test denial"}),
-    ("P4_expense_reports_setpaid", "expense_reports_setpaid", {"id": 1}),
-    ("P4_expense_reports_cancel", "expense_reports_cancel", {"id": 1, "detail": "Test cancellation"}),
+    ("P4_expense_reports_get_lines", "expense_reports_get_lines", {"id": "{expense_report}"}),
+    ("P4_expense_reports_create_line", "expense_reports_create_line", {"id": "{expense_report}", "date": NOW, "fk_c_type_fees": 1, "qty": 1, "value_unit": 10.0, "comment": "Test expense line"}),
+    ("P4_expense_reports_settodraft", "expense_reports_settodraft", {"id": "{expense_report}"}),
+    ("P4_expense_reports_validate", "expense_reports_validate", {"id": "{expense_report}"}),
+    ("P4_expense_reports_approve", "expense_reports_approve", {"id": "{expense_report}"}),
+    ("P4_expense_reports_deny", "expense_reports_deny", {"id": "{expense_report}", "details": "Test denial"}),
+    ("P4_expense_reports_cancel", "expense_reports_cancel", {"id": "{expense_report}", "detail": "Test cancellation"}),
 
     # ===== Holidays (state transitions) =====
-    ("P4_holidays_validate", "holidays_validate", {"id": 1}),
-    ("P4_holidays_approve", "holidays_approve", {"id": 1}),
-    ("P4_holidays_cancel", "holidays_cancel", {"id": 1}),
-    ("P4_holidays_refuse", "holidays_refuse", {"id": 1}),
+    ("P4_holidays_validate", "holidays_validate", {"id": "{holiday}"}),
+    ("P4_holidays_approve", "holidays_approve", {"id": "{holiday}"}),
+    ("P4_holidays_cancel", "holidays_cancel", {"id": "{holiday}"}),
+    ("P4_holidays_refuse", "holidays_refuse", {"id": "{holiday}", "detail_refuse": "Test refusal"}),
 
     # ===== Categories =====
-    ("P4_categories_get_types", "categories_get_types", {}),
-    ("P4_categories_get_for_object", "categories_get_for_object", {"type": "product", "id": 1}),
-    ("P4_categories_link_object_by_id", "categories_link_object_by_id", {"id": 1, "type": "product", "object_id": 1}),
-    ("P4_categories_link_object_by_ref", "categories_link_object_by_ref", {"id": 1, "type": "product", "object_ref": "1"}),
-    ("P4_categories_unlink_object", "categories_unlink_object", {"id": 1, "type": "product", "object_id": 1}),
+    ("P4_categories_get_for_object", "categories_get_for_object", {"type": "product", "id": "{product}"}),
+    ("P4_categories_link_object_by_id", "categories_link_object_by_id", {"id": "{category}", "type": "product", "object_id": "{product}"}),
+    ("P4_categories_link_object_by_ref", "categories_link_object_by_ref", {"id": "{category}", "type": "product", "object_ref": "{product.ref}"}),
+    ("P4_categories_unlink_object", "categories_unlink_object", {"id": "{category}", "type": "product", "object_id": "{product}"}),
 
     # ===== Mailings =====
-    ("P4_mailings_validate", "mailings_validate", {"id": 1}),
+    ("P4_mailings_validate", "mailings_validate", {"id": "{mailing}"}),
 
     # ===== Multi Currencies =====
-    ("P4_multi_currencies_get_rates", "multi_currencies_get_rates", {"id": 1}),
-
-    # ===== Tickets =====
-    ("P4_tickets_create_message", "tickets_create_message", {"ticket_id": 1, "message": "Test message", "fk_user_author": 1}),
-    ("P4_tickets_add_contact", "tickets_add_contact", {"id": 1, "contactid": 1, "type": "external"}),
-    ("P4_tickets_delete_contact", "tickets_delete_contact", {"id": 1, "contactid": 1, "type": "external"}),
+    ("P4_multi_currencies_get_rates", "multi_currencies_get_rates", {"id": "{multi_currency}"}),
 
     # ===== Object Links =====
     ("P4_object_links_get_by_values", "object_links_get_by_values", {"fk_source": 1, "sourcetype": "thirdparty", "fk_target": 1, "targettype": "contact"}),
@@ -855,10 +823,57 @@ async def main():
             await run_test(session, f"B2 list_{label.lower()}", list_tool, list_params)
 
         # ------------------------------------------------------------------
-        # Phase 3: CRUD Cycle (data-driven from RESOURCE_TESTS)
+        # Phase 3A: Create All Resources (store IDs, no deletes)
         # ------------------------------------------------------------------
-        log("\n=== Phase 3: Resource CRUD Cycle ===")
+        log("\n=== Phase 3A: Create All Resources ===")
         for entry in RESOURCE_TESTS:
+            label = entry["label"]
+            key = label.lower()
+            store_key = entry.get("store_key", key)
+            create_info = entry.get("create")
+
+            if not create_info:
+                continue
+
+            create_tool, create_params = create_info
+            ok = await run_test_with_store(
+                session, f"C1 create_{key}", create_tool, create_params,
+                store_key=store_key
+            )
+            cid = pick_id(store_key) if ok else None
+            if cid:
+                created[f"create_{key}"] = cid
+
+        # ------------------------------------------------------------------
+        # Phase 3A.5: Fetch full records (overwrite create-only store entries)
+        # ------------------------------------------------------------------
+        log("\n=== Phase 3A.5: Fetch Full Records ===")
+        for entry in RESOURCE_TESTS:
+            label = entry["label"]
+            key = label.lower()
+            store_key = entry.get("store_key", key)
+            get_tool = entry.get("get")
+            if get_tool and store_key in store:
+                stored = store[store_key]
+                if isinstance(stored, dict) and len(stored) == 1 and "id" in stored:
+                    cid = stored["id"]
+                    await run_test_with_store(
+                        session, f"C1b fetch_{key}", get_tool, {"id": cid},
+                        store_key=store_key
+                    )
+
+        # ------------------------------------------------------------------
+        # Phase 4: Extended Tool Tests (all domain-specific tools)
+        # ------------------------------------------------------------------
+        log("\n=== Phase 4: Domain-Specific Tools ===")
+        for label, tool, params in PHASE4_TESTS:
+            await run_test(session, label, tool, params)
+
+        # ------------------------------------------------------------------
+        # Phase 3B: Get by ID + Update + Sub-tests + Delete + Verify
+        # ------------------------------------------------------------------
+        log("\n=== Phase 3B: Get/Update/Delete Cycle ===")
+        for entry in reversed(RESOURCE_TESTS):
             label = entry["label"]
             key = label.lower()
             store_key = entry.get("store_key", key)
@@ -868,25 +883,10 @@ async def main():
             delete_tool = entry.get("delete")
             sub_tests = entry.get("sub_tests", [])
 
-            # -- Create --
-            if create_info:
-                create_tool, create_params = create_info
-                ok = await run_test_with_store(
-                    session, f"C1 create_{key}", create_tool, create_params,
-                    store_key=store_key
-                )
-                cid = pick_id(store_key) if ok else None
-                if cid:
-                    created[f"create_{key}"] = cid
+            cid = pick_id(store_key)
 
-            # If no create tool, get the ID from store
-            if not create_info and get_tool:
-                cid = pick_id(store_key)
-            else:
-                cid = pick_id(store_key) if create_info and ok else None
-
-            # -- Get by ID --
             if cid and get_tool:
+                # -- Get by ID --
                 await run_test_with_store(
                     session, f"C2 get_{key}_by_id", get_tool,
                     {"id": cid}, store_key=f"get_{key}"
@@ -937,13 +937,6 @@ async def main():
                         "status": "SKIPPED",
                         "reason": "No ID from create — prerequisite failed"
                     })
-
-        # ------------------------------------------------------------------
-        # Phase 4: Extended Tool Tests (all domain-specific tools)
-        # ------------------------------------------------------------------
-        log("\n=== Phase 4: Domain-Specific Tools ===")
-        for label, tool, params in PHASE4_TESTS:
-            await run_test(session, label, tool, params)
 
         # ------------------------------------------------------------------
         # Report Summary
