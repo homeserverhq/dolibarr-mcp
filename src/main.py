@@ -9,7 +9,7 @@ from toon_mcp import json_to_toon
 
 from .client import DolibarrClient, _normalize_datetime
 
-ALLOW_ALL_AGGREGATE = False
+ALLOW_ALL_AGGREGATE = os.getenv("ALLOW_ALL_AGGREGATE", "false").lower() in ("true", "1", "yes")
 
 _current_user_token: ContextVar[Optional[str]] = ContextVar(
     "current_user_token", default=None
