@@ -1,4 +1,5 @@
 import datetime as dt
+import json
 import os
 import re
 from typing import Any, Optional
@@ -116,18 +117,28 @@ class DolibarrClient:
     async def request(self, method: str, path: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         url = f"{self.base_url}{path}"
         headers = self._get_headers(api_key)
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.request(method, url, headers=headers, **kwargs)
-            if response.status_code >= 400:
-                raise Exception(response.text[:2000])
-            if response.status_code == 204:
-                return {}
-            if response.headers.get("content-type", "").startswith("application/json"):
-                data = response.json()
-                if isinstance(data, int):
-                    return {"id": data}
-                return data
-            return {"text": response.text}
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.request(method, url, headers=headers, **kwargs)
+        except Exception as e:
+            msg = str(e)
+            if "decompress" in msg or "incorrect header check" in msg:
+                kwargs2 = {k: v for k, v in kwargs.items() if k != "headers"}
+                kwargs2["headers"] = {**headers, "Accept-Encoding": "identity"}
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    response = await client.request(method, url, headers=kwargs2["headers"], **{k: v for k, v in kwargs.items() if k != "headers"})
+            else:
+                raise
+        if response.status_code >= 400:
+            raise Exception(response.text[:2000])
+        if response.status_code == 204:
+            return {}
+        if response.headers.get("content-type", "").startswith("application/json"):
+            data = response.json()
+            if isinstance(data, int):
+                return {"id": data}
+            return data
+        return {"text": response.text}
 
     async def get(self, path: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         data = await self.request("GET", path, api_key, **kwargs)
@@ -207,27 +218,19 @@ class DolibarrClient:
         return await self.delete(f"/thirdparties/{id}", api_key)
 
     async def thirdparties_get_outstanding_proposals(self, id: int, api_key: Optional[str] = None, mode: str = "") -> Any:
-        params = {}
-        if mode: params["mode"] = mode
-        params["properties"] = OUTSTANDING_COMMON
+        params = {"mode": mode or "all"}
         return await self.get(f"/thirdparties/{id}/outstandingproposals", api_key, params=params)
 
     async def thirdparties_get_outstanding_orders(self, id: int, api_key: Optional[str] = None, mode: str = "") -> Any:
-        params = {}
-        if mode: params["mode"] = mode
-        params["properties"] = OUTSTANDING_COMMON
+        params = {"mode": mode or "all"}
         return await self.get(f"/thirdparties/{id}/outstandingorders", api_key, params=params)
 
     async def thirdparties_get_outstanding_invoices(self, id: int, api_key: Optional[str] = None, mode: str = "") -> Any:
-        params = {}
-        if mode: params["mode"] = mode
-        params["properties"] = OUTSTANDING_COMMON
+        params = {"mode": mode or "all"}
         return await self.get(f"/thirdparties/{id}/outstandinginvoices", api_key, params=params)
 
     async def thirdparties_get_representatives(self, id: int, api_key: Optional[str] = None, mode: int = 0) -> Any:
         params = {}
-        if mode: params["mode"] = mode
-        params["properties"] = CONTACT_COMMON
         return await self.get(f"/thirdparties/{id}/representatives", api_key, params=params)
 
     async def thirdparties_get_categories(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
@@ -820,11 +823,14 @@ class DolibarrClient:
         if secondlevel: params["secondlevel"] = secondlevel
         return await self.post(f"/supplierorders/{id}/approve", api_key, params=params or None)
 
-    async def supplier_orders_receive(self, id: int, api_key: Optional[str] = None, closeopenorder: int = 0, comment: str = "") -> Any:
-        params = {}
-        if closeopenorder: params["closeopenorder"] = closeopenorder
-        if comment: params["comment"] = comment
-        return await self.post(f"/supplierorders/{id}/receive", api_key, params=params or None)
+    async def supplier_orders_receive(self, id: int, api_key: Optional[str] = None, closeopenorder: int = 0, comment: str = "", lines: str = "") -> Any:
+        body = {}
+        if closeopenorder: body["closeopenorder"] = closeopenorder
+        if comment: body["comment"] = comment
+        if lines:
+            parsed = json.loads(lines) if isinstance(lines, str) else lines
+            body["lines"] = parsed
+        return await self.post(f"/supplierorders/{id}/receive", api_key, json=body if body else None)
 
     # ============================================================
     # Supplier Invoices

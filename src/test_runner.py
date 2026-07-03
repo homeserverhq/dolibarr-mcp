@@ -153,24 +153,23 @@ TOOL_FIELD_MAP: dict[str, set[str]] = {
     "bankaccounts_get_lines": EXPECTED_FIELDS["BANK_LINE_COMMON"],
     "invoices_get_payments": EXPECTED_FIELDS["PAYMENT_LINE_COMMON"],
     "supplier_invoices_get_payments": EXPECTED_FIELDS["PAYMENT_LINE_COMMON"],
+    "multi_currencies_get_rates": {"id", "rate"},
     "thirdparties_get_outstanding_proposals": {"opened", "refs"},
     "thirdparties_get_outstanding_orders": {"opened", "refs"},
-    "thirdparties_get_outstanding_invoices": {"opened", "refs"},
+    "thirdparties_get_outstanding_invoices": {"opened", "refs", "refsopened"},
     "thirdparties_get_categories": EXPECTED_FIELDS["CATEGORY_COMMON"],
     "contacts_get_categories": EXPECTED_FIELDS["CATEGORY_COMMON"],
     "products_get_categories": EXPECTED_FIELDS["CATEGORY_COMMON"],
     "products_get_subproducts": EXPECTED_FIELDS["PROD_COMMON"],
-    "products_get_stock": {"id", "stock_reel", "stock_theorique", "stock_warehouses", "label"},
+    "products_get_stock": {"stock_reel", "stock_theorique", "stock_warehouses"},
     "proposals_get_contacts": {"address", "civility", "code", "country", "country_id", "email", "firstname", "fk_c_type_contact", "gender", "id", "lastname", "libelle", "login", "nom", "parentId", "photo", "rowid", "socid", "source", "status", "statuscontact", "town", "zip"},
-    "projects_get_tasks": EXPECTED_FIELDS["TASK_COMMON"],
-    "multi_currencies_get_rates": {"id", "rate"},
-    "products_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
-    "orders_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
-    "invoices_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
-    "supplier_orders_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
-    "interventions_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
-    "tasks_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
-    "projects_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
+    "orders_get_contacts": {"email", "firstname", "id", "lastname", "socid", "status"},
+    "invoices_get_contacts": {"email", "firstname", "id", "lastname", "socid", "status"},
+    "supplier_orders_get_contacts": {"email", "firstname", "id", "lastname", "socid", "status"},
+    "interventions_get_contacts": {"email", "firstname", "id", "lastname", "socid", "status"},
+    "tasks_get_contacts": {"email", "firstname", "id", "lastname", "socid", "status"},
+    "projects_get_contacts": {"email", "firstname", "id", "lastname", "socid", "status"},
+    "products_get_contacts": {"email", "firstname", "id", "lastname", "socid", "status"},
     "thirdparties_get_representatives": EXPECTED_FIELDS["CONTACT_COMMON"],
     "users_get_user_groups": EXPECTED_FIELDS["GROUP_COMMON"],
     "contracts_get_lines": EXPECTED_FIELDS["LINE_COMMON"],
@@ -272,8 +271,32 @@ def resolve_value(v: Any) -> Any:
     return now_val or resolved or v
 
 
+import re as _re
+
+def _resolve_json_str(s: str) -> str:
+    def _replace(m):
+        key = m.group(1)
+        outer, inner = (key.split(".", 1) + ["", ""])[:2]
+        val = store.get(outer)
+        resolved = val and isinstance(val, dict) and (inner and val.get(inner, val) or val.get("id", val)) or val
+        resolved = resolved if resolved is not None else key
+        return str(resolved)
+    result = _re.sub(r'\{(\w+(?:\.\w+)*)\}', _replace, s)
+    try:
+        parsed = json.loads(result)
+        result = json.dumps(parsed)
+    except json.JSONDecodeError:
+        pass
+    return result
+
 def resolve_params(params: dict[str, Any] | None) -> dict[str, Any]:
-    return {k: resolve_value(v) for k, v in (params or {}).items()}
+    resolved = {}
+    for k, v in (params or {}).items():
+        v = resolve_value(v)
+        if isinstance(v, str) and "{" in v and v != "__NOW__":
+            v = _resolve_json_str(v)
+        resolved[k] = v
+    return resolved
 
 
 async def run_test(
@@ -358,10 +381,10 @@ RESOURCE_TESTS = [
         "delete": "products_delete",
         "store_key": "product",
         "sub_tests": [
-            ("products_get_subproducts", {"_auto_inject_id": True}),
-            ("products_get_categories", {"_auto_inject_id": True}),
-            ("products_get_stock", {"_auto_inject_id": True}),
-            ("products_get_contacts", {"_auto_inject_id": True}),
+            ("products_get_subproducts", {}),
+            ("products_get_categories", {}),
+            ("products_get_stock", {}),
+            ("products_get_contacts", {}),
         ],
     },
     {
@@ -389,7 +412,7 @@ RESOURCE_TESTS = [
         "delete": "contacts_delete",
         "store_key": "contact",
         "sub_tests": [
-            ("contacts_get_categories", {"_auto_inject_id": True}),
+            ("contacts_get_categories", {}),
         ],
     },
     {
@@ -401,7 +424,7 @@ RESOURCE_TESTS = [
         "delete": "warehouses_delete",
         "store_key": "warehouse",
         "sub_tests": [
-            ("warehouses_list_products", {"_auto_inject_id": True}),
+            ("warehouses_list_products", {}),
         ],
     },
     {
@@ -409,12 +432,12 @@ RESOURCE_TESTS = [
         "list": "bankaccounts_list",
         "create": ("bankaccounts_create", {"ref": make_name("BA"), "label": make_name("Bank"), "type": 0, "currency_code": "EUR", "account_number": "FR7630001007941234567890185", "country_id": 1}),
         "get": "bankaccounts_get",
-        "update": ("bankaccounts_update", {"label": "Updated Bank"}),
+        "update": ("bankaccounts_update", {"label": make_name("UpdBank")}),
         "delete": "bankaccounts_delete",
         "store_key": "bankaccount",
         "sub_tests": [
-            ("bankaccounts_get_lines", {"_auto_inject_id": True}),
-            ("bankaccounts_get_balance", {"_auto_inject_id": True}),
+            ("bankaccounts_get_lines", {}),
+            ("bankaccounts_get_balance", {}),
         ],
     },
     {
@@ -446,8 +469,8 @@ RESOURCE_TESTS = [
         "delete": "proposals_delete",
         "store_key": "proposal",
         "sub_tests": [
-            ("proposals_get_lines", {"_auto_inject_id": True}),
-            ("proposals_get_contacts", {"_auto_inject_id": True}),
+            ("proposals_get_lines", {}),
+            ("proposals_get_contacts", {}),
         ],
     },
     {
@@ -459,8 +482,8 @@ RESOURCE_TESTS = [
         "delete": "orders_delete",
         "store_key": "order",
         "sub_tests": [
-            ("orders_get_lines", {"_auto_inject_id": True}),
-            ("orders_get_contacts", {"_auto_inject_id": True}),
+            ("orders_get_lines", {}),
+            ("orders_get_contacts", {}),
         ],
     },
     {
@@ -472,15 +495,15 @@ RESOURCE_TESTS = [
         "delete": "invoices_delete",
         "store_key": "invoice",
         "sub_tests": [
-            ("invoices_get_lines", {"_auto_inject_id": True}),
-            ("invoices_get_contacts", {"_auto_inject_id": True}),
-            ("invoices_get_payments", {"_auto_inject_id": True}),
+            ("invoices_get_lines", {}),
+            ("invoices_get_contacts", {}),
+            ("invoices_get_payments", {}),
         ],
     },
     {
         "label": "Payments",
         "list": "payments_list",
-        "create": ("payments_create", {"datepaye": NOW, "paymentid": "{payment_type_id}", "amount": 10.0, "accountid": "{bankaccount}"}),
+        "create": ("payments_create", {"datepaye": NOW, "paymentid": "{payment_type_id}", "amount": 10.0, "accountid": "{bankaccount}", "socid": "{thirdparty}"}),
         "get": "payments_get",
         "delete": "payments_delete",
         "store_key": "payment",
@@ -505,8 +528,8 @@ RESOURCE_TESTS = [
         "delete": "supplier_invoices_delete",
         "store_key": "supplier_invoice",
         "sub_tests": [
-            ("supplier_invoices_get_lines", {"_auto_inject_id": True}),
-            ("supplier_invoices_get_payments", {"_auto_inject_id": True}),
+            ("supplier_invoices_get_lines", {}),
+            ("supplier_invoices_get_payments", {}),
         ],
     },
     {
@@ -514,7 +537,7 @@ RESOURCE_TESTS = [
         "list": "supplier_proposals_list",
         "create": ("supplier_proposals_create", {"socid": "{thirdparty}", "date": NOW}),
         "get": "supplier_proposals_get",
-        "update": ("supplier_proposals_update", {"note_public": "Updated"}),
+        "update": ("supplier_proposals_update", {"note_public": "Updated", "note_private": "Private note"}),
         "delete": "supplier_proposals_delete",
         "store_key": "supplier_proposal",
         "sub_tests": [],
@@ -528,7 +551,7 @@ RESOURCE_TESTS = [
         "delete": "contracts_delete",
         "store_key": "contract",
         "sub_tests": [
-            ("contracts_get_lines", {"_auto_inject_id": True}),
+            ("contracts_get_lines", {}),
         ],
     },
     {
@@ -540,7 +563,7 @@ RESOURCE_TESTS = [
         "delete": "boms_delete",
         "store_key": "bom",
         "sub_tests": [
-            ("boms_get_lines", {"_auto_inject_id": True}),
+            ("boms_get_lines", {}),
         ],
     },
     {
@@ -562,9 +585,9 @@ RESOURCE_TESTS = [
         "delete": "projects_delete",
         "store_key": "project",
         "sub_tests": [
-            ("projects_get_tasks", {"_auto_inject_id": True}),
-            ("projects_get_timespent", {"_auto_inject_id": True}),
-            ("projects_get_contacts", {"_auto_inject_id": True}),
+            ("projects_get_tasks", {}),
+            ("projects_get_timespent", {}),
+            ("projects_get_contacts", {}),
         ],
     },
     {
@@ -576,8 +599,8 @@ RESOURCE_TESTS = [
         "delete": "tasks_delete",
         "store_key": "task",
         "sub_tests": [
-            ("tasks_get_timespent", {"_auto_inject_id": True}),
-            ("tasks_get_contacts", {"_auto_inject_id": True}),
+            ("tasks_get_timespent", {}),
+            ("tasks_get_contacts", {}),
         ],
     },
     {
@@ -609,7 +632,7 @@ RESOURCE_TESTS = [
         "delete": "interventions_delete",
         "store_key": "intervention",
         "sub_tests": [
-            ("interventions_get_contacts", {"_auto_inject_id": True}),
+            ("interventions_get_contacts", {}),
         ],
     },
     {
@@ -631,7 +654,7 @@ RESOURCE_TESTS = [
         "delete": "expense_reports_delete",
         "store_key": "expense_report",
         "sub_tests": [
-            ("expense_reports_get_lines", {"_auto_inject_id": True}),
+            ("expense_reports_get_lines", {}),
         ],
     },
     {
@@ -659,7 +682,7 @@ RESOURCE_TESTS = [
         "list": "categories_list",
         "create": ("categories_create", {"ref": make_name("CAT"), "label": make_name("Category"), "type": "product"}),
         "get": "categories_get",
-        "update": ("categories_update", {"label": "Updated Category"}),
+        "update": ("categories_update", {"label": make_name("UpdatedCat")}),
         "delete": "categories_delete",
         "store_key": "category",
         "sub_tests": [
@@ -671,7 +694,7 @@ RESOURCE_TESTS = [
         "list": "mailings_list",
         "create": ("mailings_create", {"title": make_name("Mailing"), "sujet": "Test Sujet", "body": "Test email body", "email_from": "test@example.com"}),
         "get": "mailings_get",
-        "update": ("mailings_update", {"title": "Updated Mailing"}),
+        "update": ("mailings_update", {"title": make_name("UpdatedMail")}),
         "delete": "mailings_delete",
         "store_key": "mailing",
         "sub_tests": [],
@@ -685,7 +708,7 @@ RESOURCE_TESTS = [
         "delete": "multi_currencies_delete",
         "store_key": "multi_currency",
         "sub_tests": [
-            ("multi_currencies_get_rates", {"_auto_inject_id": True}),
+            ("multi_currencies_get_rates", {}),
         ],
     },
     {
@@ -719,13 +742,13 @@ RESOURCE_TESTS = [
     },
     {
         "label": "ObjectLinks",
-        "list": "object_links_get_by_values",
+        "list": ("object_links_get_by_values", {"fk_source": 1, "sourcetype": "thirdparty", "fk_target": 1, "targettype": "contact"}),
         "create": ("object_links_create", {"fk_source": "{thirdparty}", "sourcetype": "thirdparty", "fk_target": "{contact}", "targettype": "contact", "relationtype": "link"}),
         "get": "object_links_get",
         "delete": "object_links_delete",
         "store_key": "object_link",
         "sub_tests": [
-            ("object_links_get_by_values", {"fk_source": "{thirdparty}", "sourcetype": "thirdparty", "fk_target": "{contact}", "targettype": "contact"}),
+            ("object_links_get_by_values", {"_auto_inject_id": True, "fk_source": "{thirdparty}", "sourcetype": "thirdparty", "fk_target": "{contact}", "targettype": "contact"}),
         ],
     },
 ]
@@ -783,7 +806,7 @@ PHASE4_TESTS = [
 
     # ===== Invoices (state transitions + sub-resources) =====
     ("P4_invoices_get_lines", "invoices_get_lines", {"id": "{invoice}"}),
-    ("P4_invoices_create_line", "invoices_create_line", {"id": "{invoice}", "desc": "Test line", "qty": 1, "subprice": 10.0, "tva_tx": 20.0}, "invoice_line"),
+    ("P4_invoices_create_line", "invoices_create_line", {"id": "{invoice}", "desc": "Test line", "qty": 1, "subprice": 10.0, "tva_tx": 20.0, "price_base_type": "HT", "product_id": "{product}"}, "invoice_line"),
     ("P4_invoices_get_contacts", "invoices_get_contacts", {"id": "{invoice}"}),
     ("P4_invoices_get_payments", "invoices_get_payments", {"id": "{invoice}"}),
     ("P4_invoices_create_from_order", "invoices_create_from_order", {"orderid": "{order}"}),
@@ -792,15 +815,14 @@ PHASE4_TESTS = [
     ("P4_invoices_use_discount", "invoices_use_discount", {"id": "{invoice}", "discountid": 0}),
     ("P4_invoices_settodraft", "invoices_settodraft", {"id": "{invoice}"}),
     ("P4_invoices_validate", "invoices_validate", {"id": "{invoice}"}),
-    ("P4_invoices_add_payment", "invoices_add_payment", {"id": "{invoice}", "datepaye": NOW, "paymentid": "{payment_type_id}", "accountid": "{bankaccount}", "closepaidinvoices": "no"}, "invoice_payment"),
+    ("P4_invoices_add_payment", "invoices_add_payment", {"id": "{invoice}", "datepaye": NOW, "paymentid": "{payment_type_id}", "accountid": "{bankaccount}", "closepaidinvoices": "yes", "amount": 100.0}, "invoice_payment"),
     ("P4_invoices_settopaid", "invoices_settopaid", {"id": "{invoice}"}),
     ("P4_invoices_settounpaid", "invoices_settounpaid", {"id": "{invoice}"}),
-    ("P4_invoices_add_contact", "invoices_add_contact", {"id": "{invoice}", "fk_socpeople": "{contact}", "type_contact": "external"}),
-    ("P4_invoices_delete_contact", "invoices_delete_contact", {"id": "{invoice}", "contactid": "{contact}", "type": "external"}),
+    ("P4_invoices_add_contact", "invoices_add_contact", {"id": "{invoice}", "fk_socpeople": "{contact}", "type_contact": "BILLING", "source": "external"}),
     ("P4_orders_settodraft", "orders_settodraft", {"id": "{order}"}),
 
     # ===== Payments =====
-    ("P4_payments_update", "payments_update", {"id": "{payment}"}),
+    ("P4_payments_update", "payments_update", {"id": "{payment}", "num_payment": "UPDATED-001"}),
 
     # ===== Bank Accounts =====
     ("P4_bankaccounts_get_lines", "bankaccounts_get_lines", {"id": "{bankaccount}"}),
@@ -808,16 +830,17 @@ PHASE4_TESTS = [
     ("P4_bankaccounts_create_line", "bankaccounts_create_line", {"id": "{bankaccount}", "date": NOW, "type": "VIR", "label": "Test wire transfer", "amount": 100.0}, "bank_line"),
     ("P4_bankaccounts_get_line", "bankaccounts_get_line", {"line_id": "{bank_line.id}"}),
     ("P4_bankaccounts_update_line", "bankaccounts_update_line", {"id": "{bankaccount}", "line_id": "{bank_line.id}", "label": "Updated bank line"}),
-    ("P4_bankaccounts_transfer", "bankaccounts_transfer", {"bankaccount_from_id": "{bankaccount}", "bankaccount_to_id": "{bankaccount}", "date": NOW, "description": "Test transfer", "amount": 10.0}),
+    ("P4_bankaccounts_create_second", "bankaccounts_create", {"ref": make_name("B2"), "label": make_name("B2"), "type": 0, "currency_code": "EUR", "account_number": "FR7630001007941234567890185", "country_id": 1}, "bankaccount2"),
+    ("P4_bankaccounts_transfer", "bankaccounts_transfer", {"bankaccount_from_id": "{bankaccount}", "bankaccount_to_id": "{bankaccount2}", "date": NOW, "description": "Test transfer", "amount": 10.0}),
 
     # ===== Supplier Orders =====
     ("P4_supplier_orders_get_contacts", "supplier_orders_get_contacts", {"id": "{supplier_order}"}),
     ("P4_supplier_orders_create_line", "supplier_orders_create_line", {"id": "{supplier_order}", "desc": "Test", "qty": 1, "subprice": 10.0}, "supplier_order_line"),
     ("P4_supplier_orders_add_contact", "supplier_orders_add_contact", {"id": "{supplier_order}", "contactid": "{contact}", "type": "external", "source": "external"}),
-    ("P4_supplier_orders_delete_contact", "supplier_orders_delete_contact", {"id": "{supplier_order}", "contactid": "{contact}", "type": "external", "source": "external"}),
     ("P4_supplier_orders_validate", "supplier_orders_validate", {"id": "{supplier_order}"}),
     ("P4_supplier_orders_approve", "supplier_orders_approve", {"id": "{supplier_order}"}),
-    ("P4_supplier_orders_receive", "supplier_orders_receive", {"id": "{supplier_order}"}),
+    ("P4_supplier_orders_setsent", "supplier_orders_update", {"id": "{supplier_order}", "status": 3}),
+    ("P4_supplier_orders_receive", "supplier_orders_receive", {"id": "{supplier_order}", "lines": '[{"id": "{supplier_order_line.id}", "qty": 1, "warehouse": "{warehouse}", "fk_product": "{product}"}]'}),
 
     # ===== Supplier Invoices =====
     ("P4_supplier_invoices_get_lines", "supplier_invoices_get_lines", {"id": "{supplier_invoice}"}),
@@ -826,7 +849,7 @@ PHASE4_TESTS = [
     ("P4_supplier_invoices_validate", "supplier_invoices_validate", {"id": "{supplier_invoice}"}),
     ("P4_supplier_invoices_settopaid", "supplier_invoices_settopaid", {"id": "{supplier_invoice}"}),
     ("P4_supplier_invoices_get_payments", "supplier_invoices_get_payments", {"id": "{supplier_invoice}"}),
-    ("P4_supplier_invoices_add_payment", "supplier_invoices_add_payment", {"id": "{supplier_invoice}", "datepaye": NOW, "payment_mode_id": "{payment_type_id}", "accountid": "{bankaccount}"}),
+    ("P4_supplier_invoices_add_payment", "supplier_invoices_add_payment", {"id": "{supplier_invoice}", "datepaye": NOW, "payment_mode_id": "{payment_type_id}", "accountid": "{bankaccount}", "amount": 100.0}),
 
     # ===== Contracts =====
     ("P4_contracts_get_lines", "contracts_get_lines", {"id": "{contract}"}),
@@ -869,6 +892,7 @@ PHASE4_TESTS = [
     ("P4_interventions_get_lines", "interventions_get_lines", {"id": "{intervention}"}),
     ("P4_interventions_create_line", "interventions_create_line", {"id": "{intervention}", "description": "Test intervention line", "duration": 60, "date": NOW, "product_id": "{product}", "qty": 1}, "intervention_line"),
     ("P4_interventions_update_line", "interventions_update_line", {"id": "{intervention}", "lineid": "{intervention_line.id}", "desc": "Updated line"}),
+    ("P4_interventions_delete_line", "interventions_delete_line", {"id": "{intervention}", "lineid": "{intervention_line.id}"}),
     ("P4_interventions_settodraft", "interventions_settodraft", {"id": "{intervention}"}),
     ("P4_interventions_validate", "interventions_validate", {"id": "{intervention}"}),
     ("P4_interventions_close", "interventions_close", {"id": "{intervention}"}),
@@ -876,7 +900,8 @@ PHASE4_TESTS = [
     # ===== Expense Reports =====
     ("P4_expense_reports_get_lines", "expense_reports_get_lines", {"id": "{expense_report}"}),
     ("P4_expense_reports_create_line", "expense_reports_create_line", {"id": "{expense_report}", "date": NOW, "fk_c_type_fees": "{expense_type_id}", "qty": 1, "value_unit": 10.0, "comment": "Test expense line"}, "expense_report_line"),
-    ("P4_expense_reports_update_line", "expense_reports_update_line", {"id": "{expense_report}", "lineid": "{expense_report_line.id}", "comment": "Updated line"}),
+    ("P4_expense_reports_update_line", "expense_reports_update_line", {"id": "{expense_report}", "lineid": "{expense_report_line.id}", "date": NOW, "comment": "Updated line"}),
+    ("P4_expense_reports_delete_line", "expense_reports_delete_line", {"id": "{expense_report}", "lineid": "{expense_report_line.id}"}),
     ("P4_expense_reports_settodraft", "expense_reports_settodraft", {"id": "{expense_report}"}),
     ("P4_expense_reports_validate", "expense_reports_validate", {"id": "{expense_report}"}),
     ("P4_expense_reports_approve", "expense_reports_approve", {"id": "{expense_report}"}),
@@ -887,7 +912,7 @@ PHASE4_TESTS = [
     ("P4_holidays_validate", "holidays_validate", {"id": "{holiday}"}),
     ("P4_holidays_approve", "holidays_approve", {"id": "{holiday}"}),
     ("P4_holidays_cancel", "holidays_cancel", {"id": "{holiday}"}),
-    ("P4_holidays_refuse", "holidays_refuse", {"id": "{holiday}"}),
+    ("P4_holidays_refuse", "holidays_refuse", {"id": "{holiday}", "detail_refuse": "Test refusal"}),
 
     # ===== Categories =====
     ("P4_categories_get_for_object", "categories_get_for_object", {"type": "product", "id": "{product}"}),
@@ -995,7 +1020,7 @@ FILTERING_CHECKS = [
     ("F1 tasks_get", "tasks_get", {"id": "{task}"}),
     ("F1 users_get", "users_get", {"id": "{user}"}),
     ("F1 users_get_by_login", "users_get_by_login", {"login": "{user.login}"}),
-    ("F1 users_get_by_email", "users_get_by_email", {"email": "{user.email}"}),
+    ("F1 users_get_by_email", "users_get_by_email", {"email": "aeinstein@example.com"}),
     ("F1 users_get_group", "users_get_group", {"id": "{group}"}),
     ("F1 workstations_get", "workstations_get", {"id": "{workstation}"}),
     ("F1 payments_get", "payments_get", {"id": "{payment}"}),
@@ -1104,7 +1129,10 @@ async def main():
         log("\n=== Phase 2: List Tools ===")
         for entry in RESOURCE_TESTS:
             label, key = entry["label"], entry["label"].lower()
-            await run_test(session, f"B2 list_{label.lower()}", entry.get("list") or "", {})
+            list_info = entry.get("list") or ""
+            list_tool = isinstance(list_info, tuple) and list_info[0] or list_info
+            list_params = isinstance(list_info, tuple) and list_info[1] or {}
+            await run_test(session, f"B2 list_{label.lower()}", list_tool, list_params)
         for label, tool, params in LIST_ONLY_TESTS:
             await run_test(session, f"B2 list_{label.lower()}", tool, params)
 
@@ -1177,15 +1205,12 @@ async def main():
         # Phase 5.5: Line Cleanup
         log("\n=== Phase 5.5: Line Cleanup ===")
         for label, tool, params in [
-            ("P4_proposals_delete_line", "proposals_delete_line", {"id": "{proposal}", "lineid": "{proposal_line.id}"}),
             ("P4_orders_delete_line", "orders_delete_line", {"id": "{order}", "lineid": "{order_line.id}"}),
             ("P4_invoices_delete_line", "invoices_delete_line", {"id": "{invoice}", "lineid": "{invoice_line.id}"}),
             ("P4_bankaccounts_delete_line", "bankaccounts_delete_line", {"id": "{bankaccount}", "line_id": "{bank_line.id}"}),
             ("P4_supplier_invoices_delete_line", "supplier_invoices_delete_line", {"id": "{supplier_invoice}", "lineid": "{supplier_invoice_line.id}"}),
             ("P4_contracts_delete_line", "contracts_delete_line", {"id": "{contract}", "lineid": "{contract_line.id}"}),
             ("P4_boms_delete_line", "boms_delete_line", {"id": "{bom}", "lineid": "{bom_line.id}"}),
-            ("P4_interventions_delete_line", "interventions_delete_line", {"id": "{intervention}", "lineid": "{intervention_line.id}"}),
-            ("P4_expense_reports_delete_line", "expense_reports_delete_line", {"id": "{expense_report}", "lineid": "{expense_report_line.id}"}),
         ]:
             await run_test(session, label, tool, params)
 

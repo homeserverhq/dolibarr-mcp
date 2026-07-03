@@ -7,7 +7,7 @@ from fastmcp import FastMCP, Context
 from pydantic import BaseModel
 from toon_mcp import json_to_toon
 
-from .client import DolibarrClient, _normalize_datetime
+from .client import DolibarrClient, _normalize_datetime, _to_timestamp
 
 ALLOW_ALL_AGGREGATE = os.getenv("ALLOW_ALL_AGGREGATE", "false").lower() in ("true", "1", "yes")
 
@@ -299,6 +299,7 @@ class CreateInvoicePaymentParam(BaseModel):
     closepaidinvoices: str = "no"
     num_payment: str = ""
     comment: str = ""
+    amount: float = 0.0
     chqemetteur: str = ""
     chqbank: str = ""
 
@@ -419,7 +420,7 @@ class CreateSupplierInvoicePaymentParam(BaseModel):
     datepaye: str
     payment_mode_id: int
     accountid: int
-    closepaidinvoices: int = 0
+    closepaidinvoices: str = "no"
     num_payment: str = ""
     comment: str = ""
     amount: float = 0.0
@@ -2494,7 +2495,7 @@ async def invoices_get_payments(id: int, ctx: Context = None) -> dict[str, Any]:
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
-async def invoices_add_payment(id: int, datepaye: str, paymentid: int, accountid: int, closepaidinvoices: str = "no", num_payment: str = "", comment: str = "", chqemetteur: str = "", chqbank: str = "", ctx: Context = None) -> dict[str, Any]:
+async def invoices_add_payment(id: int, datepaye: str, paymentid: int, accountid: int, closepaidinvoices: str = "no", num_payment: str = "", comment: str = "", amount: float = 0.0, chqemetteur: str = "", chqbank: str = "", ctx: Context = None) -> dict[str, Any]:
     """Add a payment to an invoice.
 
     Args:
@@ -2508,7 +2509,7 @@ async def invoices_add_payment(id: int, datepaye: str, paymentid: int, accountid
         chqemetteur: Check issuer.
         chqbank: Check bank.
     """
-    params = CreateInvoicePaymentParam(datepaye=datepaye, paymentid=paymentid, accountid=accountid, closepaidinvoices=closepaidinvoices, num_payment=num_payment, comment=comment, chqemetteur=chqemetteur, chqbank=chqbank)
+    params = CreateInvoicePaymentParam(datepaye=datepaye, paymentid=paymentid, accountid=accountid, closepaidinvoices=closepaidinvoices, num_payment=num_payment, comment=comment, amount=amount, chqemetteur=chqemetteur, chqbank=chqbank)
     return await get_client().invoices_add_payment(id, params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool()
@@ -2595,7 +2596,7 @@ async def payments_get(id: int, include_all_fields: bool = False, ctx: Context =
     return await get_client().payments_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
 
 @mcp.tool()
-async def payments_create(datepaye: str, paymentid: int, amount: float, accountid: int, closepaidinvoices: str = "no", ctx: Context = None) -> dict[str, Any]:
+async def payments_create(datepaye: str, paymentid: int, amount: float, accountid: int, closepaidinvoices: str = "no", socid: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Create a new payment.
 
     Args:
@@ -2604,18 +2605,27 @@ async def payments_create(datepaye: str, paymentid: int, amount: float, accounti
         amount: Amount (required).
         accountid: Bank account ID (required).
         closepaidinvoices: Close paid invoices (yes/no).
+        socid: Thirdparty ID for the placeholder invoice.
     """
-    payload = {"datepaye": datepaye, "paymentid": paymentid, "amount": amount, "accountid": accountid, "closepaidinvoices": closepaidinvoices}
-    return await get_client().payments_create(payload, get_user_token())
+    pay_inv = await get_client().invoices_create({"socid": socid, "date": int(_to_timestamp(datepaye)), "type": 0}, get_user_token())
+    pay_inv_id = pay_inv.get("id") if isinstance(pay_inv, dict) else int(pay_inv)
+    line_data = {"desc": "Payment line", "qty": 1, "subprice": amount, "tva_tx": 0.0, "price_base_type": "HT"}
+    await get_client().invoices_create_line(pay_inv_id, line_data, get_user_token())
+    payload = CreateInvoicePaymentParam(datepaye=datepaye, paymentid=paymentid, accountid=accountid, closepaidinvoices=closepaidinvoices, amount=amount).model_dump(exclude_unset=True)
+    payload["datepaye"] = _to_timestamp(str(payload["datepaye"])) if "T" in str(payload["datepaye"]) or " " in str(payload["datepaye"]) else int(str(payload["datepaye"]))
+    result = await get_client().invoices_add_payment(pay_inv_id, payload, get_user_token())
+    return result
 
 @mcp.tool()
-async def payments_update(id: int, ctx: Context = None) -> dict[str, Any]:
+async def payments_update(id: int, num_payment: Optional[str] = None, ctx: Context = None) -> dict[str, Any]:
     """Payments Update.
 
     Args:
         id: The unique ID of the resource (required).
+        num_payment: Payment number (optional).
     """
-    return await get_client().payments_update(id, {}, get_user_token())
+    payload = {k: v for k, v in {"num_payment": num_payment}.items() if v is not None}
+    return await get_client().payments_update(id, payload, get_user_token())
 
 @mcp.tool()
 async def payments_delete(id: int, ctx: Context = None) -> dict[str, Any]:
@@ -2735,8 +2745,9 @@ async def bankaccounts_transfer(bankaccount_from_id: int, bankaccount_to_id: int
         amount_to: Destination amount.
         cheque_number: Check number.
     """
-    params = CreateBankAccountTransferParam(bankaccount_from_id=bankaccount_from_id, bankaccount_to_id=bankaccount_to_id, date=date, description=description, amount=amount, amount_to=amount_to, cheque_number=cheque_number)
-    return await get_client().bankaccounts_transfer(params.model_dump(exclude_unset=True), get_user_token())
+    params = CreateBankAccountTransferParam(bankaccount_from_id=bankaccount_from_id, bankaccount_to_id=bankaccount_to_id, date=date, description=description, amount=amount, amount_to=amount_to, cheque_number=cheque_number).model_dump(exclude_unset=True)
+    params["date"] = _to_timestamp(params["date"]) if "T" in str(params["date"]) or " " in str(params["date"]) else int(str(params["date"]))
+    return await get_client().bankaccounts_transfer(params, get_user_token())
 
 @mcp.tool()
 async def bankaccounts_get_lines(id: int, sqlfilters: str = "", ctx: Context = None) -> dict[str, Any]:
@@ -2974,15 +2985,16 @@ async def supplier_orders_approve(id: int, idwarehouse: int = 0, secondlevel: in
     return await get_client().supplier_orders_approve(id, get_user_token(), idwarehouse=idwarehouse, secondlevel=secondlevel)
 
 @mcp.tool()
-async def supplier_orders_receive(id: int, closeopenorder: int = 0, comment: str = "", ctx: Context = None) -> dict[str, Any]:
+async def supplier_orders_receive(id: int, closeopenorder: int = 0, comment: str = "", lines: str = "[]", ctx: Context = None) -> dict[str, Any]:
     """Supplier Orders Receive.
 
     Args:
         id: The unique ID of the resource (required).
         closeopenorder: Close open order flag.
         comment: Comment.
+        lines: JSON array of line objects with id and qty.
     """
-    return await get_client().supplier_orders_receive(id, get_user_token(), closeopenorder=closeopenorder, comment=comment)
+    return await get_client().supplier_orders_receive(id, get_user_token(), closeopenorder=closeopenorder, comment=comment, lines=lines)
 
 # ============================================================
 # Supplier Invoices
@@ -3156,7 +3168,7 @@ async def supplier_invoices_get_payments(id: int, ctx: Context = None) -> dict[s
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
-async def supplier_invoices_add_payment(id: int, datepaye: str, payment_mode_id: int, accountid: int, closepaidinvoices: int = 0, num_payment: str = "", comment: str = "", amount: float = 0.0, ctx: Context = None) -> dict[str, Any]:
+async def supplier_invoices_add_payment(id: int, datepaye: str, payment_mode_id: int, accountid: int, closepaidinvoices: str = "no", num_payment: str = "", comment: str = "", amount: float = 0.0, ctx: Context = None) -> dict[str, Any]:
     """Supplier Invoices Add Payment.
 
     Args:
@@ -3169,8 +3181,9 @@ async def supplier_invoices_add_payment(id: int, datepaye: str, payment_mode_id:
         comment: Comment.
         amount: Amount.
     """
-    params = CreateSupplierInvoicePaymentParam(datepaye=datepaye, payment_mode_id=payment_mode_id, accountid=accountid, closepaidinvoices=closepaidinvoices, num_payment=num_payment, comment=comment, amount=amount)
-    return await get_client().supplier_invoices_add_payment(id, params.model_dump(exclude_unset=True), get_user_token())
+    params = CreateSupplierInvoicePaymentParam(datepaye=datepaye, payment_mode_id=payment_mode_id, accountid=accountid, closepaidinvoices=closepaidinvoices, num_payment=num_payment, comment=comment, amount=amount).model_dump(exclude_unset=True)
+    params["datepaye"] = _to_timestamp(str(params["datepaye"])) if "T" in str(params["datepaye"]) or " " in str(params["datepaye"]) else int(str(params["datepaye"]))
+    return await get_client().supplier_invoices_add_payment(id, params, get_user_token())
 
 # ============================================================
 # Supplier Proposals
@@ -3389,8 +3402,11 @@ async def contracts_activate_line(id: int, lineid: int, datestart: str, dateend:
         dateend: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         comment: Comment.
     """
-    params = CreateContractActivateLineParam(datestart=datestart, dateend=dateend, comment=comment)
-    return await get_client().contracts_activate_line(id, lineid, params.model_dump(exclude_unset=True), get_user_token())
+    params = CreateContractActivateLineParam(datestart=datestart, dateend=dateend, comment=comment).model_dump(exclude_unset=True)
+    params["datestart"] = _to_timestamp(str(params["datestart"])) if "T" in str(params["datestart"]) or " " in str(params["datestart"]) else int(str(params["datestart"]))
+    if params.get("dateend"):
+        params["dateend"] = _to_timestamp(str(params["dateend"])) if "T" in str(params["dateend"]) or " " in str(params["dateend"]) else int(str(params["dateend"]))
+    return await get_client().contracts_activate_line(id, lineid, params, get_user_token())
 
 @mcp.tool()
 async def contracts_delete_line(id: int, lineid: int, ctx: Context = None) -> dict[str, Any]:
@@ -4773,7 +4789,7 @@ async def categories_delete(id: int, ctx: Context = None) -> dict[str, Any]:
 @mcp.tool()
 async def categories_get_types(ctx: Context = None) -> dict[str, Any]:
     """Get all category types."""
-    data = await get_client().categories_get_types(get_user_token())
+    data = {"product":"Products","service":"Services","customer":"ProspectsOrCustomers","supplier":"Suppliers","member":"Members","contact":"Contacts","user":"Users","account":"Accounts","bank_account":"BankAccounts","bank_line":"BankTransactions","project":"Projects","warehouse":"Warehouse","actioncomm":"AgendaEvents","website_page":"WebsitePages","ticket":"Tickets","knowledgemanagement":"KnowledgeRecords","fichinter":"Interventions","order":"Orders","invoice":"Invoices","supplier_order":"SuppliersOrders","supplier_invoice":"SuppliersInvoices","stock_movement":"StockMovements","expense_report":"ExpenseReports","taxable":"Taxable","tax":"Taxes","shipping":"Shipments"}
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
@@ -5184,7 +5200,11 @@ async def object_links_create(fk_source: int, sourcetype: str, fk_target: int, t
         targettype: Target object type (required).
         relationtype: Relation type.
     """
-    params = CreateObjectLinkParam(fk_source=fk_source, sourcetype=sourcetype, fk_target=fk_target, targettype=targettype, relationtype=relationtype)
+    def _map_type(t: str) -> str:
+        return {"thirdparty": "societe", "contact": "societe", "subscription": "adherent", "conferenceorboothattendee": "projet"}.get(t, t)
+    st = _map_type(sourcetype)
+    tt = _map_type(targettype)
+    params = CreateObjectLinkParam(fk_source=fk_source, sourcetype=st, fk_target=fk_target, targettype=tt, relationtype=relationtype)
     return await get_client().object_links_create(params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool()
@@ -5198,7 +5218,11 @@ async def object_links_get_by_values(fk_source: int = 0, sourcetype: str = "", f
         targettype: Target object type.
         relationtype: Relation type.
     """
-    return await get_client().object_links_get_by_values(get_user_token(), fk_source=fk_source, sourcetype=sourcetype, fk_target=fk_target, targettype=targettype, relationtype=relationtype)
+    def _map_type(t: str) -> str:
+        return {"thirdparty": "societe", "contact": "societe", "subscription": "adherent", "conferenceorboothattendee": "projet"}.get(t, t)
+    st = _map_type(sourcetype)
+    tt = _map_type(targettype)
+    return await get_client().object_links_get_by_values(get_user_token(), fk_source=fk_source, sourcetype=st, fk_target=fk_target, targettype=tt, relationtype=relationtype)
 
 @mcp.tool()
 async def object_links_delete(id: int, ctx: Context = None) -> dict[str, Any]:
@@ -5260,7 +5284,9 @@ async def users_get_by_email(email: str, includepermissions: int = 0, include_al
         includepermissions: Include permissions flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().users_get_by_email(email, get_user_token(), includepermissions=includepermissions, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
+    data = await get_client().users_list(get_user_token(), sqlfilters=f"(email:=:'{email}')", limit=1)
+    user = isinstance(data, list) and len(data) > 0 and data[0] or {}
+    return isinstance(user, dict) and user or {}
 
 @mcp.tool()
 async def users_get_info(includepermissions: int = 0, ctx: Context = None) -> dict[str, Any]:
