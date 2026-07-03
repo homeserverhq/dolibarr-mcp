@@ -7,7 +7,7 @@ from fastmcp import FastMCP, Context
 from pydantic import BaseModel
 from toon_mcp import json_to_toon
 
-from .client import DolibarrClient, _normalize_datetime, _to_timestamp
+from.client import DolibarrClient, _normalize_datetime, _to_timestamp
 
 ALLOW_ALL_AGGREGATE = os.getenv("ALLOW_ALL_AGGREGATE", "false").lower() in ("true", "1", "yes")
 
@@ -751,6 +751,18 @@ class ReceiveLine(BaseModel):
     fk_product: int
 
 
+class ConsumeLine(BaseModel):
+    objectid: int
+    qty: float
+    fk_warehouse: int
+
+
+class ProduceLine(BaseModel):
+    objectid: int
+    qty: float
+    fk_warehouse: int
+
+
 # ============================================================
 # Status
 # ============================================================
@@ -811,8 +823,8 @@ async def documents_list(
             "mrp"/"manufacturing_order" - Manufacturing orders
             "contact"/"socpeople" - Contacts
             "stock"/"warehouse"/"entrepot" - Warehouses/stock
-            "bank"/"banque"/"bankaccount" - Bank accounts (required).
-        id: The unique ID of the resource (required).
+            "bank"/"banque"/"bankaccount" - Bank accounts.
+        id: The unique ID of the resource.
         ref: Reference.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
         sortfield: Field to sort by.
@@ -909,7 +921,7 @@ async def thirdparties_get(
     """Get a single third party by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().thirdparties_get(
@@ -948,9 +960,9 @@ async def thirdparties_create(
     """Create a new third party.
 
     Args:
-        name: Name (required).
-        client: Is a customer (1=yes, 0=no) (required).
-        fournisseur: Is a supplier (1=yes, 0=no) (required).
+        name: Name.
+        client: Is a customer (1=yes, 0=no).
+        fournisseur: Is a supplier (1=yes, 0=no).
         address: Street address.
         zip: Postal/ZIP code.
         town: City/town.
@@ -1021,7 +1033,7 @@ async def thirdparties_update(
     """Update an existing third party.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         name: Name.
         client: Is a customer (1=yes, 0=no).
         fournisseur: Is a supplier (1=yes, 0=no).
@@ -1070,7 +1082,7 @@ async def thirdparties_delete(
     """Delete a third party by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().thirdparties_delete(id, get_user_token())
 
@@ -1083,7 +1095,7 @@ async def thirdparties_get_outstanding_proposals(
     """Get outstanding proposals for a third party.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         mode: Mode.
     """
     data = await get_client().thirdparties_get_outstanding_proposals(id, get_user_token(), mode=mode)
@@ -1098,7 +1110,7 @@ async def thirdparties_get_outstanding_orders(
     """Get outstanding orders for a third party.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         mode: Mode.
     """
     data = await get_client().thirdparties_get_outstanding_orders(id, get_user_token(), mode=mode)
@@ -1113,7 +1125,7 @@ async def thirdparties_get_outstanding_invoices(
     """Get outstanding invoices for a third party.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         mode: Mode.
     """
     data = await get_client().thirdparties_get_outstanding_invoices(id, get_user_token(), mode=mode)
@@ -1128,7 +1140,7 @@ async def thirdparties_get_representatives(
     """Get representatives for a third party.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         mode: Mode.
     """
     data = await get_client().thirdparties_get_representatives(id, get_user_token(), mode=mode)
@@ -1139,8 +1151,8 @@ async def thirdparties_add_representative(id: int, fk_user: int, ctx: Context = 
     """Add a representative to a third party.
 
     Args:
-        id: The unique ID of the third party (required).
-        fk_user: User ID to set as representative (required).
+        id: The unique ID of the third party.
+        fk_user: User ID to set as representative.
     """
     return await get_client().thirdparties_add_representative(id, fk_user, get_user_token())
 
@@ -1149,8 +1161,8 @@ async def thirdparties_delete_representative(id: int, representative_id: int, ct
     """Remove a representative from a third party.
 
     Args:
-        id: The unique ID of the third party (required).
-        representative_id: ID of the representative to remove (required).
+        id: The unique ID of the third party.
+        representative_id: ID of the representative to remove.
     """
     return await get_client().thirdparties_delete_representative(id, representative_id, get_user_token())
 
@@ -1166,7 +1178,7 @@ async def thirdparties_get_categories(
     """Get categories for a third party.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         sortfield: Field to sort by.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
@@ -1219,7 +1231,7 @@ async def contacts_get(
     """Get a single contact by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().contacts_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -1248,8 +1260,8 @@ async def contacts_create(
     """Create a new contact.
 
     Args:
-        lastname: Last name (required).
-        socid: Third party ID (required).
+        lastname: Last name.
+        socid: Third party ID.
         firstname: First name.
         address: Street address.
         zip: Postal/ZIP code.
@@ -1300,7 +1312,7 @@ async def contacts_update(
     """Update an existing contact.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         lastname: Last name.
         socid: Third party ID.
         firstname: First name.
@@ -1333,7 +1345,7 @@ async def contacts_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a contact by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().contacts_delete(id, get_user_token())
 
@@ -1349,7 +1361,7 @@ async def contacts_get_categories(
     """Get categories for a contact.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         sortfield: Field to sort by.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
@@ -1400,7 +1412,7 @@ async def products_get(id: int, include_all_fields: bool = False, ctx: Context =
     """Get a single product by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().products_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -1421,12 +1433,12 @@ async def products_create(
     """Create a new product or service.
 
     Args:
-        ref: Reference (required).
-        label: Label (required).
-        type: Type (required).
-        status: Status (required).
-        price: Unit price (required).
-        price_base_type: Price base type (HT or TTC) (required).
+        ref: Reference.
+        label: Label.
+        type: Type.
+        status: Status.
+        price: Unit price.
+        price_base_type: Price base type (HT or TTC).
         description: Description.
         note_public: Public note.
         note_private: Private note.
@@ -1487,7 +1499,7 @@ async def products_update(
     """Update an existing product.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         ref: Reference.
         label: Label.
         type: Type.
@@ -1539,7 +1551,7 @@ async def products_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a product by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().products_delete(id, get_user_token())
 
@@ -1548,7 +1560,7 @@ async def products_get_subproducts(id: int, ctx: Context = None) -> dict[str, An
     """Get sub-products for a product.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     data = await get_client().products_get_subproducts(id, get_user_token())
     return {"items": json_to_toon(data)}
@@ -1561,7 +1573,7 @@ async def products_get_categories(
     """Get categories for a product.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         sortfield: Field to sort by.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
@@ -1575,7 +1587,7 @@ async def products_get_stock(id: int, selected_warehouse_id: int = 0, ctx: Conte
     """Get stock information for a product.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         selected_warehouse_id: Warehouse ID filter.
     """
     return await get_client().products_get_stock(id, get_user_token(), selected_warehouse_id=selected_warehouse_id)
@@ -1585,7 +1597,7 @@ async def products_get_contacts(id: int, type: str = "", ctx: Context = None) ->
     """Get contacts linked to a product.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         type: Type.
     """
     data = await get_client().products_get_contacts(id, get_user_token(), type=type)
@@ -1618,7 +1630,7 @@ async def warehouses_get(id: int, include_all_fields: bool = False, ctx: Context
     """Get a single warehouse by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().warehouses_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -1628,9 +1640,9 @@ async def warehouses_create(ref: str, label: str, status: int, description: str 
     """Create a new warehouse.
 
     Args:
-        ref: Reference (required).
-        label: Label (required).
-        status: Status (required).
+        ref: Reference.
+        label: Label.
+        status: Status.
         description: Description.
         lieu: Location.
         address: Street address.
@@ -1649,7 +1661,7 @@ async def warehouses_update(id: int, ref: Optional[str] = None, label: Optional[
     """Update an existing warehouse.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         ref: Reference.
         label: Label.
         status: Status.
@@ -1671,7 +1683,7 @@ async def warehouses_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a warehouse by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().warehouses_delete(id, get_user_token())
 
@@ -1680,7 +1692,7 @@ async def warehouses_list_products(id: int, sortfield: str = "", sortorder: str 
     """List products in a warehouse.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         sortfield: Field to sort by.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
@@ -1713,7 +1725,7 @@ async def stockmovements_get(id: int, include_all_fields: bool = False, ctx: Con
     """Get a single stock movement by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().stockmovements_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -1723,10 +1735,10 @@ async def stockmovements_create(product_id: int, warehouse_id: int, qty: float, 
     """Create a new stock movement.
 
     Args:
-        product_id: Product ID (required).
-        warehouse_id: Warehouse ID (required).
-        qty: Quantity (required).
-        type: Type (required).
+        product_id: Product ID.
+        warehouse_id: Warehouse ID.
+        qty: Quantity.
+        type: Type.
         batch: Batch number.
         movementcode: Movement code.
         label: Label.
@@ -1763,7 +1775,7 @@ async def productlots_get(id: int, include_all_fields: bool = False, ctx: Contex
     """Get a single product lot by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().productlots_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -1773,9 +1785,9 @@ async def productlots_create(ref: str, fk_product: int, batch: str, qty: float =
     """Create a new product lot/batch.
 
     Args:
-        ref: Reference (required).
-        fk_product: Product ID (required).
-        batch: Batch number (required).
+        ref: Reference.
+        fk_product: Product ID.
+        batch: Batch number.
         qty: Quantity.
         warehouse_id: Warehouse ID.
         price: Unit price.
@@ -1793,7 +1805,7 @@ async def productlots_update(id: int, ref: Optional[str] = None, fk_product: Opt
     """Update an existing product lot.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         ref: Reference.
         fk_product: Product ID.
         batch: Batch number.
@@ -1814,7 +1826,7 @@ async def productlots_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a product lot by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().productlots_delete(id, get_user_token())
 
@@ -1842,7 +1854,7 @@ async def proposals_get(id: int, include_all_fields: bool = False, ctx: Context 
     """Get a single proposal by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().proposals_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -1852,8 +1864,8 @@ async def proposals_create(socid: int, date: str, ref: str = "", status: int = 0
     """Create a new commercial proposal.
 
     Args:
-        socid: Third party ID (required).
-        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
+        socid: Third party ID.
+        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         ref: Reference.
         status: Status.
         note_public: Public note.
@@ -1881,7 +1893,7 @@ async def proposals_update(id: int, socid: Optional[int] = None, date: Optional[
     """Update an existing proposal.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         socid: Third party ID.
         date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         ref: Reference.
@@ -1903,7 +1915,7 @@ async def proposals_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a proposal by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().proposals_delete(id, get_user_token())
 
@@ -1912,7 +1924,7 @@ async def proposals_get_lines(id: int, sqlfilters: str = "", ctx: Context = None
     """Get lines for a proposal.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         sqlfilters: Dolibarr SQL filter syntax.
     """
     data = await get_client().proposals_get_lines(id, get_user_token(), sqlfilters=sqlfilters)
@@ -1923,10 +1935,10 @@ async def proposals_create_line(id: int, desc: str, qty: float, subprice: float,
     """Add a line to a proposal.
 
     Args:
-        id: The unique ID of the resource (required).
-        desc: Desc (required).
-        qty: Quantity (required).
-        subprice: Unit price (required).
+        id: The unique ID of the resource.
+        desc: Desc.
+        qty: Quantity.
+        subprice: Unit price.
         product_id: Product ID.
         tva_tx: VAT rate.
         remise_percent: Discount percentage.
@@ -1945,8 +1957,8 @@ async def proposals_update_line(id: int, lineid: int, desc: Optional[str] = None
     """Update a line in a proposal.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
         desc: Desc.
         qty: Quantity.
         subprice: Unit price.
@@ -1968,8 +1980,8 @@ async def proposals_delete_line(id: int, lineid: int, ctx: Context = None) -> di
     """Delete a line from a proposal.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
     """
     return await get_client().proposals_delete_line(id, lineid, get_user_token())
 
@@ -1978,7 +1990,7 @@ async def proposals_settodraft(id: int, ctx: Context = None) -> dict[str, Any]:
     """Set a proposal to draft status.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().proposals_settodraft(id, get_user_token())
 
@@ -1987,7 +1999,7 @@ async def proposals_validate(id: int, notrigger: int = 0, ctx: Context = None) -
     """Validate a proposal.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().proposals_validate(id, get_user_token(), notrigger=notrigger)
@@ -1997,8 +2009,8 @@ async def proposals_close(id: int, status: int, note_private: str = "", note_pub
     """Close a proposal.
 
     Args:
-        id: The unique ID of the resource (required).
-        status: Status (required).
+        id: The unique ID of the resource.
+        status: Status.
         note_private: Private note.
         note_public: Public note.
         notrigger: Disable triggers flag.
@@ -2010,7 +2022,7 @@ async def proposals_setinvoiced(id: int, ctx: Context = None) -> dict[str, Any]:
     """Set a proposal as invoiced.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().proposals_setinvoiced(id, get_user_token())
 
@@ -2019,7 +2031,7 @@ async def proposals_get_contacts(id: int, type: str = "", ctx: Context = None) -
     """Get contacts linked to a proposal.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         type: Type.
     """
     data = await get_client().proposals_get_contacts(id, get_user_token(), type=type)
@@ -2030,9 +2042,9 @@ async def proposals_add_contact(id: int, contactid: int, type: str, source: str 
     """Add a contact to a proposal.
 
     Args:
-        id: The unique ID of the resource (required).
-        contactid: Contact ID (required).
-        type: Type (required).
+        id: The unique ID of the resource.
+        contactid: Contact ID.
+        type: Type.
         source: Source.
         notrigger: Disable triggers flag.
     """
@@ -2062,7 +2074,7 @@ async def orders_get(id: int, include_all_fields: bool = False, ctx: Context = N
     """Get a single order by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().orders_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -2072,8 +2084,8 @@ async def orders_create(socid: int, date: str, ref: str = "", status: int = 0, n
     """Create a new customer order.
 
     Args:
-        socid: Third party ID (required).
-        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
+        socid: Third party ID.
+        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         ref: Reference.
         status: Status.
         note_public: Public note.
@@ -2101,7 +2113,7 @@ async def orders_update(id: int, socid: Optional[int] = None, date: Optional[str
     """Update an existing order.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         socid: Third party ID.
         date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         ref: Reference.
@@ -2123,7 +2135,7 @@ async def orders_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete an order by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().orders_delete(id, get_user_token())
 
@@ -2132,7 +2144,7 @@ async def orders_get_lines(id: int, ctx: Context = None) -> dict[str, Any]:
     """Get lines for an order.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     data = await get_client().orders_get_lines(id, get_user_token())
     return {"items": json_to_toon(data)}
@@ -2142,8 +2154,8 @@ async def orders_get_line(id: int, lineid: int, include_all_fields: bool = False
     """Get a single line from an order.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().orders_get_line(id, lineid, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -2153,10 +2165,10 @@ async def orders_create_line(id: int, desc: str, qty: float, subprice: float, pr
     """Add a line to an order.
 
     Args:
-        id: The unique ID of the resource (required).
-        desc: Desc (required).
-        qty: Quantity (required).
-        subprice: Unit price (required).
+        id: The unique ID of the resource.
+        desc: Desc.
+        qty: Quantity.
+        subprice: Unit price.
         product_id: Product ID.
         tva_tx: VAT rate.
         remise_percent: Discount percentage.
@@ -2174,8 +2186,8 @@ async def orders_update_line(id: int, lineid: int, desc: Optional[str] = None, q
     """Update a line in an order.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
         desc: Desc.
         qty: Quantity.
         subprice: Unit price.
@@ -2196,8 +2208,8 @@ async def orders_delete_line(id: int, lineid: int, ctx: Context = None) -> dict[
     """Delete a line from an order.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
     """
     return await get_client().orders_delete_line(id, lineid, get_user_token())
 
@@ -2206,7 +2218,7 @@ async def orders_settodraft(id: int, idwarehouse: int = 0, ctx: Context = None) 
     """Set an order to draft status.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         idwarehouse: Warehouse ID.
     """
     return await get_client().orders_settodraft(id, get_user_token(), idwarehouse=idwarehouse)
@@ -2216,7 +2228,7 @@ async def orders_validate(id: int, idwarehouse: int = 0, notrigger: int = 0, ctx
     """Validate an order.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         idwarehouse: Warehouse ID.
         notrigger: Disable triggers flag.
     """
@@ -2227,7 +2239,7 @@ async def orders_close(id: int, notrigger: int = 0, ctx: Context = None) -> dict
     """Close an order.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().orders_close(id, get_user_token(), notrigger=notrigger)
@@ -2237,7 +2249,7 @@ async def orders_reopen(id: int, ctx: Context = None) -> dict[str, Any]:
     """Reopen a closed order.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().orders_reopen(id, get_user_token())
 
@@ -2246,7 +2258,7 @@ async def orders_setinvoiced(id: int, ctx: Context = None) -> dict[str, Any]:
     """Set an order as invoiced.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().orders_setinvoiced(id, get_user_token())
 
@@ -2255,7 +2267,7 @@ async def orders_create_from_proposal(proposalid: int, ctx: Context = None) -> d
     """Create an order from a proposal.
 
     Args:
-        proposalid: Proposal ID (required).
+        proposalid: Proposal ID.
     """
     return await get_client().orders_create_from_proposal(proposalid, get_user_token())
 
@@ -2264,7 +2276,7 @@ async def orders_get_shipments(id: int, ctx: Context = None) -> dict[str, Any]:
     """Get shipments for an order.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     data = await get_client().orders_get_shipments(id, get_user_token())
     return {"items": json_to_toon(data)}
@@ -2274,8 +2286,8 @@ async def orders_create_shipment(id: int, warehouse_id: int, ctx: Context = None
     """Create a shipment from an order.
 
     Args:
-        id: The unique ID of the resource (required).
-        warehouse_id: Warehouse ID (required).
+        id: The unique ID of the resource.
+        warehouse_id: Warehouse ID.
     """
     return await get_client().orders_create_shipment(id, warehouse_id, get_user_token())
 
@@ -2284,7 +2296,7 @@ async def orders_get_contacts(id: int, type: str = "", ctx: Context = None) -> d
     """Get contacts linked to an order.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         type: Type.
     """
     data = await get_client().orders_get_contacts(id, get_user_token(), type=type)
@@ -2315,7 +2327,7 @@ async def invoices_get(id: int, include_all_fields: bool = False, ctx: Context =
     """Get a single invoice by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().invoices_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -2325,9 +2337,9 @@ async def invoices_create(socid: int, date: str, type: int, ref: str = "", statu
     """Create a new customer invoice.
 
     Args:
-        socid: Third party ID (required).
-        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
-        type: Type (required).
+        socid: Third party ID.
+        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
+        type: Type.
         ref: Reference.
         status: Status.
         note_public: Public note.
@@ -2353,7 +2365,7 @@ async def invoices_update(id: int, socid: Optional[int] = None, date: Optional[s
     """Update an existing invoice.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         socid: Third party ID.
         date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         type: Type.
@@ -2375,7 +2387,7 @@ async def invoices_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete an invoice by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().invoices_delete(id, get_user_token())
 
@@ -2384,7 +2396,7 @@ async def invoices_get_lines(id: int, ctx: Context = None) -> dict[str, Any]:
     """Get lines for an invoice.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     data = await get_client().invoices_get_lines(id, get_user_token())
     return {"items": json_to_toon(data)}
@@ -2394,10 +2406,10 @@ async def invoices_create_line(id: int, desc: str, qty: float, subprice: float, 
     """Add a line to an invoice.
 
     Args:
-        id: The unique ID of the resource (required).
-        desc: Desc (required).
-        qty: Quantity (required).
-        subprice: Unit price (required).
+        id: The unique ID of the resource.
+        desc: Desc.
+        qty: Quantity.
+        subprice: Unit price.
         product_id: Product ID.
         tva_tx: VAT rate.
         remise_percent: Discount percentage.
@@ -2415,8 +2427,8 @@ async def invoices_update_line(id: int, lineid: int, desc: Optional[str] = None,
     """Update a line in an invoice.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
         desc: Desc.
         qty: Quantity.
         subprice: Unit price.
@@ -2437,8 +2449,8 @@ async def invoices_delete_line(id: int, lineid: int, ctx: Context = None) -> dic
     """Delete a line from an invoice.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
     """
     return await get_client().invoices_delete_line(id, lineid, get_user_token())
 
@@ -2447,7 +2459,7 @@ async def invoices_create_from_order(orderid: int, ctx: Context = None) -> dict[
     """Create an invoice from an order.
 
     Args:
-        orderid: Order ID (required).
+        orderid: Order ID.
     """
     return await get_client().invoices_create_from_order(orderid, get_user_token())
 
@@ -2456,7 +2468,7 @@ async def invoices_settodraft(id: int, ctx: Context = None) -> dict[str, Any]:
     """Set an invoice to draft status.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().invoices_settodraft(id, get_user_token())
 
@@ -2465,7 +2477,7 @@ async def invoices_validate(id: int, force_number: int = 0, idwarehouse: int = 0
     """Validate an invoice.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         force_number: Force document number flag.
         idwarehouse: Warehouse ID.
         notrigger: Disable triggers flag.
@@ -2477,7 +2489,7 @@ async def invoices_settopaid(id: int, close_code: str = "", close_note: str = ""
     """Set an invoice as paid.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         close_code: Close code.
         close_note: Close note.
     """
@@ -2488,7 +2500,7 @@ async def invoices_settounpaid(id: int, ctx: Context = None) -> dict[str, Any]:
     """Set an invoice as unpaid.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().invoices_settounpaid(id, get_user_token())
 
@@ -2497,7 +2509,7 @@ async def invoices_get_payments(id: int, ctx: Context = None) -> dict[str, Any]:
     """Get payments for an invoice.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     data = await get_client().invoices_get_payments(id, get_user_token())
     return {"items": json_to_toon(data)}
@@ -2507,13 +2519,14 @@ async def invoices_add_payment(id: int, datepaye: str, paymentid: int, accountid
     """Add a payment to an invoice.
 
     Args:
-        id: The unique ID of the resource (required).
-        datepaye: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
-        paymentid: Payment type ID (required).
-        accountid: Account ID (required).
+        id: The unique ID of the resource.
+        datepaye: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
+        paymentid: Payment type ID.
+        accountid: Account ID.
         closepaidinvoices: Close paid invoices flag ("yes" or "no").
         num_payment: Payment number.
         comment: Comment.
+        amount: Amount to pay.
         chqemetteur: Check issuer.
         chqbank: Check bank.
     """
@@ -2525,7 +2538,7 @@ async def invoices_get_contacts(id: int, type: str = "", ctx: Context = None) ->
     """Get contacts linked to an invoice.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         type: Type.
     """
     data = await get_client().invoices_get_contacts(id, get_user_token(), type=type)
@@ -2536,9 +2549,9 @@ async def invoices_add_contact(id: int, fk_socpeople: int, type_contact: str, so
     """Add a contact to an invoice.
 
     Args:
-        id: The unique ID of the resource (required).
-        fk_socpeople: Contact ID (required).
-        type_contact: Contact type (required).
+        id: The unique ID of the resource.
+        fk_socpeople: Contact ID.
+        type_contact: Contact type.
         source: Source.
         notrigger: Disable triggers flag.
     """
@@ -2550,9 +2563,9 @@ async def invoices_delete_contact(id: int, contactid: int, type: str, ctx: Conte
     """Delete a contact from an invoice.
 
     Args:
-        id: The unique ID of the resource (required).
-        contactid: Contact ID (required).
-        type: Type (required).
+        id: The unique ID of the resource.
+        contactid: Contact ID.
+        type: Type.
     """
     return await get_client().invoices_delete_contact(id, contactid, type, get_user_token())
 
@@ -2561,7 +2574,7 @@ async def invoices_get_discount(id: int, ctx: Context = None) -> dict[str, Any]:
     """Get available discount for an invoice.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().invoices_get_discount(id, get_user_token())
 
@@ -2570,8 +2583,8 @@ async def invoices_use_discount(id: int, discountid: int, ctx: Context = None) -
     """Apply a discount to an invoice.
 
     Args:
-        id: The unique ID of the resource (required).
-        discountid: Discount ID (required).
+        id: The unique ID of the resource.
+        discountid: Discount ID.
     """
     return await get_client().invoices_use_discount(id, discountid, get_user_token())
 
@@ -2580,7 +2593,7 @@ async def invoices_mark_as_credit_available(id: int, ctx: Context = None) -> dic
     """Mark a credit note as available to be used as a discount.
 
     Args:
-        id: The unique ID of the validated credit note (required).
+        id: The unique ID of the validated credit note.
     """
     return await get_client().invoices_mark_as_credit_available(id, get_user_token())
 
@@ -2607,7 +2620,7 @@ async def payments_get(id: int, include_all_fields: bool = False, ctx: Context =
     """Get a single payment by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().payments_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -2618,9 +2631,9 @@ async def payments_create(datepaye: str, paymentid: int, amount: float, accounti
 
     Args:
         datepaye: Payment date (use ISO 8601 format, required).
-        paymentid: Payment type ID (required).
-        amount: Amount (required).
-        accountid: Bank account ID (required).
+        paymentid: Payment type ID.
+        amount: Amount.
+        accountid: Bank account ID.
         closepaidinvoices: Close paid invoices (yes/no).
         socid: Thirdparty ID for the placeholder invoice.
     """
@@ -2639,7 +2652,7 @@ async def payments_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a payment by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().payments_delete(id, get_user_token())
 
@@ -2667,7 +2680,7 @@ async def bankaccounts_get(id: int, include_all_fields: bool = False, ctx: Conte
     """Get a single bank account by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().bankaccounts_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -2677,10 +2690,10 @@ async def bankaccounts_create(ref: str, label: str, type: int, currency_code: st
     """Create a new bank account.
 
     Args:
-        ref: Reference (required).
-        label: Label (required).
-        type: Type (required).
-        currency_code: Currency Code (required).
+        ref: Reference.
+        label: Label.
+        type: Type.
+        currency_code: Currency Code.
         account_number: Account Number.
         country_id: Country ID.
         bank: Bank.
@@ -2706,7 +2719,7 @@ async def bankaccounts_update(id: int, ref: Optional[str] = None, label: Optiona
     """Update an existing bank account.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         ref: Reference.
         label: Label.
         type: Type.
@@ -2735,7 +2748,7 @@ async def bankaccounts_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a bank account by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().bankaccounts_delete(id, get_user_token())
 
@@ -2744,11 +2757,11 @@ async def bankaccounts_transfer(bankaccount_from_id: int, bankaccount_to_id: int
     """Bankaccounts Transfer.
 
     Args:
-        bankaccount_from_id: Source bank account ID (required).
-        bankaccount_to_id: Destination bank account ID (required).
-        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
-        description: Description (required).
-        amount: Amount (required).
+        bankaccount_from_id: Source bank account ID.
+        bankaccount_to_id: Destination bank account ID.
+        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
+        description: Description.
+        amount: Amount.
         amount_to: Destination amount.
         cheque_number: Check number.
     """
@@ -2761,7 +2774,7 @@ async def bankaccounts_get_lines(id: int, sqlfilters: str = "", ctx: Context = N
     """Bankaccounts Get Lines.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         sqlfilters: Dolibarr SQL filter syntax.
     """
     data = await get_client().bankaccounts_get_lines(id, get_user_token(), sqlfilters=sqlfilters)
@@ -2772,11 +2785,11 @@ async def bankaccounts_create_line(id: int, date: str, type: str, label: str, am
     """Add a line to a bank account.
 
     Args:
-        id: The unique ID of the resource (required).
-        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
-        type: Type (required).
-        label: Label (required).
-        amount: Amount (required).
+        id: The unique ID of the resource.
+        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
+        type: Type.
+        label: Label.
+        amount: Amount.
         category: Category ID filter.
         cheque_number: Check number.
         cheque_writer: Check writer.
@@ -2793,7 +2806,7 @@ async def bankaccounts_get_line(line_id: int, ctx: Context = None) -> dict[str, 
     """Bankaccounts Get Line.
 
     Args:
-        line_id: Line ID (required).
+        line_id: Line ID.
     """
     return await get_client().bankaccounts_get_line(line_id, get_user_token())
 
@@ -2802,9 +2815,9 @@ async def bankaccounts_update_line(id: int, line_id: int, label: str, ctx: Conte
     """Update a line in a bank account.
 
     Args:
-        id: The unique ID of the resource (required).
-        line_id: Line ID (required).
-        label: Label (required).
+        id: The unique ID of the resource.
+        line_id: Line ID.
+        label: Label.
     """
     result = await get_client().bankaccounts_update_line(id, line_id, label, get_user_token())
     return {"id": result}
@@ -2814,8 +2827,8 @@ async def bankaccounts_delete_line(id: int, line_id: int, ctx: Context = None) -
     """Delete a line from a bank account.
 
     Args:
-        id: The unique ID of the resource (required).
-        line_id: Line ID (required).
+        id: The unique ID of the resource.
+        line_id: Line ID.
     """
     return await get_client().bankaccounts_delete_line(id, line_id, get_user_token())
 
@@ -2824,7 +2837,7 @@ async def bankaccounts_get_balance(id: int, ctx: Context = None) -> dict[str, An
     """Bankaccounts Get Balance.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().bankaccounts_get_balance(id, get_user_token())
 
@@ -2854,7 +2867,7 @@ async def supplier_orders_get(id: int, include_all_fields: bool = False, ctx: Co
     """Supplier Orders Get.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().supplier_orders_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -2864,8 +2877,8 @@ async def supplier_orders_create(socid: int, date: str, ref: str = "", status: i
     """Supplier Orders Create.
 
     Args:
-        socid: Third party ID (required).
-        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
+        socid: Third party ID.
+        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         ref: Reference.
         status: Status.
         note_public: Public note.
@@ -2889,7 +2902,7 @@ async def supplier_orders_update(id: int, socid: Optional[int] = None, date: Opt
     """Supplier Orders Update.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         socid: Third party ID.
         date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         ref: Reference.
@@ -2909,7 +2922,7 @@ async def supplier_orders_delete(id: int, ctx: Context = None) -> dict[str, Any]
     """Supplier Orders Delete.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().supplier_orders_delete(id, get_user_token())
 
@@ -2918,10 +2931,10 @@ async def supplier_orders_create_line(id: int, desc: str, qty: float, subprice: 
     """Supplier Orders Create Line.
 
     Args:
-        id: The unique ID of the resource (required).
-        desc: Desc (required).
-        qty: Quantity (required).
-        subprice: Unit price (required).
+        id: The unique ID of the resource.
+        desc: Desc.
+        qty: Quantity.
+        subprice: Unit price.
         product_id: Product ID.
         tva_tx: VAT rate.
         remise_percent: Discount percentage.
@@ -2939,7 +2952,7 @@ async def supplier_orders_get_contacts(id: int, type: str = "", ctx: Context = N
     """Supplier Orders Get Contacts.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         type: Type.
     """
     data = await get_client().supplier_orders_get_contacts(id, get_user_token(), type=type)
@@ -2950,10 +2963,10 @@ async def supplier_orders_add_contact(id: int, contactid: int, type: str, source
     """Supplier Orders Add Contact.
 
     Args:
-        id: The unique ID of the resource (required).
-        contactid: Contact ID (required).
-        type: Type (required).
-        source: Source (required).
+        id: The unique ID of the resource.
+        contactid: Contact ID.
+        type: Type.
+        source: Source.
     """
     return await get_client().supplier_orders_add_contact(id, contactid, type, source, get_user_token())
 
@@ -2962,10 +2975,10 @@ async def supplier_orders_delete_contact(id: int, contactid: int, type: str, sou
     """Supplier Orders Delete Contact.
 
     Args:
-        id: The unique ID of the resource (required).
-        contactid: Contact ID (required).
-        type: Type (required).
-        source: Source (required).
+        id: The unique ID of the resource.
+        contactid: Contact ID.
+        type: Type.
+        source: Source.
     """
     return await get_client().supplier_orders_delete_contact(id, contactid, type, source, get_user_token())
 
@@ -2974,7 +2987,7 @@ async def supplier_orders_validate(id: int, idwarehouse: int = 0, notrigger: int
     """Supplier Orders Validate.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         idwarehouse: Warehouse ID.
         notrigger: Disable triggers flag.
     """
@@ -2985,23 +2998,23 @@ async def supplier_orders_approve(id: int, idwarehouse: int = 0, secondlevel: in
     """Supplier Orders Approve.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         idwarehouse: Warehouse ID.
         secondlevel: Second approval level flag.
     """
     return await get_client().supplier_orders_approve(id, get_user_token(), idwarehouse=idwarehouse, secondlevel=secondlevel)
 
 @mcp.tool()
-async def supplier_orders_receive(id: int, closeopenorder: int = 0, comment: str = "", lines: list[ReceiveLine] = [], ctx: Context = None) -> dict[str, Any]:
+async def supplier_orders_receive(id: int, closeopenorder: int = 0, comment: str = "", lines: list[ReceiveLine] = None, ctx: Context = None) -> dict[str, Any]:
     """Supplier Orders Receive.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         closeopenorder: Close open order flag.
         comment: Comment.
         lines: List of line objects with id, qty, warehouse, fk_product.
     """
-    return await get_client().supplier_orders_receive(id, get_user_token(), closeopenorder=closeopenorder, comment=comment, lines=lines)
+    return await get_client().supplier_orders_receive(id, get_user_token(), closeopenorder=closeopenorder, comment=comment, lines=lines or [])
 
 # ============================================================
 # Supplier Invoices
@@ -3028,7 +3041,7 @@ async def supplier_invoices_get(id: int, include_all_fields: bool = False, ctx: 
     """Supplier Invoices Get.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().supplier_invoices_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -3038,8 +3051,8 @@ async def supplier_invoices_create(socid: int, date: str, ref: str = "", status:
     """Supplier Invoices Create.
 
     Args:
-        socid: Third party ID (required).
-        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
+        socid: Third party ID.
+        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         ref: Reference.
         status: Status.
         note_public: Public note.
@@ -3063,7 +3076,7 @@ async def supplier_invoices_update(id: int, socid: Optional[int] = None, date: O
     """Supplier Invoices Update.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         socid: Third party ID.
         date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         ref: Reference.
@@ -3083,7 +3096,7 @@ async def supplier_invoices_delete(id: int, ctx: Context = None) -> dict[str, An
     """Supplier Invoices Delete.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().supplier_invoices_delete(id, get_user_token())
 
@@ -3092,7 +3105,7 @@ async def supplier_invoices_get_lines(id: int, ctx: Context = None) -> dict[str,
     """Supplier Invoices Get Lines.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     data = await get_client().supplier_invoices_get_lines(id, get_user_token())
     return {"items": json_to_toon(data)}
@@ -3102,10 +3115,10 @@ async def supplier_invoices_create_line(id: int, desc: str, qty: float, subprice
     """Supplier Invoices Create Line.
 
     Args:
-        id: The unique ID of the resource (required).
-        desc: Desc (required).
-        qty: Quantity (required).
-        subprice: Unit price (required).
+        id: The unique ID of the resource.
+        desc: Desc.
+        qty: Quantity.
+        subprice: Unit price.
         product_id: Product ID.
         tva_tx: VAT rate.
         remise_percent: Discount percentage.
@@ -3119,8 +3132,8 @@ async def supplier_invoices_update_line(id: int, lineid: int, desc: Optional[str
     """Supplier Invoices Update Line.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
         desc: Desc.
         qty: Quantity.
         subprice: Unit price.
@@ -3137,8 +3150,8 @@ async def supplier_invoices_delete_line(id: int, lineid: int, ctx: Context = Non
     """Supplier Invoices Delete Line.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
     """
     return await get_client().supplier_invoices_delete_line(id, lineid, get_user_token())
 
@@ -3147,7 +3160,7 @@ async def supplier_invoices_validate(id: int, idwarehouse: int = 0, notrigger: i
     """Supplier Invoices Validate.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         idwarehouse: Warehouse ID.
         notrigger: Disable triggers flag.
     """
@@ -3158,7 +3171,7 @@ async def supplier_invoices_settopaid(id: int, close_code: str = "", close_note:
     """Supplier Invoices Settopaid.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         close_code: Close code.
         close_note: Close note.
     """
@@ -3169,7 +3182,7 @@ async def supplier_invoices_get_payments(id: int, ctx: Context = None) -> dict[s
     """Supplier Invoices Get Payments.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     data = await get_client().supplier_invoices_get_payments(id, get_user_token())
     return {"items": json_to_toon(data)}
@@ -3179,10 +3192,10 @@ async def supplier_invoices_add_payment(id: int, datepaye: str, payment_mode_id:
     """Supplier Invoices Add Payment.
 
     Args:
-        id: The unique ID of the resource (required).
-        datepaye: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
-        payment_mode_id: Payment mode ID (required).
-        accountid: Account ID (required).
+        id: The unique ID of the resource.
+        datepaye: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
+        payment_mode_id: Payment mode ID.
+        accountid: Account ID.
         closepaidinvoices: Close paid invoices flag.
         num_payment: Payment number.
         comment: Comment.
@@ -3216,7 +3229,7 @@ async def supplier_proposals_get(id: int, include_all_fields: bool = False, ctx:
     """Supplier Proposals Get.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().supplier_proposals_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -3226,8 +3239,8 @@ async def supplier_proposals_create(socid: int, date: str, ref: str = "", status
     """Supplier Proposals Create.
 
     Args:
-        socid: Third party ID (required).
-        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
+        socid: Third party ID.
+        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         ref: Reference.
         status: Status.
         note_public: Public note.
@@ -3249,7 +3262,7 @@ async def supplier_proposals_update(id: int, socid: Optional[int] = None, date: 
     """Supplier Proposals Update.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         socid: Third party ID.
         date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         ref: Reference.
@@ -3268,7 +3281,7 @@ async def supplier_proposals_delete(id: int, ctx: Context = None) -> dict[str, A
     """Supplier Proposals Delete.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().supplier_proposals_delete(id, get_user_token())
 
@@ -3296,7 +3309,7 @@ async def contracts_get(id: int, include_all_fields: bool = False, ctx: Context 
     """Get a single contract by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().contracts_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -3306,9 +3319,9 @@ async def contracts_create(socid: int, ref: str, date_contrat: str, commercial_s
     """Create a new contract.
 
     Args:
-        socid: Third party ID (required).
-        ref: Reference (required).
-        date_contrat: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
+        socid: Third party ID.
+        ref: Reference.
+        date_contrat: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         commercial_signature_id: Commercial signature contact ID.
         commercial_suivi_id: Commercial follow-up contact ID.
         status: Status.
@@ -3323,7 +3336,7 @@ async def contracts_update(id: int, socid: Optional[int] = None, ref: Optional[s
     """Update an existing contract.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         socid: Third party ID.
         ref: Reference.
         date_contrat: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
@@ -3339,7 +3352,7 @@ async def contracts_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a contract by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().contracts_delete(id, get_user_token())
 
@@ -3348,7 +3361,7 @@ async def contracts_get_lines(id: int, sortfield: str = "", sortorder: str = "AS
     """Get lines for a contract.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         sortfield: Field to sort by.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
@@ -3364,7 +3377,7 @@ async def contracts_create_line(id: int, desc: str = "", qty: float = 0.0, subpr
     """Add a line to a contract.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         desc: Desc.
         qty: Quantity.
         subprice: Unit price.
@@ -3383,8 +3396,8 @@ async def contracts_update_line(id: int, lineid: int, desc: Optional[str] = None
     """Contracts Update Line.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
         desc: Desc.
         qty: Quantity.
         subprice: Unit price.
@@ -3403,9 +3416,9 @@ async def contracts_activate_line(id: int, lineid: int, datestart: str, dateend:
     """Contracts Activate Line.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
-        datestart: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
+        datestart: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         dateend: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         comment: Comment.
     """
@@ -3420,8 +3433,8 @@ async def contracts_delete_line(id: int, lineid: int, ctx: Context = None) -> di
     """Contracts Delete Line.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
     """
     return await get_client().contracts_delete_line(id, lineid, get_user_token())
 
@@ -3430,7 +3443,7 @@ async def contracts_validate(id: int, notrigger: int = 0, ctx: Context = None) -
     """Validate a contract.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().contracts_validate(id, get_user_token(), notrigger=notrigger)
@@ -3440,7 +3453,7 @@ async def contracts_close(id: int, notrigger: int = 0, ctx: Context = None) -> d
     """Contracts Close.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().contracts_close(id, get_user_token(), notrigger=notrigger)
@@ -3468,7 +3481,7 @@ async def boms_get(id: int, include_all_fields: bool = False, ctx: Context = Non
     """Get a single BOM by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().boms_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -3478,10 +3491,10 @@ async def boms_create(ref: str, label: str, fk_product: int, qty: float, bomtype
     """Create a new bill of materials.
 
     Args:
-        ref: Reference (required).
-        label: Label (required).
-        fk_product: Product ID (required).
-        qty: Quantity (required).
+        ref: Reference.
+        label: Label.
+        fk_product: Product ID.
+        qty: Quantity.
         bomtype: BOM type (0=manufacturing, 1=...).
         status: Status.
         description: Description.
@@ -3499,7 +3512,7 @@ async def boms_update(id: int, ref: Optional[str] = None, label: Optional[str] =
     """Update an existing BOM.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         ref: Reference.
         label: Label.
         fk_product: Product ID.
@@ -3520,7 +3533,7 @@ async def boms_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a BOM by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().boms_delete(id, get_user_token())
 
@@ -3529,7 +3542,7 @@ async def boms_get_lines(id: int, ctx: Context = None) -> dict[str, Any]:
     """Get lines for a BOM.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     data = await get_client().boms_get_lines(id, get_user_token())
     return {"items": json_to_toon(data)}
@@ -3539,7 +3552,7 @@ async def boms_create_line(id: int, fk_product: int = 0, qty: float = 0.0, desc:
     """Add a line to a BOM.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         fk_product: Product ID.
         qty: Quantity.
         desc: Desc.
@@ -3554,8 +3567,8 @@ async def boms_delete_line(id: int, lineid: int, ctx: Context = None) -> dict[st
     """Delete a line from a BOM.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
     """
     return await get_client().boms_delete_line(id, lineid, get_user_token())
 
@@ -3582,7 +3595,7 @@ async def mos_get(id: int, include_all_fields: bool = False, ctx: Context = None
     """Mos Get.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().mos_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -3592,11 +3605,11 @@ async def mos_create(ref: str, label: str, fk_product: int, qty: float, fk_wareh
     """Mos Create.
 
     Args:
-        ref: Reference (required).
-        label: Label (required).
-        fk_product: Product ID (required).
-        qty: Quantity (required).
-        fk_warehouse: Warehouse ID (required).
+        ref: Reference.
+        label: Label.
+        fk_product: Product ID.
+        qty: Quantity.
+        fk_warehouse: Warehouse ID.
         mrptype: MO type (0=...).
         status: Status.
         note_public: Public note.
@@ -3613,7 +3626,7 @@ async def mos_update(id: int, ref: Optional[str] = None, label: Optional[str] = 
     """Mos Update.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         ref: Reference.
         label: Label.
         fk_product: Product ID.
@@ -3634,30 +3647,30 @@ async def mos_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Mos Delete.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().mos_delete(id, get_user_token())
 
 @mcp.tool()
-async def mos_produce_and_consume(id: int, inventorylabel: str, inventorycode: str, arraytoconsume: Optional[list] = None, arraytoproduce: Optional[list] = None, autoclose: int = 1, ctx: Context = None) -> dict[str, Any]:
+async def mos_produce_and_consume(id: int, inventorylabel: str, inventorycode: str, arraytoconsume: list[ConsumeLine] = None, arraytoproduce: list[ProduceLine] = None, autoclose: int = 1, ctx: Context = None) -> dict[str, Any]:
     """Record consumption of raw materials and production of finished product for a manufacturing order.
 
     The MO must be in Validated (1) or In Progress (2) status.
 
     Args:
-        id: The unique ID of the MO (required).
-        inventorylabel: Inventory movement label (required).
-        inventorycode: Inventory movement code (required).
-        arraytoconsume: Array of objects to consume, each with objectid (MoLine rowid), qty, fk_warehouse.
-        arraytoproduce: Array of objects to produce, each with objectid (MoLine rowid), qty, fk_warehouse.
+        id: The unique ID of the MO.
+        inventorylabel: Inventory movement label.
+        inventorycode: Inventory movement code.
+        arraytoconsume: List of objects to consume, each with objectid (MoLine rowid), qty, fk_warehouse.
+        arraytoproduce: List of objects to produce, each with objectid (MoLine rowid), qty, fk_warehouse.
         autoclose: Auto-close MO after production (1=yes, 0=no).
     """
     payload = {
         "inventorylabel": inventorylabel,
         "inventorycode": inventorycode,
         "autoclose": autoclose,
-        "arraytoconsume": arraytoconsume or [],
-        "arraytoproduce": arraytoproduce or [],
+        "arraytoconsume": [l.model_dump() for l in (arraytoconsume or [])],
+        "arraytoproduce": [l.model_dump() for l in (arraytoproduce or [])],
     }
     return await get_client().mos_produce_and_consume(id, payload, get_user_token())
 
@@ -3686,7 +3699,7 @@ async def projects_get(id: int, include_all_fields: bool = False, ctx: Context =
     """Get a single project by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().projects_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -3696,8 +3709,8 @@ async def projects_create(ref: str, title: str, socid: int = 0, description: str
     """Create a new project.
 
     Args:
-        ref: Reference (required).
-        title: Title (required).
+        ref: Reference.
+        title: Title.
         socid: Third party ID.
         description: Description.
         note_public: Public note.
@@ -3721,7 +3734,7 @@ async def projects_update(id: int, ref: Optional[str] = None, title: Optional[st
     """Update an existing project.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         ref: Reference.
         title: Title.
         socid: Third party ID.
@@ -3747,7 +3760,7 @@ async def projects_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a project by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().projects_delete(id, get_user_token())
 
@@ -3756,7 +3769,7 @@ async def projects_get_tasks(id: int, includetimespent: int = 0, ctx: Context = 
     """Get tasks for a project.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         includetimespent: Include time spent flag.
     """
     data = await get_client().projects_get_tasks(id, get_user_token(), includetimespent=includetimespent)
@@ -3767,7 +3780,7 @@ async def projects_get_timespent(id: int, ctx: Context = None) -> dict[str, Any]
     """Projects Get Timespent.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     data = await get_client().projects_get_timespent(id, get_user_token())
     return {"items": json_to_toon(data)}
@@ -3777,7 +3790,7 @@ async def projects_validate(id: int, notrigger: int = 0, ctx: Context = None) ->
     """Projects Validate.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().projects_validate(id, get_user_token(), notrigger=notrigger)
@@ -3787,7 +3800,7 @@ async def projects_get_contacts(id: int, type: str = "", ctx: Context = None) ->
     """Get contacts linked to a project.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         type: Type.
     """
     data = await get_client().projects_get_contacts(id, get_user_token(), type=type)
@@ -3816,7 +3829,7 @@ async def tasks_get(id: int, includetimespent: int = 0, include_all_fields: bool
     """Get a single task by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         includetimespent: Include time spent flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
@@ -3827,9 +3840,9 @@ async def tasks_create(ref: str, label: str, fk_project: int, description: str =
     """Create a new project task.
 
     Args:
-        ref: Reference (required).
-        label: Label (required).
-        fk_project: Project ID (required).
+        ref: Reference.
+        label: Label.
+        fk_project: Project ID.
         description: Description.
         note_public: Public note.
         note_private: Private note.
@@ -3848,7 +3861,7 @@ async def tasks_update(id: int, ref: Optional[str] = None, label: Optional[str] 
     """Update an existing task.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         ref: Reference.
         label: Label.
         fk_project: Project ID.
@@ -3870,7 +3883,7 @@ async def tasks_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a task by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().tasks_delete(id, get_user_token())
 
@@ -3879,7 +3892,7 @@ async def tasks_get_timespent(id: int, ctx: Context = None) -> dict[str, Any]:
     """Get time spent entries for a task.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     data = await get_client().tasks_get_timespent(id, get_user_token())
     return {"items": json_to_toon(data)}
@@ -3889,9 +3902,9 @@ async def tasks_add_timespent(id: int, date: str, duration: float, product_id: i
     """Add time spent to a task.
 
     Args:
-        id: The unique ID of the resource (required).
-        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
-        duration: Duration (required).
+        id: The unique ID of the resource.
+        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
+        duration: Duration.
         product_id: Product ID.
         user_id: User ID.
         note: Note.
@@ -3916,8 +3929,8 @@ async def tasks_update_timespent(id: int, timespent_id: int, date: Optional[str]
     """Tasks Update Timespent.
 
     Args:
-        id: The unique ID of the resource (required).
-        timespent_id: Timespent Id (required).
+        id: The unique ID of the resource.
+        timespent_id: Timespent Id.
         date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         duration: Duration.
         product_id: Product ID.
@@ -3932,8 +3945,8 @@ async def tasks_delete_timespent(id: int, timespent_id: int, ctx: Context = None
     """Tasks Delete Timespent.
 
     Args:
-        id: The unique ID of the resource (required).
-        timespent_id: Timespent Id (required).
+        id: The unique ID of the resource.
+        timespent_id: Timespent Id.
     """
     return await get_client().tasks_delete_timespent(id, timespent_id, get_user_token())
 
@@ -3942,7 +3955,7 @@ async def tasks_get_contacts(id: int, type: str = "", ctx: Context = None) -> di
     """Get contacts linked to a task.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         type: Type.
     """
     data = await get_client().tasks_get_contacts(id, get_user_token(), type=type)
@@ -3972,7 +3985,7 @@ async def shipments_get(id: int, include_all_fields: bool = False, ctx: Context 
     """Get a single shipment by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().shipments_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -3982,8 +3995,8 @@ async def shipments_create(socid: int, ref: str, origin_id: int = 0, origin_type
     """Create a new shipment.
 
     Args:
-        socid: Third party ID (required).
-        ref: Reference (required).
+        socid: Third party ID.
+        ref: Reference.
         origin_id: Origin object ID.
         origin_type: Origin object type (e.g. commande).
         status: Status.
@@ -4006,7 +4019,7 @@ async def shipments_update(id: int, socid: Optional[int] = None, ref: Optional[s
     """Update an existing shipment.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         socid: Third party ID.
         ref: Reference.
         status: Status.
@@ -4029,7 +4042,7 @@ async def shipments_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a shipment by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().shipments_delete(id, get_user_token())
 
@@ -4038,7 +4051,7 @@ async def shipments_validate(id: int, notrigger: int = 0, ctx: Context = None) -
     """Validate a shipment.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().shipments_validate(id, get_user_token(), notrigger=notrigger)
@@ -4048,7 +4061,7 @@ async def shipments_close(id: int, notrigger: int = 0, ctx: Context = None) -> d
     """Close a shipment.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().shipments_close(id, get_user_token(), notrigger=notrigger)
@@ -4077,7 +4090,7 @@ async def receptions_get(id: int, include_all_fields: bool = False, ctx: Context
     """Get a single reception by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().receptions_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -4087,8 +4100,8 @@ async def receptions_create(socid: int, ref: str, origin_id: int = 0, origin_typ
     """Create a new reception.
 
     Args:
-        socid: Third party ID (required).
-        ref: Reference (required).
+        socid: Third party ID.
+        ref: Reference.
         origin_id: Origin object ID.
         origin_type: Origin object type (e.g. commande_fournisseur).
         status: Status.
@@ -4108,7 +4121,7 @@ async def receptions_update(id: int, socid: Optional[int] = None, ref: Optional[
     """Update an existing reception.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         socid: Third party ID.
         ref: Reference.
         status: Status.
@@ -4128,7 +4141,7 @@ async def receptions_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a reception by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().receptions_delete(id, get_user_token())
 
@@ -4137,7 +4150,7 @@ async def receptions_validate(id: int, notrigger: int = 0, ctx: Context = None) 
     """Validate a reception.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().receptions_validate(id, get_user_token(), notrigger=notrigger)
@@ -4147,7 +4160,7 @@ async def receptions_close(id: int, notrigger: int = 0, ctx: Context = None) -> 
     """Receptions Close.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().receptions_close(id, get_user_token(), notrigger=notrigger)
@@ -4176,7 +4189,7 @@ async def interventions_get(id: int, include_all_fields: bool = False, ctx: Cont
     """Get a single intervention by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().interventions_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -4186,7 +4199,7 @@ async def interventions_create(socid: int, ref: str = "", status: int = 0, note_
     """Create a new intervention.
 
     Args:
-        socid: Third party ID (required).
+        socid: Third party ID.
         ref: Reference.
         status: Status.
         note_public: Public note.
@@ -4205,7 +4218,7 @@ async def interventions_update(id: int, socid: Optional[int] = None, ref: Option
     """Update an existing intervention.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         socid: Third party ID.
         ref: Reference.
         status: Status.
@@ -4225,7 +4238,7 @@ async def interventions_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete an intervention by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().interventions_delete(id, get_user_token())
 
@@ -4234,7 +4247,7 @@ async def interventions_get_lines(id: int, ctx: Context = None) -> dict[str, Any
     """Get lines for an intervention.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     data = await get_client().interventions_get_lines(id, get_user_token())
     return {"items": json_to_toon(data)}
@@ -4244,7 +4257,7 @@ async def interventions_create_line(id: int, description: str = "", duration: fl
     """Add a line to an intervention.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         description: Description.
         duration: Duration.
         product_id: Product ID.
@@ -4263,8 +4276,8 @@ async def interventions_update_line(id: int, lineid: int, desc: Optional[str] = 
     """Update a line in an intervention.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
         desc: Desc.
         duration: Duration.
         product_id: Product ID.
@@ -4283,8 +4296,8 @@ async def interventions_delete_line(id: int, lineid: int, ctx: Context = None) -
     """Delete a line from an intervention.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
     """
     return await get_client().interventions_delete_line(id, lineid, get_user_token())
 
@@ -4293,7 +4306,7 @@ async def interventions_settodraft(id: int, ctx: Context = None) -> dict[str, An
     """Set an intervention to draft status.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().interventions_settodraft(id, get_user_token())
 
@@ -4302,7 +4315,7 @@ async def interventions_validate(id: int, notrigger: int = 0, ctx: Context = Non
     """Validate an intervention.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().interventions_validate(id, get_user_token(), notrigger=notrigger)
@@ -4312,7 +4325,7 @@ async def interventions_close(id: int, notrigger: int = 0, ctx: Context = None) 
     """Interventions Close.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().interventions_close(id, get_user_token(), notrigger=notrigger)
@@ -4322,7 +4335,7 @@ async def interventions_get_contacts(id: int, type: str = "", ctx: Context = Non
     """Get contacts linked to an intervention.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         type: Type.
     """
     data = await get_client().interventions_get_contacts(id, get_user_token(), type=type)
@@ -4352,7 +4365,7 @@ async def expense_reports_get(id: int, include_all_fields: bool = False, ctx: Co
     """Expense Reports Get.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().expense_reports_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -4362,10 +4375,10 @@ async def expense_reports_create(fk_user: int, date_debut: str, date_fin: str, f
     """Expense Reports Create.
 
     Args:
-        fk_user: User ID (required).
-        date_debut: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
-        date_fin: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
-        fk_user_author: Author user ID (required).
+        fk_user: User ID.
+        date_debut: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
+        date_fin: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
+        fk_user_author: Author user ID.
         ref: Reference.
         status: Status.
         note_public: Public note.
@@ -4390,7 +4403,7 @@ async def expense_reports_update(id: int, fk_user: Optional[int] = None, date_de
     """Expense Reports Update.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         fk_user: User ID.
         date_debut: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         date_fin: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
@@ -4412,7 +4425,7 @@ async def expense_reports_delete(id: int, ctx: Context = None) -> dict[str, Any]
     """Expense Reports Delete.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().expense_reports_delete(id, get_user_token())
 
@@ -4421,7 +4434,7 @@ async def expense_reports_get_lines(id: int, ctx: Context = None) -> dict[str, A
     """Expense Reports Get Lines.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     data = await get_client().expense_reports_get_lines(id, get_user_token())
     return {"items": json_to_toon(data)}
@@ -4431,11 +4444,11 @@ async def expense_reports_create_line(id: int, date: str, fk_c_type_fees: int, q
     """Expense Reports Create Line.
 
     Args:
-        id: The unique ID of the resource (required).
-        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
-        fk_c_type_fees: Fee type ID (required).
-        qty: Quantity (required).
-        value_unit: Value Unit (required).
+        id: The unique ID of the resource.
+        date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
+        fk_c_type_fees: Fee type ID.
+        qty: Quantity.
+        value_unit: Value Unit.
         product_id: Product ID.
         comment: Comment.
         vatrate: VAT rate.
@@ -4452,8 +4465,8 @@ async def expense_reports_update_line(id: int, lineid: int, date: Optional[str] 
     """Expense Reports Update Line.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
         date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         fk_c_type_fees: Fee type ID.
         qty: Quantity.
@@ -4474,8 +4487,8 @@ async def expense_reports_delete_line(id: int, lineid: int, ctx: Context = None)
     """Expense Reports Delete Line.
 
     Args:
-        id: The unique ID of the resource (required).
-        lineid: The line ID (required).
+        id: The unique ID of the resource.
+        lineid: The line ID.
     """
     return await get_client().expense_reports_delete_line(id, lineid, get_user_token())
 
@@ -4484,7 +4497,7 @@ async def expense_reports_settodraft(id: int, ctx: Context = None) -> dict[str, 
     """Expense Reports Settodraft.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().expense_reports_settodraft(id, get_user_token())
 
@@ -4493,7 +4506,7 @@ async def expense_reports_validate(id: int, notrigger: int = 0, ctx: Context = N
     """Expense Reports Validate.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().expense_reports_validate(id, get_user_token(), notrigger=notrigger)
@@ -4503,7 +4516,7 @@ async def expense_reports_approve(id: int, notrigger: int = 0, ctx: Context = No
     """Expense Reports Approve.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().expense_reports_approve(id, get_user_token(), notrigger=notrigger)
@@ -4513,7 +4526,7 @@ async def expense_reports_deny(id: int, details: str = "", notrigger: int = 0, c
     """Expense Reports Deny.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         details: Details.
         notrigger: Disable triggers flag.
     """
@@ -4524,7 +4537,7 @@ async def expense_reports_cancel(id: int, detail: str = "", notrigger: int = 0, 
     """Expense Reports Cancel.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         detail: Detail.
         notrigger: Disable triggers flag.
     """
@@ -4554,7 +4567,7 @@ async def holidays_get(id: int, include_all_fields: bool = False, ctx: Context =
     """Get a single leave request by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().holidays_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -4564,11 +4577,11 @@ async def holidays_create(fk_user: int, date_debut: str, date_fin: str, halfday:
     """Create a new leave/holiday request.
 
     Args:
-        fk_user: User ID (required).
-        date_debut: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
-        date_fin: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
-        halfday: Half day flag (0=full, 1=morning, 2=afternoon) (required).
-        fk_type: Leave type ID (required).
+        fk_user: User ID.
+        date_debut: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
+        date_fin: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
+        halfday: Half day flag (0=full, 1=morning, 2=afternoon).
+        fk_type: Leave type ID.
         fk_validator: Validator user ID.
         note: Note.
         status: Status.
@@ -4581,7 +4594,7 @@ async def holidays_update(id: int, fk_user: Optional[int] = None, date_debut: Op
     """Update an existing leave request.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         fk_user: User ID.
         date_debut: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         date_fin: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
@@ -4598,7 +4611,7 @@ async def holidays_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a leave request by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().holidays_delete(id, get_user_token())
 
@@ -4607,7 +4620,7 @@ async def holidays_validate(id: int, notrigger: int = 0, ctx: Context = None) ->
     """Validate a leave request.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().holidays_validate(id, get_user_token(), notrigger=notrigger)
@@ -4617,7 +4630,7 @@ async def holidays_approve(id: int, notrigger: int = 0, ctx: Context = None) -> 
     """Approve a leave request.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().holidays_approve(id, get_user_token(), notrigger=notrigger)
@@ -4627,7 +4640,7 @@ async def holidays_cancel(id: int, notrigger: int = 0, ctx: Context = None) -> d
     """Holidays Cancel.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         notrigger: Disable triggers flag.
     """
     return await get_client().holidays_cancel(id, get_user_token(), notrigger=notrigger)
@@ -4637,7 +4650,7 @@ async def holidays_refuse(id: int, detail_refuse: str = "", notrigger: int = 0, 
     """Holidays Refuse.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         detail_refuse: Refusal detail.
         notrigger: Disable triggers flag.
     """
@@ -4667,7 +4680,7 @@ async def agenda_events_get(id: int, include_all_fields: bool = False, ctx: Cont
     """Agenda Events Get.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().agenda_events_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -4677,9 +4690,9 @@ async def agenda_events_create(type_code: str, datep: str, label: str, note: str
     """Agenda Events Create.
 
     Args:
-        type_code: Event type code (required).
-        datep: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00) (required).
-        label: Label (required).
+        type_code: Event type code.
+        datep: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
+        label: Label.
         note: Note.
         author_user_id: Author user ID.
         userownerid: Owner user ID.
@@ -4700,7 +4713,7 @@ async def agenda_events_update(id: int, type_code: Optional[str] = None, datep: 
     """Agenda Events Update.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         type_code: Event type code.
         datep: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         label: Label.
@@ -4724,7 +4737,7 @@ async def agenda_events_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Agenda Events Delete.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().agenda_events_delete(id, get_user_token())
 
@@ -4752,7 +4765,7 @@ async def categories_get(id: int, include_childs: bool = False, include_all_fiel
     """Get a single category by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_childs: Include child categories flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
@@ -4763,9 +4776,9 @@ async def categories_create(ref: str, label: str, type: str, description: str = 
     """Create a new category.
 
     Args:
-        ref: Reference (required).
-        label: Label (required).
-        type: Type (required).
+        ref: Reference.
+        label: Label.
+        type: Type.
         description: Description.
         color: Color.
         parent: Parent ID.
@@ -4781,7 +4794,7 @@ async def categories_update(id: int, ref: Optional[str] = None, label: Optional[
     """Update an existing category.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         ref: Reference.
         label: Label.
         type: Type.
@@ -4800,7 +4813,7 @@ async def categories_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a category by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().categories_delete(id, get_user_token())
 
@@ -4815,8 +4828,8 @@ async def categories_get_for_object(type: str, id: int, sortfield: str = "", sor
     """Categories Get For Object.
 
     Args:
-        type: Type (required).
-        id: The unique ID of the resource (required).
+        type: Type.
+        id: The unique ID of the resource.
         sortfield: Field to sort by.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
@@ -4830,9 +4843,9 @@ async def categories_link_object_by_id(id: int, type: str, object_id: int, ctx: 
     """Categories Link Object By Id.
 
     Args:
-        id: The unique ID of the resource (required).
-        type: Type (required).
-        object_id: Object ID (required).
+        id: The unique ID of the resource.
+        type: Type.
+        object_id: Object ID.
     """
     return await get_client().categories_link_object_by_id(id, type, object_id, get_user_token())
 
@@ -4841,9 +4854,9 @@ async def categories_link_object_by_ref(id: int, type: str, object_ref: str, ctx
     """Categories Link Object By Ref.
 
     Args:
-        id: The unique ID of the resource (required).
-        type: Type (required).
-        object_ref: Object reference (required).
+        id: The unique ID of the resource.
+        type: Type.
+        object_ref: Object reference.
     """
     return await get_client().categories_link_object_by_ref(id, type, object_ref, get_user_token())
 
@@ -4852,9 +4865,9 @@ async def categories_unlink_object(id: int, type: str, object_id: int, ctx: Cont
     """Categories Unlink Object.
 
     Args:
-        id: The unique ID of the resource (required).
-        type: Type (required).
-        object_id: Object ID (required).
+        id: The unique ID of the resource.
+        type: Type.
+        object_id: Object ID.
     """
     return await get_client().categories_unlink_object(id, type, object_id, get_user_token())
 
@@ -4881,7 +4894,7 @@ async def mailings_get(id: int, include_all_fields: bool = False, ctx: Context =
     """Get a single mailing by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().mailings_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -4891,10 +4904,10 @@ async def mailings_create(title: str, sujet: str, body: str, email_from: str, ma
     """Create a new mailing.
 
     Args:
-        title: Title (required).
-        sujet: Subject (required).
-        body: Body (required).
-        email_from: From email (required).
+        title: Title.
+        sujet: Subject.
+        body: Body.
+        email_from: From email.
         mail_template_id: Mail template ID.
         mail_subject: Mail subject.
         note: Note.
@@ -4912,7 +4925,7 @@ async def mailings_update(id: int, title: Optional[str] = None, mail_template_id
     """Update an existing mailing.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         title: Title.
         mail_template_id: Mail template ID.
         mail_subject: Mail subject.
@@ -4934,7 +4947,7 @@ async def mailings_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a mailing by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().mailings_delete(id, get_user_token())
 
@@ -4943,7 +4956,7 @@ async def mailings_validate(id: int, ctx: Context = None) -> dict[str, Any]:
     """Mailings Validate.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().mailings_validate(id, get_user_token())
 
@@ -4970,7 +4983,7 @@ async def multi_currencies_get(id: int, include_all_fields: bool = False, ctx: C
     """Multi Currencies Get.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().multi_currencies_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -4980,8 +4993,8 @@ async def multi_currencies_create(code: str, name: str, rate: float = 1.0, statu
     """Multi Currencies Create.
 
     Args:
-        code: Code (required).
-        name: Name (required).
+        code: Code.
+        name: Name.
         rate: Exchange rate.
         status: Status.
         note: Note.
@@ -4994,7 +5007,7 @@ async def multi_currencies_update(id: int, code: Optional[str] = None, name: Opt
     """Multi Currencies Update.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         code: Code.
         name: Name.
         rate: Exchange rate.
@@ -5009,7 +5022,7 @@ async def multi_currencies_delete(id: int, ctx: Context = None) -> dict[str, Any
     """Multi Currencies Delete.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().multi_currencies_delete(id, get_user_token())
 
@@ -5018,7 +5031,7 @@ async def multi_currencies_get_rates(id: int, ctx: Context = None) -> dict[str, 
     """Multi Currencies Get Rates.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     data = await get_client().multi_currencies_get_rates(id, get_user_token())
     return {"items": json_to_toon(data)}
@@ -5047,7 +5060,7 @@ async def tickets_get(id: int, include_all_fields: bool = False, ctx: Context = 
     """Get a single ticket by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().tickets_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -5057,10 +5070,10 @@ async def tickets_create(subject: str, type_code: str, severity_code: str, categ
     """Create a new ticket.
 
     Args:
-        subject: Subject (required).
-        type_code: Event type code (required).
-        severity_code: Severity code (required).
-        category_code: Category code (required).
+        subject: Subject.
+        type_code: Event type code.
+        severity_code: Severity code.
+        category_code: Category code.
         socid: Third party ID.
         note_public: Public note.
         note_private: Private note.
@@ -5079,7 +5092,7 @@ async def tickets_update(id: int, subject: Optional[str] = None, type_code: Opti
     """Update an existing ticket.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         subject: Subject.
         type_code: Event type code.
         severity_code: Severity code.
@@ -5101,7 +5114,7 @@ async def tickets_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a ticket by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().tickets_delete(id, get_user_token())
 
@@ -5146,7 +5159,7 @@ async def workstations_get(id: int, include_all_fields: bool = False, ctx: Conte
     """Get a single workstation by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().workstations_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -5156,7 +5169,7 @@ async def workstations_create(label: str, status: int = 0, ref: str = "", type: 
     """Create a new workstation.
 
     Args:
-        label: Label (required).
+        label: Label.
         status: Status (0=draft, 1=active).
         ref: Reference.
         type: Type.
@@ -5175,7 +5188,7 @@ async def workstations_update(id: int, label: Optional[str] = None, status: Opti
     """Update an existing workstation.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         label: Label.
         status: Status.
         type: Type.
@@ -5190,7 +5203,7 @@ async def workstations_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a workstation by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().workstations_delete(id, get_user_token())
 
@@ -5202,7 +5215,7 @@ async def object_links_get(id: int, ctx: Context = None) -> dict[str, Any]:
     """Object Links Get.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     data = await get_client().object_links_get(id, get_user_token())
     return {"items": json_to_toon(data)}
@@ -5212,10 +5225,10 @@ async def object_links_create(fk_source: int, sourcetype: str, fk_target: int, t
     """Object Links Create.
 
     Args:
-        fk_source: Source object ID (required).
-        sourcetype: Source object type (required).
-        fk_target: Target object ID (required).
-        targettype: Target object type (required).
+        fk_source: Source object ID.
+        sourcetype: Source object type.
+        fk_target: Target object ID.
+        targettype: Target object type.
         relationtype: Relation type.
     """
     def _map_type(t: str) -> str:
@@ -5247,7 +5260,7 @@ async def object_links_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Object Links Delete.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().object_links_delete(id, get_user_token())
 
@@ -5276,7 +5289,7 @@ async def users_get(id: int, includepermissions: int = 0, include_all_fields: bo
     """Get a single user by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         includepermissions: Include permissions flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
@@ -5287,7 +5300,7 @@ async def users_get_by_login(login: str, includepermissions: int = 0, include_al
     """Users Get By Login.
 
     Args:
-        login: Login (required).
+        login: Login.
         includepermissions: Include permissions flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
@@ -5298,7 +5311,7 @@ async def users_get_by_email(email: str, includepermissions: int = 0, include_al
     """Users Get By Email.
 
     Args:
-        email: Email address (required).
+        email: Email address.
         includepermissions: Include permissions flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
@@ -5336,7 +5349,7 @@ async def users_get_group(id: int, load_members: int = 0, includepermissions: in
     """Users Get Group.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         load_members: Load Members.
         includepermissions: Include permissions flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
@@ -5348,7 +5361,7 @@ async def users_get_user_groups(id: int, ctx: Context = None) -> dict[str, Any]:
     """Users Get User Groups.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     data = await get_client().users_get_user_groups(id, get_user_token())
     return {"items": json_to_toon(data)}
@@ -5358,9 +5371,9 @@ async def users_create(login: str, email: str, password: str, lastname: str = ""
     """Create a new user.
 
     Args:
-        login: Login (required).
-        email: Email (required).
-        password: Password (required).
+        login: Login.
+        email: Email.
+        password: Password.
         lastname: Last name.
         firstname: First name.
         status: Status (0=disabled, 1=enabled).
@@ -5373,7 +5386,7 @@ async def users_update(id: int, email: Optional[str] = None, lastname: Optional[
     """Update an existing user.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
         email: Email.
         lastname: Last name.
         firstname: First name.
@@ -5387,7 +5400,7 @@ async def users_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a user by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().users_delete(id, get_user_token())
 
@@ -5396,7 +5409,7 @@ async def groups_create(name: str, ctx: Context = None) -> dict[str, Any]:
     """Create a new user group.
 
     Args:
-        name: Group name (required).
+        name: Group name.
     """
     payload = {"nom": name}
     return await get_client().groups_create(payload, get_user_token())
@@ -5406,7 +5419,7 @@ async def groups_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a group by ID.
 
     Args:
-        id: The unique ID of the resource (required).
+        id: The unique ID of the resource.
     """
     return await get_client().groups_delete(id, get_user_token())
 
