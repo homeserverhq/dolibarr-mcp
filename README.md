@@ -3,7 +3,7 @@
 This repository contains a Model Context Protocol (MCP) server that acts
 as a secure, multi-tenant proxy between an AI Assistant and the
 Dolibarr ERP/CRM backend API. It exposes **299 MCP tools** covering
-34 resource domains with full CRUD, lifecycle management, and
+33 resource domains with full CRUD, lifecycle management, and
 relationship management.
 
 ## ✨ Features
@@ -15,7 +15,7 @@ relationship management.
   user identity isolation, ensuring all AI-driven actions are scoped to
   the authenticated user's permissions.
 - **📊 Full Dolibarr Coverage** — 299 tools mapped to Dolibarr
-  API endpoints across 34 resource domains.
+  API endpoints across 33 resource domains.
 - **⚡ TOON Optimization** — Bulk list responses are automatically compressed
   using TOON (Token-Optimized Object Notation) to reduce token consumption
   and maximize context window efficiency.
@@ -81,12 +81,13 @@ The MCP server serves at `http://dolibarr-mcp:80/mcp`
 The server implements 299 MCP tools organized into the following
 categories:
 
-### ✅ Status (1 tool)
+### ✅ System & Reference (6 tools)
 - `status_get` — Health check endpoint for backend connectivity
-
-### 📄 Documents (2 tools)
 - `documents_list` — List documents/attachments for a given element
 - `documents_list_types` — List available document types
+- `payment_types_list` — List payment types
+- `expense_types_list` — List expense report types
+- `holiday_types_list` — List holiday types
 
 ### 🏢 Third Parties (12 tools)
 - `thirdparties_list` — List all third parties
@@ -430,7 +431,7 @@ categories:
 - `object_links_get_by_values` — Get object links by values
 - `object_links_delete` — Delete an object link by ID
 
-### 👥 Users (11 tools)
+### 👥 Users & Groups (13 tools)
 - `users_list` — List all users
 - `users_get` — Get a user by ID
 - `users_create` — Create a new user
@@ -442,12 +443,5 @@ categories:
 - `users_get_info` — Get current user info
 - `users_list_groups` — List all user groups
 - `users_get_user_groups` — Get groups for a user
-
-### 👪 Groups (2 tools)
 - `groups_create` — Create a new user group
 - `groups_delete` — Delete a user group by ID
-
-### 📊 Reference Data (3 tools)
-- `payment_types_list` — List payment types
-- `expense_types_list` — List expense report types
-- `holiday_types_list` — List holiday types
