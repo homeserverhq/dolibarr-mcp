@@ -58,6 +58,10 @@ if (!DolibarrApi::_checkAccessToResource('stock', $this->warehouse->id, 'entrepo
 
 **Before**:
 ```php
+if (!DolibarrApi::_checkAccessToResource('societe', $id)) {
+    throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login);
+}
+
 $result = $this->company->fetch($id);
 if (!is_array($result)) {
     throw new RestException(404, 'Thirdparty not found');
