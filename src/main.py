@@ -1711,6 +1711,26 @@ async def stockmovements_create(product_id: int, warehouse_id: int, qty: float, 
     params = CreateStockMovementParam(product_id=product_id, warehouse_id=warehouse_id, qty=qty, type=type, batch=batch, movementcode=movementcode, label=label, price=price, datem=datem, sellBy=sellBy, eatBy=eatBy, origin_type=origin_type, origin_id=origin_id)
     return await get_client().stockmovements_create(params.model_dump(exclude_unset=True), get_user_token())
 
+@mcp.tool()
+async def stockmovements_update(id: int, qty: float, ctx: Context = None) -> dict[str, Any]:
+    """Update a stock movement.
+
+    Args:
+        id: The unique ID of the resource (required).
+        qty: Quantity.
+    """
+    payload = {k: v for k, v in {"qty": qty}.items() if v is not None}
+    return await get_client().stockmovements_update(id, payload, get_user_token())
+
+@mcp.tool()
+async def stockmovements_delete(id: int, ctx: Context = None) -> dict[str, Any]:
+    """Delete a stock movement by ID.
+
+    Args:
+        id: The unique ID of the resource (required).
+    """
+    return await get_client().stockmovements_delete(id, get_user_token())
+
 # ============================================================
 # Product Lots
 # ============================================================
@@ -2573,6 +2593,20 @@ async def payments_get(id: int, include_all_fields: bool = False, ctx: Context =
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().payments_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
+
+@mcp.tool()
+async def payments_create(datepaye: str, paymentid: int, amount: float, accountid: int, closepaidinvoices: str = "no", ctx: Context = None) -> dict[str, Any]:
+    """Create a new payment.
+
+    Args:
+        datepaye: Payment date (use ISO 8601 format, required).
+        paymentid: Payment type ID (required).
+        amount: Amount (required).
+        accountid: Bank account ID (required).
+        closepaidinvoices: Close paid invoices (yes/no).
+    """
+    payload = {"datepaye": datepaye, "paymentid": paymentid, "amount": amount, "accountid": accountid, "closepaidinvoices": closepaidinvoices}
+    return await get_client().payments_create(payload, get_user_token())
 
 @mcp.tool()
 async def payments_update(id: int, ctx: Context = None) -> dict[str, Any]:
@@ -5082,6 +5116,49 @@ async def workstations_get(id: int, include_all_fields: bool = False, ctx: Conte
     """
     return await get_client().workstations_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
 
+@mcp.tool()
+async def workstations_create(label: str, status: int = 0, ref: str = "", type: str = "", nb_operator: int = 1, cost: float = 0.0, ctx: Context = None) -> dict[str, Any]:
+    """Create a new workstation.
+
+    Args:
+        label: Label (required).
+        status: Status (0=draft, 1=active).
+        ref: Reference.
+        type: Type.
+        nb_operator: Number of operators.
+        cost: Cost.
+    """
+    params = {"label": label, "status": status}
+    if ref: params["ref"] = ref
+    if type: params["type"] = type
+    if nb_operator != 1: params["nb_operator"] = nb_operator
+    if cost: params["cost"] = cost
+    return await get_client().workstations_create(params, get_user_token())
+
+@mcp.tool()
+async def workstations_update(id: int, label: Optional[str] = None, status: Optional[int] = None, type: Optional[str] = None, nb_operator: Optional[int] = None, cost: Optional[float] = None, ctx: Context = None) -> dict[str, Any]:
+    """Update an existing workstation.
+
+    Args:
+        id: The unique ID of the resource (required).
+        label: Label.
+        status: Status.
+        type: Type.
+        nb_operator: Number of operators.
+        cost: Cost.
+    """
+    payload = {k: v for k, v in {"label": label, "status": status, "type": type, "nb_operator": nb_operator, "cost": cost}.items() if v is not None}
+    return await get_client().workstations_update(id, payload, get_user_token())
+
+@mcp.tool()
+async def workstations_delete(id: int, ctx: Context = None) -> dict[str, Any]:
+    """Delete a workstation by ID.
+
+    Args:
+        id: The unique ID of the resource (required).
+    """
+    return await get_client().workstations_delete(id, get_user_token())
+
 # ============================================================
 # Object Links
 # ============================================================
@@ -5230,6 +5307,63 @@ async def users_get_user_groups(id: int, ctx: Context = None) -> dict[str, Any]:
     """
     data = await get_client().users_get_user_groups(id, get_user_token())
     return {"items": json_to_toon(data)}
+
+@mcp.tool()
+async def users_create(login: str, email: str, password: str, lastname: str = "", firstname: str = "", status: int = 1, ctx: Context = None) -> dict[str, Any]:
+    """Create a new user.
+
+    Args:
+        login: Login (required).
+        email: Email (required).
+        password: Password (required).
+        lastname: Last name.
+        firstname: First name.
+        status: Status (0=disabled, 1=enabled).
+    """
+    payload = {"login": login, "email": email, "password": password, "lastname": lastname, "firstname": firstname, "status": status}
+    return await get_client().users_create(payload, get_user_token())
+
+@mcp.tool()
+async def users_update(id: int, email: Optional[str] = None, lastname: Optional[str] = None, firstname: Optional[str] = None, status: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
+    """Update an existing user.
+
+    Args:
+        id: The unique ID of the resource (required).
+        email: Email.
+        lastname: Last name.
+        firstname: First name.
+        status: Status.
+    """
+    payload = {k: v for k, v in {"email": email, "lastname": lastname, "firstname": firstname, "status": status}.items() if v is not None}
+    return await get_client().users_update(id, payload, get_user_token())
+
+@mcp.tool()
+async def users_delete(id: int, ctx: Context = None) -> dict[str, Any]:
+    """Delete a user by ID.
+
+    Args:
+        id: The unique ID of the resource (required).
+    """
+    return await get_client().users_delete(id, get_user_token())
+
+@mcp.tool()
+async def groups_create(name: str, ctx: Context = None) -> dict[str, Any]:
+    """Create a new user group.
+
+    Args:
+        name: Group name (required).
+    """
+    payload = {"nom": name}
+    return await get_client().groups_create(payload, get_user_token())
+
+@mcp.tool()
+async def groups_delete(id: int, ctx: Context = None) -> dict[str, Any]:
+    """Delete a group by ID.
+
+    Args:
+        id: The unique ID of the resource (required).
+    """
+    return await get_client().groups_delete(id, get_user_token())
 
 # ============================================================
 # Main Entry Point

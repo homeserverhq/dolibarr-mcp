@@ -43,7 +43,7 @@ BOM_LINE_COMMON = "id,ref,fk_product,qty"
 EXPENSE_LINE_COMMON = "id,type_fees_libelle,qty,total_ttc,date,projet_title"
 BANK_LINE_COMMON = "id,ref,label,amount,dateo,bank_account_label"
 PAYMENT_LINE_COMMON = "id,ref,amount,type,date"
-USER_COMMON = "id,ref,login,firstname,lastname,status,entity"
+USER_COMMON = "id,ref,login,firstname,lastname,email,status,entity"
 GROUP_COMMON = "id,ref,name,nom,entity"
 CATEGORY_COMMON = "id,ref,label,type,fk_parent"
 WAREHOUSE_COMMON = "id,ref,label,type,status,lieu"
@@ -392,6 +392,12 @@ class DolibarrClient:
     async def stockmovements_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/stockmovements/", api_key, json=payload)
 
+    async def stockmovements_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+        return await self.put(f"/stockmovements/{id}", api_key, json=payload)
+
+    async def stockmovements_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+        return await self.delete(f"/stockmovements/{id}", api_key)
+
     # ============================================================
     # Product Lots
     # ============================================================
@@ -687,6 +693,9 @@ class DolibarrClient:
         if not include_all_fields and isinstance(data, dict):
             data = self._filter_fields(data, PAYMENT_LINE_COMMON)
         return data
+
+    async def payments_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+        return await self.post("/paiements/", api_key, json=payload)
 
     async def payments_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.put(f"/paiements/{id}", api_key, json=payload)
@@ -1590,6 +1599,15 @@ class DolibarrClient:
             data = self._filter_fields(data, WORKSTATION_COMMON)
         return data
 
+    async def workstations_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+        return await self.post("/workstations/", api_key, json=payload)
+
+    async def workstations_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+        return await self.put(f"/workstations/{id}", api_key, json=payload)
+
+    async def workstations_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+        return await self.delete(f"/workstations/{id}", api_key)
+
     # ============================================================
     # Object Links
     # ============================================================
@@ -1675,6 +1693,21 @@ class DolibarrClient:
             data = self._filter_fields(data, GROUP_COMMON)
         return data
 
+    async def groups_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+        return await self.post("/users/groups", api_key, json=payload)
+
+    async def groups_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+        return await self.delete(f"/users/groups/{id}", api_key)
+
     async def users_get_user_groups(self, id: int, api_key: Optional[str] = None) -> Any:
         params = {"properties": GROUP_COMMON}
         return await self.get(f"/users/{id}/groups", api_key, params=params)
+
+    async def users_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+        return await self.post("/users/", api_key, json=payload)
+
+    async def users_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+        return await self.put(f"/users/{id}", api_key, json=payload)
+
+    async def users_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+        return await self.delete(f"/users/{id}", api_key)
