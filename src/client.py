@@ -43,9 +43,21 @@ def _to_iso8601(value: Any) -> Any:
     return value
 
 
+_DATE_KEYS = frozenset(k.lower() for k in {
+    "date", "datem", "datep", "datep2", "datev", "date_start", "date_end",
+    "date_debut", "date_fin", "date_contrat", "date_planned", "date_delivery",
+    "delivery_date", "date_creation", "date_validation", "date_modification",
+    "date_cloture", "date_limitation", "datec", "datedp", "dateo", "dates",
+    "tms", "date_naissance", "date_emission", "date_limitation", "date_livraison",
+    "date_commande", "date_fabrication", "sellby", "eatby", "eatby_date",
+    "date_valid", "date_export", "date_import", "date_index", "date_ Maj",
+    "date_cre", "date_maj", "date_created", "date_updated",
+})
+
+
 def _normalize_response(obj: Any) -> Any:
     if isinstance(obj, dict):
-        return {k: _normalize_response(v) for k, v in obj.items()}
+        return {k: (_to_iso8601(v) if k.lower() in _DATE_KEYS else _normalize_response(v)) for k, v in obj.items()}
     if isinstance(obj, list):
         return [_normalize_response(v) for v in obj]
     return obj
@@ -231,8 +243,8 @@ class DolibarrClient:
         return await self.put(f"/thirdparties/{id}", api_key, json=payload)
 
     async def thirdparties_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/thirdparties/{id}", api_key)
-
+        await self.delete(f"/thirdparties/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def thirdparties_get_outstanding_proposals(self, id: int, api_key: Optional[str] = None, mode: str = "") -> Any:
         params = {"mode": mode or "all"}
         return await self.get(f"/thirdparties/{id}/outstandingproposals", api_key, params=params)
@@ -253,8 +265,8 @@ class DolibarrClient:
         return await self.post(f"/thirdparties/{id}/representative/{fk_user}", api_key)
 
     async def thirdparties_delete_representative(self, id: int, representative_id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/thirdparties/{id}/representative/{representative_id}", api_key)
-
+        await self.delete(f"/thirdparties/{id}/representative/{representative_id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def thirdparties_get_categories(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
         params = {}
         if sortfield: params["sortfield"] = sortfield
@@ -290,8 +302,8 @@ class DolibarrClient:
         return await self.put(f"/contacts/{id}", api_key, json=payload)
 
     async def contacts_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/contacts/{id}", api_key)
-
+        await self.delete(f"/contacts/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def contacts_get_categories(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
         params = {}
         if sortfield: params["sortfield"] = sortfield
@@ -328,8 +340,8 @@ class DolibarrClient:
         return await self.put(f"/products/{id}", api_key, json=payload)
 
     async def products_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/products/{id}", api_key)
-
+        await self.delete(f"/products/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def products_get_subproducts(self, id: int, api_key: Optional[str] = None) -> Any:
         params = {"properties": ",".join(sorted(COMMON_FIELDS["product"]))}
         return await self.get(f"/products/{id}/subproducts", api_key, params=params)
@@ -379,8 +391,8 @@ class DolibarrClient:
         return await self.put(f"/warehouses/{id}", api_key, json=payload)
 
     async def warehouses_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/warehouses/{id}", api_key)
-
+        await self.delete(f"/warehouses/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def warehouses_list_products(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0, include_all_fields: bool = False) -> Any:
         params = {}
         if sortfield: params["sortfield"] = sortfield
@@ -434,8 +446,8 @@ class DolibarrClient:
         return await self.put(f"/productlots/{id}", api_key, json=payload)
 
     async def productlots_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/productlots/{id}", api_key)
-
+        await self.delete(f"/productlots/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     # ============================================================
     # Proposals
     # ============================================================
@@ -461,8 +473,8 @@ class DolibarrClient:
         return await self.put(f"/proposals/{id}", api_key, json=payload)
 
     async def proposals_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/proposals/{id}", api_key)
-
+        await self.delete(f"/proposals/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def proposals_get_lines(self, id: int, api_key: Optional[str] = None, sqlfilters: str = "") -> Any:
         params = {}
         if sqlfilters: params["sqlfilters"] = sqlfilters
@@ -476,8 +488,8 @@ class DolibarrClient:
         return await self.put(f"/proposals/{id}/lines/{lineid}", api_key, json=payload)
 
     async def proposals_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/proposals/{id}/lines/{lineid}", api_key)
-
+        await self.delete(f"/proposals/{id}/lines/{lineid}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def proposals_settodraft(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.post(f"/proposals/{id}/settodraft", api_key)
 
@@ -533,8 +545,8 @@ class DolibarrClient:
         return await self.put(f"/orders/{id}", api_key, json=payload)
 
     async def orders_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/orders/{id}", api_key)
-
+        await self.delete(f"/orders/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def orders_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
         params = {"properties": ",".join(sorted(COMMON_FIELDS["line"]))}
         return await self.get(f"/orders/{id}/lines", api_key, params=params)
@@ -550,8 +562,8 @@ class DolibarrClient:
         return await self.put(f"/orders/{id}/lines/{lineid}", api_key, json=payload)
 
     async def orders_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/orders/{id}/lines/{lineid}", api_key)
-
+        await self.delete(f"/orders/{id}/lines/{lineid}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def orders_settodraft(self, id: int, api_key: Optional[str] = None, idwarehouse: int = 0) -> Any:
         params = {}
         if idwarehouse: params["idwarehouse"] = idwarehouse
@@ -615,8 +627,8 @@ class DolibarrClient:
         return await self.put(f"/invoices/{id}", api_key, json=payload)
 
     async def invoices_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/invoices/{id}", api_key)
-
+        await self.delete(f"/invoices/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def invoices_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
         params = {"properties": ",".join(sorted(COMMON_FIELDS["line"]))}
         return await self.get(f"/invoices/{id}/lines", api_key, params=params)
@@ -628,8 +640,8 @@ class DolibarrClient:
         return await self.put(f"/invoices/{id}/lines/{lineid}", api_key, json=payload)
 
     async def invoices_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/invoices/{id}/lines/{lineid}", api_key)
-
+        await self.delete(f"/invoices/{id}/lines/{lineid}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def invoices_create_from_order(self, orderid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post(f"/invoices/createfromorder/{orderid}", api_key)
 
@@ -669,8 +681,8 @@ class DolibarrClient:
         return await self.post(f"/invoices/{id}/contacts", api_key, json=payload)
 
     async def invoices_delete_contact(self, id: int, contactid: int, type: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/invoices/{id}/contact/{contactid}/{type}", api_key)
-
+        await self.delete(f"/invoices/{id}/contact/{contactid}/{type}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def invoices_get_discount(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.get(f"/invoices/{id}/discount", api_key)
 
@@ -701,8 +713,8 @@ class DolibarrClient:
         return await self.post("/paiements/", api_key, json=payload)
 
     async def payments_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/paiements/{id}", api_key)
-
+        await self.delete(f"/paiements/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     # ============================================================
     # Bank Accounts
     # ============================================================
@@ -728,8 +740,8 @@ class DolibarrClient:
         return await self.put(f"/bankaccounts/{id}", api_key, json=payload)
 
     async def bankaccounts_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/bankaccounts/{id}", api_key)
-
+        await self.delete(f"/bankaccounts/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def bankaccounts_transfer(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/bankaccounts/transfer", api_key, json=payload)
 
@@ -753,8 +765,8 @@ class DolibarrClient:
         return await self.put(f"/bankaccounts/{id}/lines/{line_id}", api_key, json=payload)
 
     async def bankaccounts_delete_line(self, id: int, line_id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/bankaccounts/{id}/lines/{line_id}", api_key)
-
+        await self.delete(f"/bankaccounts/{id}/lines/{line_id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def bankaccounts_get_balance(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.get(f"/bankaccounts/{id}/balance", api_key)
 
@@ -785,8 +797,8 @@ class DolibarrClient:
         return await self.put(f"/supplierorders/{id}", api_key, json=payload)
 
     async def supplier_orders_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/supplierorders/{id}", api_key)
-
+        await self.delete(f"/supplierorders/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def supplier_orders_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post(f"/supplierorders/{id}/lines", api_key, json=payload)
 
@@ -801,8 +813,8 @@ class DolibarrClient:
         return await self.post(f"/supplierorders/{id}/contact/{contactid}/{type}/{source}", api_key)
 
     async def supplier_orders_delete_contact(self, id: int, contactid: int, type: str, source: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/supplierorders/{id}/contact/{contactid}/{type}/{source}", api_key)
-
+        await self.delete(f"/supplierorders/{id}/contact/{contactid}/{type}/{source}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def supplier_orders_validate(self, id: int, api_key: Optional[str] = None, idwarehouse: int = 0, notrigger: int = 0) -> Any:
         params = {}
         if idwarehouse: params["idwarehouse"] = idwarehouse
@@ -852,8 +864,8 @@ class DolibarrClient:
         return await self.put(f"/supplierinvoices/{id}", api_key, json=payload)
 
     async def supplier_invoices_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/supplierinvoices/{id}", api_key)
-
+        await self.delete(f"/supplierinvoices/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def supplier_invoices_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
         params = {"properties": ",".join(sorted(COMMON_FIELDS["line"]))}
         return await self.get(f"/supplierinvoices/{id}/lines", api_key, params=params)
@@ -865,8 +877,8 @@ class DolibarrClient:
         return await self.put(f"/supplierinvoices/{id}/lines/{lineid}", api_key, json=payload)
 
     async def supplier_invoices_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/supplierinvoices/{id}/lines/{lineid}", api_key)
-
+        await self.delete(f"/supplierinvoices/{id}/lines/{lineid}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def supplier_invoices_validate(self, id: int, api_key: Optional[str] = None, idwarehouse: int = 0, notrigger: int = 0) -> Any:
         params = {}
         if idwarehouse: params["idwarehouse"] = idwarehouse
@@ -911,8 +923,8 @@ class DolibarrClient:
         return await self.put(f"/supplierproposals/{id}", api_key, json=payload)
 
     async def supplier_proposals_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/supplierproposals/{id}", api_key)
-
+        await self.delete(f"/supplierproposals/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     # ============================================================
     # Contracts
     # ============================================================
@@ -938,8 +950,8 @@ class DolibarrClient:
         return await self.put(f"/contracts/{id}", api_key, json=payload)
 
     async def contracts_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/contracts/{id}", api_key)
-
+        await self.delete(f"/contracts/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def contracts_get_lines(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0, sqlfilters: str = "", include_all_fields: bool = False) -> Any:
         params = {}
         if sortfield: params["sortfield"] = sortfield
@@ -960,8 +972,8 @@ class DolibarrClient:
         return await self.put(f"/contracts/{id}/lines/{lineid}/activate", api_key, json=payload)
 
     async def contracts_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/contracts/{id}/lines/{lineid}", api_key)
-
+        await self.delete(f"/contracts/{id}/lines/{lineid}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def contracts_validate(self, id: int, api_key: Optional[str] = None, notrigger: int = 0) -> Any:
         params = {}
         if notrigger: params["notrigger"] = notrigger
@@ -996,8 +1008,8 @@ class DolibarrClient:
         return await self.put(f"/boms/{id}", api_key, json=payload)
 
     async def boms_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/boms/{id}", api_key)
-
+        await self.delete(f"/boms/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def boms_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
         params = {"properties": ",".join(sorted(COMMON_FIELDS["bom_line"]))}
         return await self.get(f"/boms/{id}/lines", api_key, params=params)
@@ -1006,8 +1018,8 @@ class DolibarrClient:
         return await self.post(f"/boms/{id}/lines", api_key, json=payload)
 
     async def boms_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/boms/{id}/lines/{lineid}", api_key)
-
+        await self.delete(f"/boms/{id}/lines/{lineid}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     # ============================================================
     # MOs (Manufacturing Orders)
     # ============================================================
@@ -1032,8 +1044,8 @@ class DolibarrClient:
         return await self.put(f"/mos/{id}", api_key, json=payload)
 
     async def mos_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/mos/{id}", api_key)
-
+        await self.delete(f"/mos/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def mos_produce_and_consume(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post(f"/mos/{id}/produceandconsume", api_key, json=payload)
 
@@ -1063,8 +1075,8 @@ class DolibarrClient:
         return await self.put(f"/projects/{id}", api_key, json=payload)
 
     async def projects_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/projects/{id}", api_key)
-
+        await self.delete(f"/projects/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def projects_get_tasks(self, id: int, api_key: Optional[str] = None, includetimespent: int = 0) -> Any:
         params = {}
         if includetimespent: params["includetimespent"] = includetimespent
@@ -1111,8 +1123,8 @@ class DolibarrClient:
         return await self.put(f"/tasks/{id}", api_key, json=payload)
 
     async def tasks_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/tasks/{id}", api_key)
-
+        await self.delete(f"/tasks/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def tasks_get_timespent(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.get(f"/tasks/{id}/timespent", api_key)
 
@@ -1123,8 +1135,8 @@ class DolibarrClient:
         return await self.put(f"/tasks/{id}/timespent/{timespent_id}", api_key, json=payload)
 
     async def tasks_delete_timespent(self, id: int, timespent_id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/tasks/{id}/timespent/{timespent_id}", api_key)
-
+        await self.delete(f"/tasks/{id}/timespent/{timespent_id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def tasks_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
         params = {}
         if type: params["type"] = type
@@ -1156,8 +1168,8 @@ class DolibarrClient:
         return await self.put(f"/shipments/{id}", api_key, json=payload)
 
     async def shipments_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/shipments/{id}", api_key)
-
+        await self.delete(f"/shipments/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def shipments_validate(self, id: int, api_key: Optional[str] = None, notrigger: int = 0) -> Any:
         params = {}
         if notrigger: params["notrigger"] = notrigger
@@ -1193,8 +1205,8 @@ class DolibarrClient:
         return await self.put(f"/receptions/{id}", api_key, json=payload)
 
     async def receptions_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/receptions/{id}", api_key)
-
+        await self.delete(f"/receptions/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def receptions_validate(self, id: int, api_key: Optional[str] = None, notrigger: int = 0) -> Any:
         params = {}
         if notrigger: params["notrigger"] = notrigger
@@ -1230,8 +1242,8 @@ class DolibarrClient:
         return await self.put(f"/interventions/{id}", api_key, json=payload)
 
     async def interventions_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/interventions/{id}", api_key)
-
+        await self.delete(f"/interventions/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def interventions_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.get(f"/interventions/{id}/lines", api_key)
 
@@ -1245,8 +1257,8 @@ class DolibarrClient:
         return await self.put(f"/interventions/{id}/lines/{lineid}", api_key, json=payload)
 
     async def interventions_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/interventions/{id}/lines/{lineid}", api_key)
-
+        await self.delete(f"/interventions/{id}/lines/{lineid}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def interventions_settodraft(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.post(f"/interventions/{id}/settodraft", api_key)
 
@@ -1291,8 +1303,8 @@ class DolibarrClient:
         return await self.put(f"/expensereports/{id}", api_key, json=payload)
 
     async def expense_reports_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/expensereports/{id}", api_key)
-
+        await self.delete(f"/expensereports/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def expense_reports_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
         params = {"properties": ",".join(sorted(COMMON_FIELDS["expense_line"]))}
         return await self.get(f"/expensereports/{id}/lines", api_key, params=params)
@@ -1307,8 +1319,8 @@ class DolibarrClient:
         return await self.put(f"/expensereports/{id}/lines/{lineid}", api_key, json=payload)
 
     async def expense_reports_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/expensereports/{id}/lines/{lineid}", api_key)
-
+        await self.delete(f"/expensereports/{id}/lines/{lineid}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def expense_reports_settodraft(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.post(f"/expensereports/{id}/settodraft", api_key)
 
@@ -1359,8 +1371,8 @@ class DolibarrClient:
         return await self.put(f"/holidays/{id}", api_key, json=payload)
 
     async def holidays_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/holidays/{id}", api_key)
-
+        await self.delete(f"/holidays/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def holidays_validate(self, id: int, api_key: Optional[str] = None, notrigger: int = 0) -> Any:
         params = {}
         if notrigger: params["notrigger"] = notrigger
@@ -1407,8 +1419,8 @@ class DolibarrClient:
         return await self.put(f"/agendaevents/{id}", api_key, json=payload)
 
     async def agenda_events_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/agendaevents/{id}", api_key)
-
+        await self.delete(f"/agendaevents/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     # ============================================================
     # Categories
     # ============================================================
@@ -1436,8 +1448,8 @@ class DolibarrClient:
         return await self.put(f"/categories/{id}", api_key, json=payload)
 
     async def categories_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/categories/{id}", api_key)
-
+        await self.delete(f"/categories/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def categories_get_types(self, api_key: Optional[str] = None) -> Any:
         return await self.get("/categories/types", api_key)
 
@@ -1456,8 +1468,8 @@ class DolibarrClient:
         return await self.post(f"/categories/{id}/objects/{type}/ref/{object_ref}", api_key)
 
     async def categories_unlink_object(self, id: int, type: str, object_id: int, api_key: Optional[str] = None) -> Any:
-        return await self.delete(f"/categories/{id}/objects/{type}/{object_id}", api_key)
-
+        await self.delete(f"/categories/{id}/objects/{type}/{object_id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     # ============================================================
     # Mailings
     # ============================================================
@@ -1482,8 +1494,8 @@ class DolibarrClient:
         return await self.put(f"/mailings/{id}", api_key, json=payload)
 
     async def mailings_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/mailings/{id}", api_key)
-
+        await self.delete(f"/mailings/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def mailings_validate(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.put(f"/mailings/{id}/validate", api_key)
 
@@ -1511,8 +1523,8 @@ class DolibarrClient:
         return await self.put(f"/multicurrencies/{id}", api_key, json=payload)
 
     async def multi_currencies_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/multicurrencies/{id}", api_key)
-
+        await self.delete(f"/multicurrencies/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def multi_currencies_get_rates(self, id: int, api_key: Optional[str] = None) -> Any:
         params = {"properties": ",".join(sorted(COMMON_FIELDS["multi_currency"]))}
         return await self.get(f"/multicurrencies/{id}/rates", api_key, params=params)
@@ -1542,8 +1554,8 @@ class DolibarrClient:
         return await self.put(f"/tickets/{id}", api_key, json=payload)
 
     async def tickets_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/tickets/{id}", api_key)
-
+        await self.delete(f"/tickets/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def tickets_create_message(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/tickets/newMessage/", api_key, json=payload)
 
@@ -1571,8 +1583,8 @@ class DolibarrClient:
         return await self.put(f"/workstations/{id}", api_key, json=payload)
 
     async def workstations_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/workstations/{id}", api_key)
-
+        await self.delete(f"/workstations/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     # ============================================================
     # Object Links
     # ============================================================
@@ -1592,8 +1604,8 @@ class DolibarrClient:
         return await self.get("/objectlinks/", api_key, params=params or None)
 
     async def object_links_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/objectlinks/{id}", api_key)
-
+        await self.delete(f"/objectlinks/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     # ============================================================
     # Users
     # ============================================================
@@ -1654,8 +1666,8 @@ class DolibarrClient:
         return await self.post("/users/groups", api_key, json=payload)
 
     async def groups_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/users/groups/{id}", api_key)
-
+        await self.delete(f"/users/groups/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     async def users_get_user_groups(self, id: int, api_key: Optional[str] = None) -> Any:
         params = {"properties": ",".join(sorted(COMMON_FIELDS["group"]))}
         return await self.get(f"/users/{id}/groups", api_key, params=params)
@@ -1667,8 +1679,8 @@ class DolibarrClient:
         return await self.put(f"/users/{id}", api_key, json=payload)
 
     async def users_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        return await self.delete(f"/users/{id}", api_key)
-
+        await self.delete(f"/users/{id}", api_key)
+        return {"success": {"code": 200, "message": "Resource deleted"}}
     # ============================================================
     # Reference Data Discovery (dictionary lookups)
     # ============================================================
