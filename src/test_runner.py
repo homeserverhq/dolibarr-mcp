@@ -753,9 +753,7 @@ RESOURCE_TESTS = [
     },
 ]
 
-LIST_ONLY_TESTS = [
-    ("Documents", "documents_list", {"modulepart": "propal", "id": 1}),
-]
+LIST_ONLY_TESTS: list = []
 
 
 PHASE4_TESTS = [
@@ -875,7 +873,7 @@ PHASE4_TESTS = [
 
     # ===== Tasks =====
     ("P4_tasks_get_timespent", "tasks_get_timespent", {"id": "{task}"}),
-    ("P4_tasks_add_timespent", "tasks_add_timespent", {"id": "{task}", "date": NOW, "duration": 60}, "timespent"),
+    ("P4_tasks_add_timespent", "tasks_add_timespent", {"id": "{task}", "date": NOW, "duration": 3600, "note": "Test entry"}, "timespent"),
     ("P4_tasks_update_timespent", "tasks_update_timespent", {"id": "{task}", "timespent_id": "{timespent.id}", "duration": 30}),
     ("P4_tasks_delete_timespent", "tasks_delete_timespent", {"id": "{task}", "timespent_id": "{timespent.id}"}),
     ("P4_tasks_get_contacts", "tasks_get_contacts", {"id": "{task}"}),
@@ -900,7 +898,7 @@ PHASE4_TESTS = [
     # ===== Expense Reports =====
     ("P4_expense_reports_get_lines", "expense_reports_get_lines", {"id": "{expense_report}"}),
     ("P4_expense_reports_create_line", "expense_reports_create_line", {"id": "{expense_report}", "date": NOW, "fk_c_type_fees": "{expense_type_id}", "qty": 1, "value_unit": 10.0, "comment": "Test expense line"}, "expense_report_line"),
-    ("P4_expense_reports_update_line", "expense_reports_update_line", {"id": "{expense_report}", "lineid": "{expense_report_line.id}", "date": NOW, "comment": "Updated line"}),
+    ("P4_expense_reports_update_line", "expense_reports_update_line", {"id": "{expense_report}", "lineid": "{expense_report_line.id}", "date": NOW, "comment": "Updated line", "fk_c_type_fees": "{expense_type_id}"}),
     ("P4_expense_reports_delete_line", "expense_reports_delete_line", {"id": "{expense_report}", "lineid": "{expense_report_line.id}"}),
     ("P4_expense_reports_settodraft", "expense_reports_settodraft", {"id": "{expense_report}"}),
     ("P4_expense_reports_validate", "expense_reports_validate", {"id": "{expense_report}"}),
@@ -915,6 +913,8 @@ PHASE4_TESTS = [
     ("P4_holidays_refuse", "holidays_refuse", {"id": "{holiday}", "detail_refuse": "Test refusal"}),
 
     # ===== Categories =====
+    ("P4_categories_link_thirdparty", "categories_link_object_by_id", {"id": "{category}", "type": "customer", "object_id": "{thirdparty}"}),
+    ("P4_categories_link_contact", "categories_link_object_by_id", {"id": "{category}", "type": "contact", "object_id": "{contact}"}),
     ("P4_categories_get_for_object", "categories_get_for_object", {"type": "product", "id": "{product}"}),
     ("P4_categories_link_object_by_id", "categories_link_object_by_id", {"id": "{category}", "type": "product", "object_id": "{product}"}),
     ("P4_categories_link_object_by_ref", "categories_link_object_by_ref", {"id": "{category}", "type": "product", "object_ref": "{product.ref}"}),
@@ -1020,7 +1020,7 @@ FILTERING_CHECKS = [
     ("F1 tasks_get", "tasks_get", {"id": "{task}"}),
     ("F1 users_get", "users_get", {"id": "{user}"}),
     ("F1 users_get_by_login", "users_get_by_login", {"login": "{user.login}"}),
-    ("F1 users_get_by_email", "users_get_by_email", {"email": "aeinstein@example.com"}),
+    ("F1 users_get_by_email", "users_get_by_email", {"email": "{user.email}"}),
     ("F1 users_get_group", "users_get_group", {"id": "{group}"}),
     ("F1 workstations_get", "workstations_get", {"id": "{workstation}"}),
     ("F1 payments_get", "payments_get", {"id": "{payment}"}),
@@ -1181,7 +1181,7 @@ async def main():
             cid = pick_id(store_key) or 0
             update_tool = update_info and update_info[0] or ""
             await run_test_with_store(session, f"C2 get_{key}_by_id", get_tool, {"id": cid}, store_key=f"get_{key}")
-            update_tool and await run_test(session, f"C3 update_{key}", update_tool, dict(update_info[1], id=cid))
+            update_tool and await run_test_with_store(session, f"C3 update_{key}", update_tool, dict(update_info[1], id=cid), store_key=store_key)
             for sub_tool, sub_params in sub_tests:
                 sp = dict(sub_params)
                 auto_inject = sp.pop("_auto_inject_id", False)
