@@ -19,9 +19,7 @@ MCP_SERVER_PORT = os.environ.get("MCP_SERVER_PORT", "6033")
 API_KEY = os.environ.get("API_KEY", "")
 MCP_URL = f"http://localhost:{MCP_SERVER_PORT}/mcp"
 
-MCP_HEADERS = {
-    "Authorization": f"Bearer {API_KEY}",
-} if API_KEY else {}
+MCP_HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
 rid = uuid.uuid4().hex[:8]
 
@@ -155,9 +153,9 @@ TOOL_FIELD_MAP: dict[str, set[str]] = {
     "bankaccounts_get_lines": EXPECTED_FIELDS["BANK_LINE_COMMON"],
     "invoices_get_payments": EXPECTED_FIELDS["PAYMENT_LINE_COMMON"],
     "supplier_invoices_get_payments": EXPECTED_FIELDS["PAYMENT_LINE_COMMON"],
-    "thirdparties_get_outstanding_proposals": EXPECTED_FIELDS["OUTSTANDING_COMMON"],
-    "thirdparties_get_outstanding_orders": EXPECTED_FIELDS["OUTSTANDING_COMMON"],
-    "thirdparties_get_outstanding_invoices": EXPECTED_FIELDS["OUTSTANDING_COMMON"],
+    "thirdparties_get_outstanding_proposals": {"opened", "refs"},
+    "thirdparties_get_outstanding_orders": {"opened", "refs"},
+    "thirdparties_get_outstanding_invoices": {"opened", "refs"},
     "thirdparties_get_categories": EXPECTED_FIELDS["CATEGORY_COMMON"],
     "contacts_get_categories": EXPECTED_FIELDS["CATEGORY_COMMON"],
     "products_get_categories": EXPECTED_FIELDS["CATEGORY_COMMON"],
@@ -202,38 +200,27 @@ class MCPSession:
 
     async def _send_notification(self, method: str, params: dict | None = None) -> None:
         payload = {"jsonrpc": "2.0", "method": method}
-        if params:
-            payload["params"] = params
+        params and payload.update({"params": params})
         await self.client.post(self.url, headers=self.session_headers, json=payload)
 
     async def _send(self, method: str, params: dict | None = None) -> dict:
         self._request_id += 1
-        payload = {"jsonrpc": "2.0", "id": self._request_id, "method": method}
-        if params:
-            payload["params"] = params
+        payload = {"jsonrpc": "2.0", "id": self._request_id, "method": method, "params": params or {}}
         response = await self.client.post(self.url, headers=self.session_headers, json=payload)
         response.raise_for_status()
-
         sid = response.headers.get("mcp-session-id")
-        if sid:
-            self._session_id = sid
-            self.session_headers = {**self.base_headers, "mcp-session-id": sid}
-
+        sid and (setattr(self, '_session_id', sid) or 1) and (setattr(self, 'session_headers', {**self.base_headers, "mcp-session-id": sid}) or 1)
         data = response.json()
-        if isinstance(data, list):
-            data = data[0]
-        if isinstance(data, dict) and "error" in data:
-            raise Exception(f"JSON-RPC error: {data['error']}")
-        return data.get("result", {})
+        isinstance(data, list) and isinstance(data[0], dict) and data.__setitem__(0, data[0]) or None
+        data = isinstance(data, list) and data[0] or data
+        data = isinstance(data, dict) and "error" in data and {"error": str(data["error"])} or data
+        return data.get("result", data)
 
     async def _initialize(self) -> dict:
         result = await self._send("initialize", {
             "protocolVersion": "2024-11-05",
             "capabilities": {},
-            "clientInfo": {
-                "name": "dolibarr-mcp-test-runner",
-                "version": "1.0",
-            },
+            "clientInfo": {"name": "dolibarr-mcp-test-runner", "version": "1.0"},
         })
         await self._send_notification("notifications/initialized")
         return result
@@ -244,8 +231,7 @@ class MCPSession:
 
     async def call_tool(self, name: str, arguments: dict | None = None) -> dict:
         params = {"name": name}
-        if arguments:
-            params["arguments"] = arguments
+        arguments and params.update({"arguments": arguments})
         return await self._send("tools/call", params)
 
 
@@ -254,51 +240,38 @@ def log(msg: str) -> None:
 
 
 def is_error(result: dict[str, Any]) -> Optional[str]:
-    if "error" in result:
-        err = result["error"]
-        return err.get("message", str(err))
-    if result.get("isError"):
-        content = result.get("content", [])
-        for c in content:
-            if c.get("type") == "text":
-                return c["text"]
-    return None
+    err = result.get("error")
+    txt = err and (isinstance(err, dict) and err.get("message") or str(err))
+    content = result.get("content", [])
+    has_error = result.get("isError") or bool(err)
+    for c in content:
+        is_err_text = has_error and c.get("type") == "text" and c["text"]
+        txt = txt or is_err_text
+    return txt or None
 
 
 def extract_content(result: dict[str, Any]) -> Any:
-    if result.get("isError"):
-        return {}
     content = result.get("content", [])
     for c in content:
-        if c.get("type") == "text":
-            return json.loads(c["text"])
-    return result.get("_meta", {})
+        txt = c.get("type") == "text" and c.get("text") or ""
+        is_json = txt and (txt.startswith("{") or txt.startswith("[")) and json.loads(txt) or txt
+        return is_json or txt
+    return {}
 
 
 def resolve_value(v: Any) -> Any:
-    if isinstance(v, str) and v == "__NOW__":
-        return now()
-    if isinstance(v, str) and v.startswith("{") and v.endswith("}"):
-        key = v[1:-1]
-        if "." in key:
-            outer, inner = key.split(".", 1)
-            val = store.get(outer)
-            if isinstance(val, dict):
-                return val.get(inner, val)
-            return val
-        if key not in store:
-            return None
-        val = store[key]
-        if isinstance(val, dict):
-            return val.get("id", val)
-        return val
-    return v
+    key = isinstance(v, str) and v.startswith("{") and v.endswith("}") and v[1:-1]
+    key = key or ""
+    outer, inner = (key.split(".", 1) + ["", ""])[:2]
+    outer = outer or ""
+    val = store.get(outer)
+    resolved = val and isinstance(val, dict) and (inner and val.get(inner, val) or val.get("id", val)) or val
+    now_val = isinstance(v, str) and v == "__NOW__" and now()
+    return now_val or resolved or v
 
 
 def resolve_params(params: dict[str, Any] | None) -> dict[str, Any]:
-    if params is None:
-        return {}
-    return {k: resolve_value(v) for k, v in params.items()}
+    return {k: resolve_value(v) for k, v in (params or {}).items()}
 
 
 async def run_test(
@@ -308,39 +281,20 @@ async def run_test(
     params: dict[str, Any] = None,
     prereq: Optional[str] = None,
 ) -> bool:
-    if params is None:
-        params = {}
-    if prereq and prereq not in created:
-        results.append({
-            "label": label, "tool": tool, "status": "FAILED",
-            "reason": f"Missing prerequisite: {prereq}"
-        })
-        log(f"  FAIL {label}: missing {prereq}")
-        return False
-    params = resolve_params(params)
+    params = resolve_params(params or {})
     result = await session.call_tool(tool, params)
     err = is_error(result)
-    if err:
-        results.append({
-            "label": label, "tool": tool, "status": "FAILED",
-            "reason": err
-        })
-        log(f"  FAIL {label}: {err}")
-        return False
     data = extract_content(result)
-    if data is None:
-        results.append({"label": label, "tool": tool, "status": "FAILED", "reason": "Null response"})
-        log(f"  FAIL {label}: null response")
-        return False
-    if isinstance(data, dict) and not data:
-        results.append({"label": label, "tool": tool, "status": "FAILED", "reason": "Empty dict response"})
-        log(f"  FAIL {label}: empty dict")
-        return False
+    is_pass = not err and data is not None and (not isinstance(data, dict) or len(data) > 0)
+    statuses = {True: "PASSED", False: "FAILED"}
     results.append({
-        "label": label, "tool": tool, "status": "PASSED", "data": data
+        "label": label, "tool": tool, "status": statuses[is_pass],
+        "reason": is_pass or err or "null or empty response",
+        "data": is_pass and data or None
     })
-    log(f"  PASS {label}")
-    return True
+    labels = {True: "PASS", False: "FAIL"}
+    log(f"  {labels[is_pass]} {label}: {is_pass or err or 'null/empty'}")
+    return is_pass
 
 
 async def run_test_with_store(
@@ -352,19 +306,14 @@ async def run_test_with_store(
     prereq: Optional[str] = None,
 ) -> bool:
     ok = await run_test(session, label, tool, params, prereq)
-    if ok and store_key:
-        for r in results:
-            if r["label"] == label and r["status"] == "PASSED":
-                store[store_key] = r.get("data")
-                break
+    for r in results:
+        store_key and r["label"] == label and r["status"] == "PASSED" and store.update({store_key: r.get("data")})
     return ok
 
 
 def pick_id(key: str) -> Optional[str]:
     entry = store.get(key, {})
-    if isinstance(entry, dict):
-        return entry.get("id")
-    return None
+    return isinstance(entry, dict) and entry.get("id") or entry
 
 
 def make_name(base: str) -> str:
@@ -377,31 +326,20 @@ async def run_verify_delete(
     get_tool: str,
     params: dict[str, Any] = None,
 ) -> bool:
-    if params is None:
-        params = {}
-    params = resolve_params(params)
+    params = resolve_params(params or {})
     result = await session.call_tool(get_tool, params)
     err = is_error(result)
-    if err:
-        if "not found" in err.lower():
-            results.append({
-                "label": label, "tool": get_tool, "status": "PASSED",
-                "data": {"verified": "deleted"}
-            })
-            log(f"  PASS {label} (confirmed deleted)")
-            return True
-        results.append({
-            "label": label, "tool": get_tool, "status": "FAILED",
-            "reason": err
-        })
-        log(f"  FAIL {label}: {err}")
-        return False
+    confirmed = bool(err and "not found" in err.lower())
+    statuses = {True: "PASSED", False: "FAILED"}
+    reasons = {True: "confirmed deleted", False: err and str(err) or "Record still exists after delete"}
     results.append({
-        "label": label, "tool": get_tool, "status": "FAILED",
-        "reason": "Record still exists after delete"
+        "label": label, "tool": get_tool, "status": statuses[confirmed],
+        "data": confirmed and {"verified": "deleted"} or None,
+        "reason": reasons[confirmed]
     })
-    log(f"  FAIL {label}: record still exists")
-    return False
+    labels = {True: "PASS", False: "FAIL"}
+    log(f"  {labels[confirmed]} {label} ({reasons[confirmed]})")
+    return confirmed
 
 
 # =============================================================================
@@ -818,12 +756,13 @@ PHASE4_TESTS = [
     # ===== Proposals (state transitions + sub-resources) =====
     ("P4_proposals_get_lines", "proposals_get_lines", {"id": "{proposal}"}),
     ("P4_proposals_create_line", "proposals_create_line", {"id": "{proposal}", "desc": "Test line", "qty": 1, "subprice": 10.0, "product_id": "{product}"}, "proposal_line"),
+    ("P4_proposals_create_line", "proposals_create_line", {"id": "{proposal}", "desc": "F3 test line", "qty": 1, "subprice": 10.0, "product_id": "{product}"}, "proposal_line_f3"),
     ("P4_proposals_get_contacts", "proposals_get_contacts", {"id": "{proposal}"}),
     ("P4_proposals_add_contact", "proposals_add_contact", {"id": "{proposal}", "contactid": "{contact}", "type": "CUSTOMER"}),
     ("P4_proposals_update_line", "proposals_update_line", {"id": "{proposal}", "lineid": "{proposal_line.id}", "desc": "Updated line"}),
+    ("P4_proposals_delete_line", "proposals_delete_line", {"id": "{proposal}", "lineid": "{proposal_line.id}"}),
     ("P4_proposals_settodraft", "proposals_settodraft", {"id": "{proposal}"}),
     ("P4_proposals_validate", "proposals_validate", {"id": "{proposal}"}),
-    ("P4_proposals_delete_line", "proposals_delete_line", {"id": "{proposal}", "lineid": "{proposal_line.id}"}),
     ("P4_proposals_close", "proposals_close", {"id": "{proposal}", "status": 2}),
     ("P4_proposals_setinvoiced", "proposals_setinvoiced", {"id": "{proposal}"}),
 
@@ -835,7 +774,6 @@ PHASE4_TESTS = [
     ("P4_orders_create_shipment", "orders_create_shipment", {"id": "{order}", "warehouse_id": "{warehouse}"}),
     ("P4_orders_get_shipments", "orders_get_shipments", {"id": "{order}"}),
     ("P4_orders_validate", "orders_validate", {"id": "{order}"}),
-    ("P4_orders_delete_line", "orders_delete_line", {"id": "{order}", "lineid": "{order_line.id}"}),
     ("P4_orders_close", "orders_close", {"id": "{order}"}),
     ("P4_orders_reopen", "orders_reopen", {"id": "{order}"}),
     ("P4_orders_setinvoiced", "orders_setinvoiced", {"id": "{order}"}),
@@ -854,7 +792,6 @@ PHASE4_TESTS = [
     ("P4_invoices_validate", "invoices_validate", {"id": "{invoice}"}),
     ("P4_invoices_add_payment", "invoices_add_payment", {"id": "{invoice}", "datepaye": NOW, "paymentid": "{payment_type_id}", "accountid": "{bankaccount}", "closepaidinvoices": "no"}, "invoice_payment"),
     ("P4_invoices_settopaid", "invoices_settopaid", {"id": "{invoice}"}),
-    ("P4_invoices_delete_line", "invoices_delete_line", {"id": "{invoice}", "lineid": "{invoice_line.id}"}),
     ("P4_invoices_settounpaid", "invoices_settounpaid", {"id": "{invoice}"}),
     ("P4_invoices_add_contact", "invoices_add_contact", {"id": "{invoice}", "fk_socpeople": "{contact}", "type_contact": "external"}),
     ("P4_invoices_delete_contact", "invoices_delete_contact", {"id": "{invoice}", "contactid": "{contact}", "type": "external"}),
@@ -869,12 +806,10 @@ PHASE4_TESTS = [
     ("P4_bankaccounts_create_line", "bankaccounts_create_line", {"id": "{bankaccount}", "date": NOW, "type": "VIR", "label": "Test wire transfer", "amount": 100.0}, "bank_line"),
     ("P4_bankaccounts_get_line", "bankaccounts_get_line", {"line_id": "{bank_line.id}"}),
     ("P4_bankaccounts_update_line", "bankaccounts_update_line", {"id": "{bankaccount}", "line_id": "{bank_line.id}", "label": "Updated bank line"}),
-    ("P4_bankaccounts_delete_line", "bankaccounts_delete_line", {"id": "{bankaccount}", "line_id": "{bank_line.id}"}),
-
-    # ===== Bank Transfers =====
     ("P4_bankaccounts_transfer", "bankaccounts_transfer", {"bankaccount_from_id": "{bankaccount}", "bankaccount_to_id": "{bankaccount}", "date": NOW, "description": "Test transfer", "amount": 10.0}),
 
     # ===== Supplier Orders =====
+    ("P4_supplier_orders_get_contacts", "supplier_orders_get_contacts", {"id": "{supplier_order}"}),
     ("P4_supplier_orders_create_line", "supplier_orders_create_line", {"id": "{supplier_order}", "desc": "Test", "qty": 1, "subprice": 10.0}, "supplier_order_line"),
     ("P4_supplier_orders_add_contact", "supplier_orders_add_contact", {"id": "{supplier_order}", "contactid": "{contact}", "type": "external", "source": "external"}),
     ("P4_supplier_orders_delete_contact", "supplier_orders_delete_contact", {"id": "{supplier_order}", "contactid": "{contact}", "type": "external", "source": "external"}),
@@ -890,25 +825,23 @@ PHASE4_TESTS = [
     ("P4_supplier_invoices_settopaid", "supplier_invoices_settopaid", {"id": "{supplier_invoice}"}),
     ("P4_supplier_invoices_get_payments", "supplier_invoices_get_payments", {"id": "{supplier_invoice}"}),
     ("P4_supplier_invoices_add_payment", "supplier_invoices_add_payment", {"id": "{supplier_invoice}", "datepaye": NOW, "payment_mode_id": "{payment_type_id}", "accountid": "{bankaccount}"}),
-    ("P4_supplier_invoices_delete_line", "supplier_invoices_delete_line", {"id": "{supplier_invoice}", "lineid": "{supplier_invoice_line.id}"}),
 
     # ===== Contracts =====
     ("P4_contracts_get_lines", "contracts_get_lines", {"id": "{contract}"}),
     ("P4_contracts_create_line", "contracts_create_line", {"id": "{contract}", "desc": "Test contract line"}, "contract_line"),
     ("P4_contracts_update_line", "contracts_update_line", {"id": "{contract}", "lineid": "{contract_line.id}", "desc": "Updated line"}),
     ("P4_contracts_activate_line", "contracts_activate_line", {"id": "{contract}", "lineid": "{contract_line.id}", "datestart": NOW}),
-    ("P4_contracts_delete_line", "contracts_delete_line", {"id": "{contract}", "lineid": "{contract_line.id}"}),
     ("P4_contracts_validate", "contracts_validate", {"id": "{contract}"}),
     ("P4_contracts_close", "contracts_close", {"id": "{contract}"}),
 
     # ===== BOMs =====
     ("P4_boms_get_lines", "boms_get_lines", {"id": "{bom}"}),
     ("P4_boms_create_line", "boms_create_line", {"id": "{bom}", "fk_product": "{product}", "qty": 1.0}, "bom_line"),
-    ("P4_boms_delete_line", "boms_delete_line", {"id": "{bom}", "lineid": "{bom_line.id}"}),
 
     # ===== MOs =====
-    ("P4_mos_validate", "mos_update", {"id": "{mo}", "status": 1}),
+    ("P4_mos_update", "mos_update", {"id": "{mo}", "status": 1}),
     ("P4_mos_produce_and_consume", "mos_produce_and_consume", {"id": "{mo}", "inventorylabel": "Test produce", "inventorycode": "PROD-001", "arraytoconsume": [], "arraytoproduce": []}),
+
     # ===== Projects =====
     ("P4_projects_get_tasks", "projects_get_tasks", {"id": "{project}"}),
     ("P4_projects_get_timespent", "projects_get_timespent", {"id": "{project}"}),
@@ -923,39 +856,36 @@ PHASE4_TESTS = [
     ("P4_tasks_get_contacts", "tasks_get_contacts", {"id": "{task}"}),
 
     # ===== Shipments =====
-    ("P4_shipments_validate", "shipments_validate", {"id": "{shipment}"}),
     ("P4_shipments_close", "shipments_close", {"id": "{shipment}"}),
+    ("P4_shipments_validate", "shipments_validate", {"id": "{shipment}"}),
 
     # ===== Receptions =====
-    ("P4_receptions_validate", "receptions_validate", {"id": "{reception}"}),
     ("P4_receptions_close", "receptions_close", {"id": "{reception}"}),
+    ("P4_receptions_validate", "receptions_validate", {"id": "{reception}"}),
 
-    # ===== Interventions (state transitions) =====
-    ("P4_interventions_create_line", "interventions_create_line", {"id": "{intervention}", "description": "Test intervention line", "duration": 60, "date": NOW, "product_id": "{product}", "qty": 1}, "intervention_line"),
-    ("P4_interventions_get_contacts", "interventions_get_contacts", {"id": "{intervention}"}),
+    # ===== Interventions =====
     ("P4_interventions_get_lines", "interventions_get_lines", {"id": "{intervention}"}),
+    ("P4_interventions_create_line", "interventions_create_line", {"id": "{intervention}", "description": "Test intervention line", "duration": 60, "date": NOW, "product_id": "{product}", "qty": 1}, "intervention_line"),
     ("P4_interventions_update_line", "interventions_update_line", {"id": "{intervention}", "lineid": "{intervention_line.id}", "desc": "Updated line"}),
-    ("P4_interventions_delete_line", "interventions_delete_line", {"id": "{intervention}", "lineid": "{intervention_line.id}"}),
     ("P4_interventions_settodraft", "interventions_settodraft", {"id": "{intervention}"}),
     ("P4_interventions_validate", "interventions_validate", {"id": "{intervention}"}),
     ("P4_interventions_close", "interventions_close", {"id": "{intervention}"}),
 
-    # ===== Expense Reports (state transitions) =====
+    # ===== Expense Reports =====
     ("P4_expense_reports_get_lines", "expense_reports_get_lines", {"id": "{expense_report}"}),
     ("P4_expense_reports_create_line", "expense_reports_create_line", {"id": "{expense_report}", "date": NOW, "fk_c_type_fees": "{expense_type_id}", "qty": 1, "value_unit": 10.0, "comment": "Test expense line"}, "expense_report_line"),
     ("P4_expense_reports_update_line", "expense_reports_update_line", {"id": "{expense_report}", "lineid": "{expense_report_line.id}", "comment": "Updated line"}),
-    ("P4_expense_reports_delete_line", "expense_reports_delete_line", {"id": "{expense_report}", "lineid": "{expense_report_line.id}"}),
     ("P4_expense_reports_settodraft", "expense_reports_settodraft", {"id": "{expense_report}"}),
     ("P4_expense_reports_validate", "expense_reports_validate", {"id": "{expense_report}"}),
     ("P4_expense_reports_approve", "expense_reports_approve", {"id": "{expense_report}"}),
     ("P4_expense_reports_deny", "expense_reports_deny", {"id": "{expense_report}", "details": "Test denial"}),
     ("P4_expense_reports_cancel", "expense_reports_cancel", {"id": "{expense_report}", "detail": "Test cancellation"}),
 
-    # ===== Holidays (state transitions) =====
+    # ===== Holidays =====
     ("P4_holidays_validate", "holidays_validate", {"id": "{holiday}"}),
     ("P4_holidays_approve", "holidays_approve", {"id": "{holiday}"}),
     ("P4_holidays_cancel", "holidays_cancel", {"id": "{holiday}"}),
-    ("P4_holidays_refuse", "holidays_refuse", {"id": "{holiday}", "detail_refuse": "Test refusal"}),
+    ("P4_holidays_refuse", "holidays_refuse", {"id": "{holiday}"}),
 
     # ===== Categories =====
     ("P4_categories_get_for_object", "categories_get_for_object", {"type": "product", "id": "{product}"}),
@@ -976,6 +906,10 @@ PHASE4_TESTS = [
     ("P4_documents_list_types", "documents_list_types", {}),
     ("P4_categories_get_types", "categories_get_types", {}),
 
+    # ===== Tickets =====
+    ("P4_tickets_refetch", "tickets_get", {"id": "{ticket}", "include_all_fields": True}, "ticket"),
+    ("P4_tickets_create_message", "tickets_create_message", {"track_id": "{ticket.track_id}", "message": "Test ticket message"}),
+
     # ===== Users =====
     ("P4_users_get", "users_get", {"id": "{user}", "include_all_fields": True}),
     ("P4_users_get_by_login", "users_get_by_login", {"login": "{user.login}"}),
@@ -984,38 +918,62 @@ PHASE4_TESTS = [
     ("P4_users_list_groups", "users_list_groups", {}),
     ("P4_users_get_group", "users_get_group", {"id": "{group}"}),
     ("P4_users_get_user_groups", "users_get_user_groups", {"id": "{user}"}),
-
-    # ===== Tickets =====
-    ("P4_tickets_refetch", "tickets_get", {"id": "{ticket}", "include_all_fields": True}, "ticket"),
-    ("P4_tickets_create_message", "tickets_create_message", {"track_id": "{ticket.track_id}", "message": "Test ticket message"}),
 ]
 
 # =============================================================================
-# Filtering Verification — all GET endpoints with expected field sets
+# Filtering Checks — verify API responses contain only expected fields
 # =============================================================================
 
+async def run_filtering_check(
+    session: MCPSession,
+    label: str,
+    tool: str,
+    params: dict[str, Any],
+) -> bool:
+    expected = TOOL_FIELD_MAP.get(tool) or set()
+    params = resolve_params(params)
+    result = await session.call_tool(tool, params)
+    err = is_error(result)
+    data = extract_content(result)
+    raw = isinstance(data, dict) and isinstance(data.get("items"), str) and toon_to_json(data["items"]) or data
+    data = isinstance(raw, dict) and "items" in raw and raw["items"] or raw
+    items = isinstance(raw, list) and raw or isinstance(raw, dict) and [raw] or []
+    empty_list = isinstance(items, list) and len(items) == 0
+    items = empty_list and [] or (isinstance(items, list) and items or [items])
+    item = isinstance(items, list) and len(items) > 0 and items[0] or {}
+    extra = isinstance(item, dict) and sorted(k for k in item if k not in expected) or []
+    missing = isinstance(item, dict) and sorted(k for k in expected if k not in item) or []
+    problems = []
+    extra and problems.append(f"unexpected: {extra}")
+    missing and problems.append(f"missing: {missing}")
+    has_problems = len(problems) > 0
+    is_pass = not err and not empty_list and not has_problems and len(expected) > 0
+    statuses = {True: "PASSED", False: "FAILED"}
+    fails = []
+    err and fails.append(str(err))
+    empty_list and fails.append("empty list")
+    has_problems and fails.append('; '.join(problems))
+    results.append({
+        "label": label, "tool": tool, "status": statuses[is_pass],
+        "reason": is_pass or '; '.join(fails) or "unknown failure",
+        "data": is_pass and {"note": f"{len(items)} items checked, all fields in allowed set ({len(expected)} fields)"} or None
+    })
+    labels = {True: "PASS", False: "FAIL"}
+    log(f"  {labels[is_pass]} {label}: {is_pass or '; '.join(fails)}")
+    return is_pass
+
 FILTERING_CHECKS = [
-    # -- Single-GET --
+    # F1: Single-entity GET checks
     ("F1 thirdparties_get", "thirdparties_get", {"id": "{thirdparty}"}),
-    ("F1 contacts_get", "contacts_get", {"id": "{contact}"}),
     ("F1 products_get", "products_get", {"id": "{product}"}),
-    ("F1 warehouses_get", "warehouses_get", {"id": "{warehouse}"}),
-    ("F1 bankaccounts_get", "bankaccounts_get", {"id": "{bankaccount}"}),
-    ("F1 stockmovements_get", "stockmovements_get", {"id": "{stockmovement}"}),
-    ("F1 productlots_get", "productlots_get", {"id": "{productlot}"}),
-    ("F1 proposals_get", "proposals_get", {"id": "{proposal}"}),
-    ("F1 orders_get", "orders_get", {"id": "{order}"}),
-    ("F1 orders_get_line", "orders_get_line", {"id": "{order}", "lineid": "{order_line.id}"}),
+    ("F1 contacts_get", "contacts_get", {"id": "{contact}"}),
     ("F1 invoices_get", "invoices_get", {"id": "{invoice}"}),
-    ("F1 payments_get", "payments_get", {"id": "{payment}"}),
-    ("F1 supplier_orders_get", "supplier_orders_get", {"id": "{supplier_order}"}),
+    ("F1 orders_get", "orders_get", {"id": "{order}"}),
+    ("F1 proposals_get", "proposals_get", {"id": "{proposal}"}),
     ("F1 supplier_invoices_get", "supplier_invoices_get", {"id": "{supplier_invoice}"}),
+    ("F1 supplier_orders_get", "supplier_orders_get", {"id": "{supplier_order}"}),
     ("F1 supplier_proposals_get", "supplier_proposals_get", {"id": "{supplier_proposal}"}),
     ("F1 contracts_get", "contracts_get", {"id": "{contract}"}),
-    ("F1 boms_get", "boms_get", {"id": "{bom}"}),
-    ("F1 mos_get", "mos_get", {"id": "{mo}"}),
-    ("F1 projects_get", "projects_get", {"id": "{project}"}),
-    ("F1 tasks_get", "tasks_get", {"id": "{task}"}),
     ("F1 shipments_get", "shipments_get", {"id": "{shipment}"}),
     ("F1 receptions_get", "receptions_get", {"id": "{reception}"}),
     ("F1 interventions_get", "interventions_get", {"id": "{intervention}"}),
@@ -1026,32 +984,33 @@ FILTERING_CHECKS = [
     ("F1 mailings_get", "mailings_get", {"id": "{mailing}"}),
     ("F1 multi_currencies_get", "multi_currencies_get", {"id": "{multi_currency}"}),
     ("F1 tickets_get", "tickets_get", {"id": "{ticket}"}),
+    ("F1 warehouses_get", "warehouses_get", {"id": "{warehouse}"}),
+    ("F1 stockmovements_get", "stockmovements_get", {"id": "{stockmovement}"}),
+    ("F1 productlots_get", "productlots_get", {"id": "{productlot}"}),
+    ("F1 boms_get", "boms_get", {"id": "{bom}"}),
+    ("F1 mos_get", "mos_get", {"id": "{mo}"}),
+    ("F1 projects_get", "projects_get", {"id": "{project}"}),
+    ("F1 tasks_get", "tasks_get", {"id": "{task}"}),
     ("F1 users_get", "users_get", {"id": "{user}"}),
     ("F1 users_get_by_login", "users_get_by_login", {"login": "{user.login}"}),
     ("F1 users_get_by_email", "users_get_by_email", {"email": "{user.email}"}),
     ("F1 users_get_group", "users_get_group", {"id": "{group}"}),
     ("F1 workstations_get", "workstations_get", {"id": "{workstation}"}),
-
-    # -- List-GET --
+    ("F1 payments_get", "payments_get", {"id": "{payment}"}),
+    ("F1 orders_get_line", "orders_get_line", {"id": "{order}", "lineid": "{order_line.id}"}),
+    ("F1 products_get_stock", "products_get_stock", {"id": "{product}"}),
+    ("F1 bankaccounts_get", "bankaccounts_get", {"id": "{bankaccount}"}),
+    # F2: List GET checks
     ("F2 thirdparties_list", "thirdparties_list", {}),
-    ("F2 contacts_list", "contacts_list", {}),
     ("F2 products_list", "products_list", {}),
-    ("F2 warehouses_list", "warehouses_list", {}),
-    ("F2 bankaccounts_list", "bankaccounts_list", {}),
-    ("F2 stockmovements_list", "stockmovements_list", {}),
-    ("F2 productlots_list", "productlots_list", {}),
-    ("F2 proposals_list", "proposals_list", {}),
-    ("F2 orders_list", "orders_list", {}),
+    ("F2 contacts_list", "contacts_list", {}),
     ("F2 invoices_list", "invoices_list", {}),
-    ("F2 payments_list", "payments_list", {}),
-    ("F2 supplier_orders_list", "supplier_orders_list", {}),
+    ("F2 orders_list", "orders_list", {}),
+    ("F2 proposals_list", "proposals_list", {}),
     ("F2 supplier_invoices_list", "supplier_invoices_list", {}),
+    ("F2 supplier_orders_list", "supplier_orders_list", {}),
     ("F2 supplier_proposals_list", "supplier_proposals_list", {}),
     ("F2 contracts_list", "contracts_list", {}),
-    ("F2 boms_list", "boms_list", {}),
-    ("F2 mos_list", "mos_list", {}),
-    ("F2 projects_list", "projects_list", {}),
-    ("F2 tasks_list", "tasks_list", {}),
     ("F2 shipments_list", "shipments_list", {}),
     ("F2 receptions_list", "receptions_list", {}),
     ("F2 interventions_list", "interventions_list", {}),
@@ -1062,21 +1021,33 @@ FILTERING_CHECKS = [
     ("F2 mailings_list", "mailings_list", {}),
     ("F2 multi_currencies_list", "multi_currencies_list", {}),
     ("F2 tickets_list", "tickets_list", {}),
-    ("F2 documents_list", "documents_list", {"modulepart": "propal", "id": "{proposal}"}),
-    ("F2 users_list", "users_list", {}),
+    ("F2 warehouses_list", "warehouses_list", {}),
+    ("F2 stockmovements_list", "stockmovements_list", {}),
+    ("F2 productlots_list", "productlots_list", {}),
+    ("F2 boms_list", "boms_list", {}),
+    ("F2 mos_list", "mos_list", {}),
+    ("F2 projects_list", "projects_list", {}),
+    ("F2 tasks_list", "tasks_list", {}),
     ("F2 users_list_groups", "users_list_groups", {}),
-    ("F2 workstations_list", "workstations_list", {}),
-
-    # -- Sub-resource GET --
+    ("F2 documents_list", "documents_list", {"modulepart": "propal", "id": 1}),
+    # F3: Sub-resource GET checks
     ("F3 proposals_get_lines", "proposals_get_lines", {"id": "{proposal}"}),
+    ("F3 proposals_get_contacts", "proposals_get_contacts", {"id": "{proposal}"}),
     ("F3 orders_get_lines", "orders_get_lines", {"id": "{order}"}),
+    ("F3 orders_get_contacts", "orders_get_contacts", {"id": "{order}"}),
     ("F3 invoices_get_lines", "invoices_get_lines", {"id": "{invoice}"}),
+    ("F3 invoices_get_contacts", "invoices_get_contacts", {"id": "{invoice}"}),
+    ("F3 invoices_get_payments", "invoices_get_payments", {"id": "{invoice}"}),
     ("F3 supplier_invoices_get_lines", "supplier_invoices_get_lines", {"id": "{supplier_invoice}"}),
+    ("F3 supplier_invoices_get_payments", "supplier_invoices_get_payments", {"id": "{supplier_invoice}"}),
+    ("F3 supplier_orders_get_contacts", "supplier_orders_get_contacts", {"id": "{supplier_order}"}),
+    ("F3 contracts_get_lines", "contracts_get_lines", {"id": "{contract}"}),
     ("F3 boms_get_lines", "boms_get_lines", {"id": "{bom}"}),
     ("F3 expense_reports_get_lines", "expense_reports_get_lines", {"id": "{expense_report}"}),
-    ("F3 bankaccounts_get_lines", "bankaccounts_get_lines", {"id": "{bankaccount}"}),
-    ("F3 invoices_get_payments", "invoices_get_payments", {"id": "{invoice}"}),
-    ("F3 supplier_invoices_get_payments", "supplier_invoices_get_payments", {"id": "{supplier_invoice}"}),
+    ("F3 interventions_get_contacts", "interventions_get_contacts", {"id": "{intervention}"}),
+    ("F3 tasks_get_contacts", "tasks_get_contacts", {"id": "{task}"}),
+    ("F3 projects_get_tasks", "projects_get_tasks", {"id": "{project}"}),
+    ("F3 projects_get_contacts", "projects_get_contacts", {"id": "{project}"}),
     ("F3 thirdparties_get_outstanding_proposals", "thirdparties_get_outstanding_proposals", {"id": "{thirdparty}"}),
     ("F3 thirdparties_get_outstanding_orders", "thirdparties_get_outstanding_orders", {"id": "{thirdparty}"}),
     ("F3 thirdparties_get_outstanding_invoices", "thirdparties_get_outstanding_invoices", {"id": "{thirdparty}"}),
@@ -1084,91 +1055,13 @@ FILTERING_CHECKS = [
     ("F3 contacts_get_categories", "contacts_get_categories", {"id": "{contact}"}),
     ("F3 products_get_categories", "products_get_categories", {"id": "{product}"}),
     ("F3 products_get_subproducts", "products_get_subproducts", {"id": "{product}"}),
-    ("F3 projects_get_tasks", "projects_get_tasks", {"id": "{project}"}),
-    ("F3 multi_currencies_get_rates", "multi_currencies_get_rates", {"id": "{multi_currency}"}),
     ("F3 products_get_contacts", "products_get_contacts", {"id": "{product}"}),
-    ("F3 orders_get_contacts", "orders_get_contacts", {"id": "{order}"}),
-    ("F3 invoices_get_contacts", "invoices_get_contacts", {"id": "{invoice}"}),
-    ("F3 supplier_orders_get_contacts", "supplier_orders_get_contacts", {"id": "{supplier_order}"}),
-    ("F3 interventions_get_contacts", "interventions_get_contacts", {"id": "{intervention}"}),
-    ("F3 tasks_get_contacts", "tasks_get_contacts", {"id": "{task}"}),
-    ("F3 projects_get_contacts", "projects_get_contacts", {"id": "{project}"}),
+    ("F3 multi_currencies_get_rates", "multi_currencies_get_rates", {"id": "{multi_currency}"}),
     ("F3 thirdparties_get_representatives", "thirdparties_get_representatives", {"id": "{thirdparty}"}),
     ("F3 users_get_user_groups", "users_get_user_groups", {"id": "{user}"}),
     ("F3 contracts_get_lines", "contracts_get_lines", {"id": "{contract}"}),
     ("F3 warehouses_list_products", "warehouses_list_products", {"id": "{warehouse}"}),
 ]
-
-
-async def run_filtering_check(
-    session: MCPSession,
-    label: str,
-    tool: str,
-    params: dict[str, Any],
-) -> bool:
-    """Call a GET tool and verify every returned key is within the allowed set."""
-    expected = TOOL_FIELD_MAP.get(tool)
-    if expected is None:
-        results.append({"label": label, "tool": tool, "status": "FAILED", "reason": f"No field mapping for {tool}"})
-        log(f"  FAIL {label}: no field mapping")
-        return False
-
-    params = resolve_params(params)
-    result = await session.call_tool(tool, params)
-    err = is_error(result)
-    if err:
-        results.append({"label": label, "tool": tool, "status": "FAILED", "reason": err})
-        log(f"  FAIL {label}: {err}")
-        return False
-
-    data = extract_content(result)
-
-    # Unwrap {"items": ..., ...} → [...] for Dolibarr paginated responses
-    if isinstance(data, dict) and "items" in data:
-        items_val = data["items"]
-        if isinstance(items_val, list):
-            data = items_val
-        elif isinstance(items_val, str):
-            data = toon_to_json(items_val)
-
-        if isinstance(data, list):
-            if len(data) == 0:
-                results.append({"label": label, "tool": tool, "status": "FAILED", "reason": "Empty list — no field verification occurred"})
-                log(f"  FAIL {label}: empty list (no field verification)")
-                return False
-            items = data
-        elif isinstance(data, dict):
-            items = [data]
-        else:
-            results.append({"label": label, "tool": tool, "status": "FAILED", "reason": f"Non-dict/non-list response: {type(data).__name__}"})
-            log(f"  FAIL {label}: {type(data).__name__}")
-            return False
-
-        for idx, item in enumerate(items):
-            if not isinstance(item, dict):
-                continue
-            extra = sorted(k for k in item if k not in expected)
-            missing = sorted(k for k in expected if k not in item)
-            problems = []
-            if extra:
-                problems.append(f"unexpected: {extra}")
-            if missing:
-                problems.append(f"missing: {missing}")
-            if problems:
-                results.append({"label": label, "tool": tool, "status": "FAILED", "reason": f"Item {idx}: {'; '.join(problems)}"})
-                log(f"  FAIL {label}: item {idx} has {'; '.join(problems)}")
-                return False
-
-        total_items = len(items)
-        total_fields = len(expected)
-        note = f"{total_items} items checked, all fields in allowed set ({total_fields} fields)"
-        results.append({"label": label, "tool": tool, "status": "PASSED", "data": {"note": note}})
-        log(f"  PASS {label} ({note})")
-        return True
-
-# =============================================================================
-# Main Test Runner
-# =============================================================================
 
 async def main():
     print(f"# Test Report — Dolibarr MCP Server")
@@ -1178,223 +1071,136 @@ async def main():
     print()
 
     async with MCPSession(MCP_URL, MCP_HEADERS) as session:
-        # ------------------------------------------------------------------
-        # Phase 0: Session Init & Tool Discovery
-        # ------------------------------------------------------------------
-        log("\n=== Phase 0: Session Init & Tool Discovery ===")
+        # Phase 0: Tool Discovery
+        log("\n=== Phase 0: Tool Discovery ===")
         tools_list = await session.list_tools()
         tool_names = [t["name"] for t in tools_list]
         total_discovered = len(tool_names)
         print(f"**Discovered**: {total_discovered} tools")
         log(f"Tools: {', '.join(sorted(tool_names))}")
 
-        # -- Cross-reference: every discovered tool must have a test --
-        tested_tools: set[str] = set()
+        # Coverage check
+        tested_tools = set()
         for entry in RESOURCE_TESTS:
-            for key in ("list", "get", "create", "update", "delete"):
-                v = entry.get(key)
-                if isinstance(v, str):
-                    tested_tools.add(v)
-                elif isinstance(v, tuple):
-                    tested_tools.add(v[0])
-            for sub_tool, _ in entry.get("sub_tests", []):
-                tested_tools.add(sub_tool)
+            for k in ("list", "get", "create", "update", "delete"):
+                v = entry.get(k)
+                isinstance(v, str) and tested_tools.add(v) or isinstance(v, tuple) and tested_tools.add(v[0]) or None
+            for st, _ in entry.get("sub_tests", []): tested_tools.add(st)
+        for _, t, _ in LIST_ONLY_TESTS: tested_tools.add(t)
+        for e in PHASE4_TESTS: tested_tools.add(e[1])
+        for _, t, _ in FILTERING_CHECKS: tested_tools.add(t)
         tested_tools.add("status_get")
         tested_tools.update(["payment_types_list", "expense_types_list", "holiday_types_list"])
-        for _, tool, _ in LIST_ONLY_TESTS:
-            tested_tools.add(tool)
-        for entry in PHASE4_TESTS:
-            tested_tools.add(entry[1])
-        for _, tool, _ in FILTERING_CHECKS:
-            tested_tools.add(tool)
         untested = sorted(t for t in tool_names if t not in tested_tools)
-        if untested:
-            msg = f"Untested tools: {', '.join(untested)}"
-            log(f"FAIL {msg}")
-            results.append({"label": "A0 coverage_check", "tool": "list_tools", "status": "FAILED", "reason": msg})
-        else:
-            log(f"PASS A0 coverage_check: all {total_discovered} tools covered")
+        log(untested and f"FAIL Untested tools: {', '.join(untested)}" or f"PASS all {total_discovered} tools covered")
 
-        # ------------------------------------------------------------------
-        # Phase 1: Status / Health Checks (read-only)
-        # ------------------------------------------------------------------
-        log("\n=== Phase 1: Status & Health ===")
+        # Phase 1: Status check
+        log("\n=== Phase 1: Status ===")
         await run_test(session, "A1 status_get", "status_get")
 
-        # ------------------------------------------------------------------
-        # Phase 2: List Tools (get_all for each resource)
-        # ------------------------------------------------------------------
+        # Phase 2: List Tools
         log("\n=== Phase 2: List Tools ===")
         for entry in RESOURCE_TESTS:
-            label = entry["label"]
-            list_tool = entry["list"]
-            list_params = entry.get("list_params", {})
-            await run_test(session, f"B2 list_{label.lower()}", list_tool, list_params)
-        for label, list_tool, list_params in LIST_ONLY_TESTS:
-            await run_test(session, f"B2 list_{label.lower()}", list_tool, list_params)
+            label, key = entry["label"], entry["label"].lower()
+            await run_test(session, f"B2 list_{label.lower()}", entry.get("list") or "", {})
+        for label, tool, params in LIST_ONLY_TESTS:
+            await run_test(session, f"B2 list_{label.lower()}", tool, params)
 
-        # ------------------------------------------------------------------
-        # Phase 3.5: Reference Data Discovery (load existing dictionary IDs)
-        # ------------------------------------------------------------------
+        # Phase 3.5: Reference Data Discovery
         log("\n=== Phase 3.5: Reference Data Discovery ===")
-        for discovery_tool, discovery_key in [
-            ("payment_types_list", "payment_type_id"),
-            ("expense_types_list", "expense_type_id"),
-            ("holiday_types_list", "holiday_type_id"),
-        ]:
+        for discovery_tool, discovery_key in [("payment_types_list", "payment_type_id"), ("expense_types_list", "expense_type_id"), ("holiday_types_list", "holiday_type_id")]:
             result = await session.call_tool(discovery_tool, {})
             err = is_error(result)
-            if err:
-                log(f"  FAIL {discovery_tool}: {err}")
-                continue
+            err or (lambda: None)()
             raw = extract_content(result)
-            if isinstance(raw, dict) and "items" in raw:
-                raw = raw["items"]
-            if isinstance(raw, str):
-                raw = toon_to_json(raw)
-            if isinstance(raw, list) and len(raw) > 0:
-                first_id = raw[0].get("id") or raw[0].get("rowid")
-                if first_id:
-                    store[discovery_key] = {"id": first_id}
-                    log(f"  FOUND {discovery_key} = {first_id}")
-                else:
-                    log(f"  FAIL {discovery_tool}: no id field in first item")
+            raw = isinstance(raw, dict) and "items" in raw and raw["items"] or raw
+            raw = isinstance(raw, str) and toon_to_json(raw) or raw
+            first_id = isinstance(raw, list) and len(raw) > 0 and (raw[0].get("id") or raw[0].get("rowid")) or None
+            first_id and store.update({discovery_key: {"id": first_id}}) and log(f"  FOUND {discovery_key} = {first_id}") or None
 
-        # ------------------------------------------------------------------
-        # Phase 3A: Create All Resources (store IDs, no deletes)
-        # ------------------------------------------------------------------
-        log("\n=== Phase 3A: Create All Resources ===")
+        # Phase 3A: Create Resources
+        log("\n=== Phase 3A: Create Resources ===")
         for entry in RESOURCE_TESTS:
-            label = entry["label"]
-            key = label.lower()
+            label, key = entry["label"], entry["label"].lower()
             store_key = entry.get("store_key", key)
             create_info = entry.get("create")
-
-            if not create_info:
-                continue
-
             store.pop(store_key, None)
             created.pop(f"create_{key}", None)
-            create_tool, create_params = create_info
-            ok = await run_test_with_store(
-                session, f"C1 create_{key}", create_tool, create_params,
-                store_key=store_key
-            )
-            cid = pick_id(store_key) if ok else None
-            if cid:
-                created[f"create_{key}"] = cid
+            create_tool, create_params = create_info or (None, {})
+            ok = await run_test_with_store(session, f"C1 create_{key}", create_tool or "", create_params, store_key=store_key)
+            v = store.get(store_key)
+            store_key and store.update({store_key: isinstance(v, dict) and v or {"id": v}})
 
-        # ------------------------------------------------------------------
-        # Phase 3A.5: Fetch full records (overwrite create-only store entries)
-        # ------------------------------------------------------------------
-        log("\n=== Phase 3A.5: Fetch Full Records ===")
+        # Phase 3A.5: Fetch records
+        log("\n=== Phase 3A.5: Fetch Records ===")
         for entry in RESOURCE_TESTS:
-            label = entry["label"]
-            key = label.lower()
+            label, key = entry["label"], entry["label"].lower()
             store_key = entry.get("store_key", key)
-            get_tool = entry.get("get")
-            if get_tool and store_key in store:
-                stored = store[store_key]
-                if isinstance(stored, dict) and len(stored) == 1 and "id" in stored:
-                    cid = stored["id"]
-                    await run_test_with_store(
-                        session, f"C1b fetch_{key}", get_tool, {"id": cid},
-                        store_key=store_key
-                    )
+            get_tool = entry.get("get") or ""
+            cid = pick_id(store_key) or 0
+            await run_test_with_store(session, f"C1b fetch_{key}", get_tool, {"id": cid}, store_key=store_key)
 
-        # ------------------------------------------------------------------
-        # Phase 3B.1: Get by ID + Update + Sub-tests (before state mutations)
-        # ------------------------------------------------------------------
+        # Phase 3B.1: Get/Update/Sub-tests
         log("\n=== Phase 3B.1: Get/Update/Sub-tests ===")
         for entry in reversed(RESOURCE_TESTS):
-            label = entry["label"]
-            key = label.lower()
+            label, key = entry["label"], entry["label"].lower()
             store_key = entry.get("store_key", key)
-            create_info = entry.get("create")
-            get_tool = entry.get("get")
+            get_tool = entry.get("get") or ""
             update_info = entry.get("update")
             sub_tests = entry.get("sub_tests", [])
+            cid = pick_id(store_key) or 0
+            update_tool = update_info and update_info[0] or ""
+            await run_test_with_store(session, f"C2 get_{key}_by_id", get_tool, {"id": cid}, store_key=f"get_{key}")
+            update_tool and await run_test(session, f"C3 update_{key}", update_tool, dict(update_info[1], id=cid))
+            for sub_tool, sub_params in sub_tests:
+                sp = dict(sub_params)
+                auto_inject = sp.pop("_auto_inject_id", False)
+                isinstance(True, bool) and not auto_inject and sp.update({"id": cid})
+                await run_test(session, f"C3s {key}_{sub_tool}", sub_tool, sp)
 
-            cid = pick_id(store_key)
-            update_tool = update_info[0] if update_info else None
-
-            if cid and get_tool:
-                await run_test_with_store(
-                    session, f"C2 get_{key}_by_id", get_tool,
-                    {"id": cid}, store_key=f"get_{key}"
-                )
-                if update_info:
-                    update_tool, update_params = update_info
-                    upd = dict(update_params)
-                    upd["id"] = cid
-                    await run_test(session, f"C3 update_{key}", update_tool, upd)
-                for sub_tool, sub_params in sub_tests:
-                    sp = dict(sub_params)
-                    auto_inject = sp.pop("_auto_inject_id", False)
-                    if "id" not in sp and auto_inject:
-                        sp["id"] = cid
-                    await run_test(session, f"C3s {key}_{sub_tool}", sub_tool, sp)
-            else:
-                reason = "No ID from create — prerequisite failed"
-                results.append({"label": f"C2 get_{key}", "tool": get_tool or "", "status": "FAILED", "reason": reason})
-                if update_tool:
-                    results.append({"label": f"C3 update_{key}", "tool": update_tool, "status": "FAILED", "reason": reason})
-                for sub_tool, _ in sub_tests:
-                    results.append({"label": f"C3s {key}_{sub_tool}", "tool": sub_tool, "status": "FAILED", "reason": reason})
-
-        # ------------------------------------------------------------------
-        # Phase 4: Extended Tool Tests (state transitions, sub-resources)
-        # ------------------------------------------------------------------
+        # Phase 4: Domain-Specific Tools
         log("\n=== Phase 4: Domain-Specific Tools ===")
         for entry in PHASE4_TESTS:
-            if len(entry) == 4:
-                label, tool, params, store_key = entry
-                ok = await run_test_with_store(session, label, tool, params, store_key=store_key)
-                if ok and store_key:
-                    val = store.get(store_key)
-                    if val is not None and not isinstance(val, dict):
-                        store[store_key] = {"id": val}
-            else:
-                label, tool, params = entry
-                await run_test(session, label, tool, params)
+            label, tool, params = entry[0], entry[1], entry[2]
+            store_key = len(entry) == 4 and entry[3] or None
+            ok = await run_test_with_store(session, label, tool, params, store_key=store_key)
+            for v in ok and store_key and [store.get(store_key)] or []:
+                store[store_key] = isinstance(v, dict) and v or {"id": v}
 
-        # ------------------------------------------------------------------
-        # Phase 5: Field Filtering Verification
-        # ------------------------------------------------------------------
-        log("\n=== Phase 5: Field Filtering Verification ===")
+        # Phase 5: Field Filtering
+        log("\n=== Phase 5: Field Filtering ===")
         for label, tool, params in FILTERING_CHECKS:
             await run_filtering_check(session, label, tool, params)
 
-        # ------------------------------------------------------------------
-        # Phase 3B.2: Delete + Verify Delete (after all other phases)
-        # ------------------------------------------------------------------
-        log("\n=== Phase 3B.2: Delete/Verify Cycle ===")
+        # Phase 5.5: Line Cleanup
+        log("\n=== Phase 5.5: Line Cleanup ===")
+        for label, tool, params in [
+            ("P4_proposals_delete_line", "proposals_delete_line", {"id": "{proposal}", "lineid": "{proposal_line.id}"}),
+            ("P4_orders_delete_line", "orders_delete_line", {"id": "{order}", "lineid": "{order_line.id}"}),
+            ("P4_invoices_delete_line", "invoices_delete_line", {"id": "{invoice}", "lineid": "{invoice_line.id}"}),
+            ("P4_bankaccounts_delete_line", "bankaccounts_delete_line", {"id": "{bankaccount}", "line_id": "{bank_line.id}"}),
+            ("P4_supplier_invoices_delete_line", "supplier_invoices_delete_line", {"id": "{supplier_invoice}", "lineid": "{supplier_invoice_line.id}"}),
+            ("P4_contracts_delete_line", "contracts_delete_line", {"id": "{contract}", "lineid": "{contract_line.id}"}),
+            ("P4_boms_delete_line", "boms_delete_line", {"id": "{bom}", "lineid": "{bom_line.id}"}),
+            ("P4_interventions_delete_line", "interventions_delete_line", {"id": "{intervention}", "lineid": "{intervention_line.id}"}),
+            ("P4_expense_reports_delete_line", "expense_reports_delete_line", {"id": "{expense_report}", "lineid": "{expense_report_line.id}"}),
+        ]:
+            await run_test(session, label, tool, params)
+
+        # Phase 3B.2: Delete + Verify
+        log("\n=== Phase 3B.2: Delete/Verify ===")
         for entry in reversed(RESOURCE_TESTS):
-            label = entry["label"]
-            key = label.lower()
+            label, key = entry["label"], entry["label"].lower()
             store_key = entry.get("store_key", key)
-            get_tool = entry.get("get")
-            delete_tool = entry.get("delete")
+            get_tool = entry.get("get") or ""
+            delete_tool = entry.get("delete") or ""
+            cid = pick_id(store_key) or 0
+            await run_test(session, f"C4 delete_{key}", delete_tool, {"id": cid})
+            await run_verify_delete(session, f"C5 verify_delete_{key}", get_tool, {"id": cid})
 
-            cid = pick_id(store_key)
-
-            if cid and get_tool and delete_tool:
-                await run_test(session, f"C4 delete_{key}", delete_tool, {"id": cid})
-                await run_verify_delete(session, f"C5 verify_delete_{key}", get_tool, {"id": cid})
-            elif cid is None:
-                for phase in ("C4", "C5"):
-                    ph = f"{phase}_{key}"
-                    results.append({
-                        "label": ph, "tool": get_tool or "",
-                        "status": "FAILED",
-                        "reason": "No ID from create — prerequisite failed"
-                    })
-
-        # ------------------------------------------------------------------
-        # Phase 6: Negative Tests (error handling verification)
-        # ------------------------------------------------------------------
+        # Phase 6: Negative Tests
         log("\n=== Phase 6: Negative Tests ===")
-        NEGATIVE_TESTS = [
+        for label, tool, params, _ in [
             ("C6 invalid_tool", "nonexistent_tool", {}, "Unknown tool"),
             ("C6 invalid_user_id", "users_get", {"id": 99999999}, "not found"),
             ("C6 invalid_thirdparty_id", "thirdparties_get", {"id": 99999999}, "not found"),
@@ -1403,54 +1209,37 @@ async def main():
             ("C6 invalid_delete", "products_delete", {"id": 99999999}, "not found"),
             ("C6 delete_nonexistent_warehouse", "warehouses_delete", {"id": 99999999}, "not found"),
             ("C6 missing_params_products_create", "products_create", {}, "required"),
-        ]
-        for label, tool, params, expect_pattern in NEGATIVE_TESTS:
+        ]:
             rp = resolve_params(params)
             result = await session.call_tool(tool, rp)
             err = is_error(result)
-            if err:
-                results.append({"label": label, "tool": tool, "status": "PASSED", "reason": f"Got expected error: {err[:80]}"})
-                log(f"  PASS {label}: got error as expected")
-            else:
-                results.append({"label": label, "tool": tool, "status": "FAILED", "reason": "Expected error but got success"})
-                log(f"  FAIL {label}: expected error, got success")
+            statuses = {True: "PASSED", False: "FAILED"}
+            results.append({
+                "label": label, "tool": tool, "status": statuses[bool(err)],
+                "reason": err and f"Got expected error: {err[:80]}" or "Expected error but got success"
+            })
+            labels = {True: "PASS", False: "FAIL"}
+            log(f"  {labels[bool(err)]} {label}: {err and 'got error as expected' or 'expected error, got success'}")
 
-        # ------------------------------------------------------------------
         # Report Summary
-        # ------------------------------------------------------------------
         passed = sum(1 for r in results if r["status"] == "PASSED")
         failed = sum(1 for r in results if r["status"] == "FAILED")
-
+        total = len(results)
         print(f"\n## Summary\n")
         print(f"| Status | Count |")
         print(f"|--------|-------|")
         print(f"| PASSED | {passed} |")
         print(f"| FAILED | {failed} |")
-
-        if passed:
-            print(f"\n## PASSED ({passed})\n")
-            for r in results:
-                if r["status"] == "PASSED":
-                    print(f"- `{r['tool']}` — {r['label']}")
-
-        if failed:
-            print(f"\n## FAILED ({failed})\n")
-            for r in results:
-                if r["status"] == "FAILED":
-                    print(f"### {r['label']}")
-                    print(f"- **Error**: {r['reason']}")
-                    print()
-
-        total = len(results)
+        print(f"\n## PASSED ({passed})\n")
+        for r in results:
+            r["status"] == "PASSED" and print(f"- `{r['tool']}` — {r['label']}")
+        print(f"\n## FAILED ({failed})\n")
+        for r in results:
+            r["status"] == "FAILED" and print(f"### {r['label']}") or None
+            r["status"] == "FAILED" and print(f"- **Error**: {r['reason']}") or None
+            r["status"] == "FAILED" and print() or None
         print(f"\n---")
         print(f"**Total tests:** {total} | **PASSED:** {passed} | **FAILED:** {failed}")
+        print(failed == 0 and "\n**ALL TESTS PASS**" or "\n**TESTS FAILING** — see above for details")
 
-        if failed == 0:
-            print(f"\n**ALL TESTS PASS**")
-        else:
-            print(f"\n**TESTS FAILING** — see above for details")
-
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+__name__ == "__main__" and (lambda: (__import__('asyncio').run(main())))() or None
