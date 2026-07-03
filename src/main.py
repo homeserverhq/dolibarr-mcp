@@ -5534,10 +5534,11 @@ def main() -> None:
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "6033"))
     base_url = os.getenv("DOLIBARR_BASE_URL", "")
+    IS_STATEFUL = os.getenv("IS_STATEFUL", "false").lower() in ("true", "1", "yes")
     if not base_url:
         print("ERROR: DOLIBARR_BASE_URL environment variable is required.")
         sys.exit(1)
-    app = AuthMiddleware(mcp.http_app(json_response=True))
+    app = AuthMiddleware(mcp.http_app(json_response=True, stateless_http=not IS_STATEFUL))
     uvicorn.run(app, host=host, port=port, log_level="info")
 
 

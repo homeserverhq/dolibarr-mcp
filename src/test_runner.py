@@ -660,7 +660,8 @@ async def main():
         _init.raise_for_status()
         _sid = _init.headers.get("mcp-session-id")
         _hdr = dict(HDR)
-        _hdr["mcp-session-id"] = _sid
+        if _sid:
+            _hdr["mcp-session-id"] = _sid
         await client.post(MCP_URL, headers=_hdr, json={"jsonrpc": "2.0", "method": "notifications/initialized"})
         for label, tool, params_json, prefix, expect_err in ALL_TESTS:
             params_str = params_json
