@@ -2627,17 +2627,6 @@ async def payments_create(datepaye: str, paymentid: int, amount: float, accounti
     return {"id": pay_id, "_placeholder_invoice_id": pay_inv_id}
 
 @mcp.tool()
-async def payments_update(id: int, num_payment: Optional[str] = None, ctx: Context = None) -> dict[str, Any]:
-    """Payments Update.
-
-    Args:
-        id: The unique ID of the resource (required).
-        num_payment: Payment number (optional).
-    """
-    payload = {k: v for k, v in {"num_payment": num_payment}.items() if v is not None}
-    return await get_client().payments_update(id, payload, get_user_token())
-
-@mcp.tool()
 async def payments_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a payment by ID.
 

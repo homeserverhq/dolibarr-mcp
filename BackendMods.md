@@ -102,3 +102,68 @@ docker cp dolibarr-app:/var/www/html/societe/class/api_thirdparties.class.php /t
 # Python: move _checkAccessToResource after fetch, use $this->company->id
 docker cp /tmp/api_thirdparties.class.php dolibarr-app:/var/www/html/societe/class/api_thirdparties.class.php
 ```
+
+## Hotfix: Workstations missing POST/PUT/DELETE handlers
+
+**File**: `/var/www/html/workstation/class/api_workstations.class.php` (inside `dolibarr-app` container)
+
+**Reason**: The `Workstations` API class only had `get()`, `getByRef()`, and `index()` methods. No `post()`, `put()`, or `delete()` handlers existed, so POST/PUT/DELETE returned 404. The `Workstation` model class has `create()`, `update()`, and `delete()` methods, so adding the API handlers was straightforward.
+
+**Added** three new methods (~80 lines total):
+- `post($request_data)` — creates a workstation, returns `$this->get($id)`
+- `put($id, $request_data)` — updates a workstation, returns `$this->get($id)`
+- `delete($id)` — deletes a workstation, returns success array
+
+**Permission checks** (matching DB right defs: `module=workstation, perms=workstation`):
+- POST/PUT: `$user->rights->workstation->workstation->write`
+- DELETE: `$user->rights->workstation->workstation->delete`
+
+**Note**: The workstation module's permission subperms use English names (`read`, `write`, `delete`) rather than French (`lire`, `creer`, `supprimer`). The admin user (aeinstein, user 1) requires these rights to be explicitly granted in `llx_user_rights`.
+
+**Applied via**: Copied file out, added methods via Python, copied back.
+```bash
+docker cp dolibarr-app:/var/www/html/workstation/class/api_workstations.class.php /tmp/
+# Python: added post(), put(), delete() methods between index() and _cleanObjectDatas()
+docker cp /tmp/api_workstations.class.php dolibarr-app:/var/www/html/workstation/class/api_workstations.class.php
+```
+
+## Hotfix: Interventions getLines — uncommented TODO stub + fixed method call
+
+**File**: `/var/www/html/fichinter/class/api_interventions.class.php` (inside `dolibarr-app` container)
+
+**Reason**: The `getLines()` handler was wrapped in `/* TODO */` and `*/` — the PHP code was written but commented out. The implementation called `$this->fichinter->getLinesArray()` which doesn't exist on the `Fichinter` model. The correct method is `$this->fichinter->fetch_lines()`.
+
+**Changes**:
+- Removed `/* TODO` and `*/` comment markers (lines 358, 380)
+- Changed `@return int` to `@return array` in docblock
+- Changed `$this->fichinter->getLinesArray()` to `$this->fichinter->fetch_lines()`
+
+**Applied via**:
+```bash
+docker cp dolibarr-app:/var/www/html/fichinter/class/api_interventions.class.php /tmp/
+# Python: uncommented getLines, fixed method call
+docker cp /tmp/api_interventions.class.php dolibarr-app:/var/www/html/fichinter/class/api_interventions.class.php
+```
+
+## Hotfix: Supplier proposals PUT — wrong update method called
+
+**File**: `/var/www/html/supplier_proposal/class/api_supplier_proposals.class.php` (inside `dolibarr-app` container)
+
+**Reason**: The PUT handler called `$this->supplier_proposal->update(DolibarrApiAccess::$user)` which invokes the **line-item** update method (updating `supplier_proposaldet` table, not the proposal header). The `SupplierProposal` model has no header-level `update()` method — only an `update()` for line items at line 3515. The parent class `CommonObject` provides `updateCommon(User $user)` which handles header updates correctly via the `$this->fields` array.
+
+**Before** (line 209):
+```php
+if ($this->supplier_proposal->update(DolibarrApiAccess::$user) > 0) {
+```
+
+**After**:
+```php
+if ($this->supplier_proposal->updateCommon(DolibarrApiAccess::$user) > 0) {
+```
+
+**Applied via**:
+```bash
+docker cp dolibarr-app:/var/www/html/supplier_proposal/class/api_supplier_proposals.class.php /tmp/
+# sed or Python: replace ->update( with ->updateCommon(
+docker cp /tmp/api_supplier_proposals.class.php dolibarr-app:/var/www/html/supplier_proposal/class/api_supplier_proposals.class.php
+```

@@ -704,9 +704,6 @@ class DolibarrClient:
     async def payments_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post("/paiements/", api_key, json=payload)
 
-    async def payments_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.put(f"/paiements/{id}", api_key, json=payload)
-
     async def payments_delete(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.delete(f"/paiements/{id}", api_key)
 
