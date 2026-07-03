@@ -2788,7 +2788,8 @@ async def bankaccounts_update_line(id: int, line_id: int, label: str, ctx: Conte
         line_id: Line ID (required).
         label: Label (required).
     """
-    return await get_client().bankaccounts_update_line(id, line_id, label, get_user_token())
+    result = await get_client().bankaccounts_update_line(id, line_id, label, get_user_token())
+    return {"id": result}
 
 @mcp.tool()
 async def bankaccounts_delete_line(id: int, line_id: int, ctx: Context = None) -> dict[str, Any]:
@@ -5287,16 +5288,16 @@ async def users_list_groups(sortfield: str = "", sortorder: str = "ASC", limit: 
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
-async def users_get_group(group: int, load_members: int = 0, includepermissions: int = 0, include_all_fields: bool = False, ctx: Context = None) -> dict[str, Any]:
+async def users_get_group(id: int, load_members: int = 0, includepermissions: int = 0, include_all_fields: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Users Get Group.
 
     Args:
-        group: Group (required).
+        id: The unique ID of the resource (required).
         load_members: Load Members.
         includepermissions: Include permissions flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().users_get_group(group, get_user_token(), load_members=load_members, includepermissions=includepermissions, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
+    return await get_client().users_get_group(id, get_user_token(), load_members=load_members, includepermissions=includepermissions, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
 
 @mcp.tool()
 async def users_get_user_groups(id: int, ctx: Context = None) -> dict[str, Any]:
@@ -5364,6 +5365,36 @@ async def groups_delete(id: int, ctx: Context = None) -> dict[str, Any]:
         id: The unique ID of the resource (required).
     """
     return await get_client().groups_delete(id, get_user_token())
+
+@mcp.tool()
+async def payment_types_list(active: int = 1, ctx: Context = None) -> dict[str, Any]:
+    """List payment types (from dictionary data).
+
+    Args:
+        active: Filter on active types (default 1).
+    """
+    data = await get_client().payment_types_list(get_user_token(), active=active)
+    return {"items": json_to_toon(data)}
+
+@mcp.tool()
+async def expense_types_list(active: int = 1, ctx: Context = None) -> dict[str, Any]:
+    """List expense report types (from dictionary data).
+
+    Args:
+        active: Filter on active types (default 1).
+    """
+    data = await get_client().expense_types_list(get_user_token(), active=active)
+    return {"items": json_to_toon(data)}
+
+@mcp.tool()
+async def holiday_types_list(active: int = 1, ctx: Context = None) -> dict[str, Any]:
+    """List holiday types (from dictionary data).
+
+    Args:
+        active: Filter on active types (default 1).
+    """
+    data = await get_client().holiday_types_list(get_user_token(), active=active)
+    return {"items": json_to_toon(data)}
 
 # ============================================================
 # Main Entry Point

@@ -34,36 +34,36 @@ def _to_timestamp(value: str) -> int:
 
 
 TP_COMMON = "id,ref,name,client,fournisseur,code_client,code_fournisseur,address,zip,town,country_id,country_code,phone,email,status,tva_intra"
-PROD_COMMON = "id,ref,label,type,status,price_ttc,stock,barcode,weight"
-INV_COMMON = "id,ref,socid,socname,total_ttc,status"
-CONTACT_COMMON = "id,lastname,firstname,socid,socname,email,phone,phone_mobile,status"
+PROD_COMMON = "id,ref,label,type,status,price_ttc,stock_reel,barcode,weight"
+INV_COMMON = "id,ref,socid,total_ttc,status"
+CONTACT_COMMON = "id,lastname,firstname,socid,socname,email,phone_pro,phone_mobile,status"
 TICKET_COMMON = "id,ref,subject,type_label,status,track_id"
 LINE_COMMON = "id,product_label,qty,subprice,total_ttc,desc"
 BOM_LINE_COMMON = "id,ref,fk_product,qty"
 EXPENSE_LINE_COMMON = "id,type_fees_libelle,qty,total_ttc,date,projet_title"
 BANK_LINE_COMMON = "id,ref,label,amount,dateo,bank_account_label"
-PAYMENT_LINE_COMMON = "id,ref,amount,type,date"
+PAYMENT_LINE_COMMON = "id,amount,date,type_label,fk_paiement"
 USER_COMMON = "id,ref,login,firstname,lastname,email,status,entity"
-GROUP_COMMON = "id,ref,name,nom,entity"
+GROUP_COMMON = "id,name,nom,entity"
 CATEGORY_COMMON = "id,ref,label,type,fk_parent"
-WAREHOUSE_COMMON = "id,ref,label,type,status,lieu"
-STOCK_MOVEMENT_COMMON = "id,ref,product_label,qty,datem"
-PRODUCT_LOT_COMMON = "id,ref,batch,qty,product_ref"
+WAREHOUSE_COMMON = "id,ref,label,status,lieu"
+STOCK_MOVEMENT_COMMON = "id,ref,product_id,qty,datem,label"
+PRODUCT_LOT_COMMON = "id,fk_product,batch,eatby,sellby"
 OUTSTANDING_COMMON = "id,ref,total_ttc,status,date"
-BANK_ACCOUNT_COMMON = "id,ref,label,type,currency,courant,ban"
-MULTI_CURRENCY_COMMON = "id,ref,label,rate,date"
-EXPENSE_REPORT_COMMON = "id,ref,total_ttc,status,date,projet_title"
-HOLIDAY_COMMON = "id,ref,fk_user,date_debut,date_fin,nbjour,status"
+BANK_ACCOUNT_COMMON = "id,ref,label,type,courant,currency_code,number"
+MULTI_CURRENCY_COMMON = "id,code,name,rate,date_create"
+EXPENSE_REPORT_COMMON = "id,ref,total_ttc,status,date_create,fk_project"
+HOLIDAY_COMMON = "id,ref,fk_user,date_debut,date_fin,status"
 PROJECT_COMMON = "id,ref,title,status,socid,budget_amount"
 TASK_COMMON = "id,ref,label,status,progress,planned_workload"
-SHIPMENT_COMMON = "id,ref,socname,status,total_ttc,date_delivery"
-RECEPTION_COMMON = "id,ref,socname,status,date_reception"
-INTERVENTION_COMMON = "id,ref,socname,status,date"
+SHIPMENT_COMMON = "id,ref,socid,status,date_delivery"
+RECEPTION_COMMON = "id,ref,socid,status,date_reception"
+INTERVENTION_COMMON = "id,ref,socid,status,datec"
 AGENDA_EVENT_COMMON = "id,ref,label,type,datep,status"
-MAILING_COMMON = "id,ref,label,status,nbemail,date_creation"
+MAILING_COMMON = "id,title,status,nbemail,date_creation"
 BOM_COMMON = "id,ref,label,status,fk_product"
 MO_COMMON = "id,ref,label,status,fk_product,qty"
-WORKSTATION_COMMON = "id,ref,label,status,type,cost"
+WORKSTATION_COMMON = "id,ref,label,status,type"
 DOC_COMMON = "id,ref,label,module,type,date_c"
 
 MODULEPART_MAP = {
@@ -118,7 +118,8 @@ class DolibarrClient:
         headers = self._get_headers(api_key)
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.request(method, url, headers=headers, **kwargs)
-            response.raise_for_status()
+            if response.status_code >= 400:
+                raise Exception(response.text[:2000])
             if response.status_code == 204:
                 return {}
             if response.headers.get("content-type", "").startswith("application/json"):
@@ -1711,3 +1712,33 @@ class DolibarrClient:
 
     async def users_delete(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.delete(f"/users/{id}", api_key)
+
+    # ============================================================
+    # Reference Data Discovery (dictionary lookups)
+    # ============================================================
+    async def payment_types_list(self, api_key: Optional[str] = None, active: int = 1, sortfield: str = "code", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
+        params = {}
+        if sortfield: params["sortfield"] = sortfield
+        if sortorder: params["sortorder"] = sortorder
+        if limit != 100: params["limit"] = limit
+        if page != 0: params["page"] = page
+        if active: params["active"] = active
+        return await self.get("/setup/dictionary/payment_types", api_key, params=params)
+
+    async def expense_types_list(self, api_key: Optional[str] = None, active: int = 1, sortfield: str = "code", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
+        params = {}
+        if sortfield: params["sortfield"] = sortfield
+        if sortorder: params["sortorder"] = sortorder
+        if limit != 100: params["limit"] = limit
+        if page != 0: params["page"] = page
+        if active: params["active"] = active
+        return await self.get("/setup/dictionary/expensereport_types", api_key, params=params)
+
+    async def holiday_types_list(self, api_key: Optional[str] = None, active: int = 1, sortfield: str = "sortorder", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
+        params = {}
+        if sortfield: params["sortfield"] = sortfield
+        if sortorder: params["sortorder"] = sortorder
+        if limit != 100: params["limit"] = limit
+        if page != 0: params["page"] = page
+        if active: params["active"] = active
+        return await self.get("/setup/dictionary/holiday_types", api_key, params=params)

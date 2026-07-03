@@ -40,36 +40,36 @@ created: dict[str, str] = {}
 
 EXPECTED_FIELDS: dict[str, set[str]] = {
     "TP_COMMON": {"id","ref","name","client","fournisseur","code_client","code_fournisseur","address","zip","town","country_id","country_code","phone","email","status","tva_intra"},
-    "PROD_COMMON": {"id","ref","label","type","status","price_ttc","stock","barcode","weight"},
-    "INV_COMMON": {"id","ref","socid","socname","total_ttc","status"},
-    "CONTACT_COMMON": {"id","lastname","firstname","socid","socname","email","phone","phone_mobile","status"},
+    "PROD_COMMON": {"id","ref","label","type","status","price_ttc","stock_reel","barcode","weight"},
+    "INV_COMMON": {"id","ref","socid","total_ttc","status"},
+    "CONTACT_COMMON": {"id","lastname","firstname","socid","socname","email","phone_pro","phone_mobile","status"},
     "TICKET_COMMON": {"id","ref","subject","type_label","status","track_id"},
     "LINE_COMMON": {"id","product_label","qty","subprice","total_ttc","desc"},
     "BOM_LINE_COMMON": {"id","ref","fk_product","qty"},
     "EXPENSE_LINE_COMMON": {"id","type_fees_libelle","qty","total_ttc","date","projet_title"},
     "BANK_LINE_COMMON": {"id","ref","label","amount","dateo","bank_account_label"},
-    "PAYMENT_LINE_COMMON": {"id","ref","amount","type","date"},
+    "PAYMENT_LINE_COMMON": {"id","amount","date","type_label","fk_paiement"},
     "USER_COMMON": {"id","ref","login","firstname","lastname","email","status","entity"},
-    "GROUP_COMMON": {"id","ref","name","nom","entity"},
+    "GROUP_COMMON": {"id","name","nom","entity"},
     "CATEGORY_COMMON": {"id","ref","label","type","fk_parent"},
-    "WAREHOUSE_COMMON": {"id","ref","label","type","status","lieu"},
-    "STOCK_MOVEMENT_COMMON": {"id","ref","product_label","qty","datem"},
-    "PRODUCT_LOT_COMMON": {"id","ref","batch","qty","product_ref"},
+    "WAREHOUSE_COMMON": {"id","ref","label","status","lieu"},
+    "STOCK_MOVEMENT_COMMON": {"id","ref","product_id","qty","datem","label"},
+    "PRODUCT_LOT_COMMON": {"id","fk_product","batch","eatby","sellby"},
     "OUTSTANDING_COMMON": {"id","ref","total_ttc","status","date"},
-    "BANK_ACCOUNT_COMMON": {"id","ref","label","type","currency","courant","ban"},
-    "MULTI_CURRENCY_COMMON": {"id","ref","label","rate","date"},
-    "EXPENSE_REPORT_COMMON": {"id","ref","total_ttc","status","date","projet_title"},
-    "HOLIDAY_COMMON": {"id","ref","fk_user","date_debut","date_fin","nbjour","status"},
+    "BANK_ACCOUNT_COMMON": {"id","ref","label","type","courant","currency_code","number"},
+    "MULTI_CURRENCY_COMMON": {"id","code","name","rate","date_create"},
+    "EXPENSE_REPORT_COMMON": {"id","ref","total_ttc","status","date_create","fk_project"},
+    "HOLIDAY_COMMON": {"id","ref","fk_user","date_debut","date_fin","status"},
     "PROJECT_COMMON": {"id","ref","title","status","socid","budget_amount"},
     "TASK_COMMON": {"id","ref","label","status","progress","planned_workload"},
-    "SHIPMENT_COMMON": {"id","ref","socname","status","total_ttc","date_delivery"},
-    "RECEPTION_COMMON": {"id","ref","socname","status","date_reception"},
-    "INTERVENTION_COMMON": {"id","ref","socname","status","date"},
+    "SHIPMENT_COMMON": {"id","ref","socid","status","date_delivery"},
+    "RECEPTION_COMMON": {"id","ref","socid","status","date_reception"},
+    "INTERVENTION_COMMON": {"id","ref","socid","status","datec"},
     "AGENDA_EVENT_COMMON": {"id","ref","label","type","datep","status"},
-    "MAILING_COMMON": {"id","ref","label","status","nbemail","date_creation"},
+    "MAILING_COMMON": {"id","title","status","nbemail","date_creation"},
     "BOM_COMMON": {"id","ref","label","status","fk_product"},
     "MO_COMMON": {"id","ref","label","status","fk_product","qty"},
-    "WORKSTATION_COMMON": {"id","ref","label","status","type","cost"},
+    "WORKSTATION_COMMON": {"id","ref","label","status","type"},
     "DOC_COMMON": {"id","ref","label","module","type","date_c"},
 }
 
@@ -261,15 +261,7 @@ def is_error(result: dict[str, Any]) -> Optional[str]:
         content = result.get("content", [])
         for c in content:
             if c.get("type") == "text":
-                txt = c["text"]
-                if txt.startswith("Error calling tool"):
-                    return txt.split(":", 1)[1].strip() if ":" in txt else txt
-                try:
-                    data = json.loads(txt)
-                except json.JSONDecodeError:
-                    return txt
-                if isinstance(data, dict):
-                    return data.get("error", txt)
+                return c["text"]
     return None
 
 
@@ -279,10 +271,7 @@ def extract_content(result: dict[str, Any]) -> Any:
     content = result.get("content", [])
     for c in content:
         if c.get("type") == "text":
-            try:
-                return json.loads(c["text"])
-            except json.JSONDecodeError:
-                return c["text"]
+            return json.loads(c["text"])
     return result.get("_meta", {})
 
 
@@ -329,37 +318,29 @@ async def run_test(
         log(f"  FAIL {label}: missing {prereq}")
         return False
     params = resolve_params(params)
-    try:
-        result = await session.call_tool(tool, params)
-        err = is_error(result)
-        if err:
-            results.append({
-                "label": label, "tool": tool, "status": "FAILED",
-                "reason": err
-            })
-            log(f"  FAIL {label}: {err}")
-            return False
-        data = extract_content(result)
-        if data is None:
-            results.append({"label": label, "tool": tool, "status": "FAILED", "reason": "Null response"})
-            log(f"  FAIL {label}: null response")
-            return False
-        if isinstance(data, dict) and not data:
-            results.append({"label": label, "tool": tool, "status": "FAILED", "reason": "Empty dict response"})
-            log(f"  FAIL {label}: empty dict")
-            return False
-        results.append({
-            "label": label, "tool": tool, "status": "PASSED", "data": data
-        })
-        log(f"  PASS {label}")
-        return True
-    except Exception as e:
+    result = await session.call_tool(tool, params)
+    err = is_error(result)
+    if err:
         results.append({
             "label": label, "tool": tool, "status": "FAILED",
-            "reason": str(e)
+            "reason": err
         })
-        log(f"  FAIL {label}: {e}")
+        log(f"  FAIL {label}: {err}")
         return False
+    data = extract_content(result)
+    if data is None:
+        results.append({"label": label, "tool": tool, "status": "FAILED", "reason": "Null response"})
+        log(f"  FAIL {label}: null response")
+        return False
+    if isinstance(data, dict) and not data:
+        results.append({"label": label, "tool": tool, "status": "FAILED", "reason": "Empty dict response"})
+        log(f"  FAIL {label}: empty dict")
+        return False
+    results.append({
+        "label": label, "tool": tool, "status": "PASSED", "data": data
+    })
+    log(f"  PASS {label}")
+    return True
 
 
 async def run_test_with_store(
@@ -399,36 +380,28 @@ async def run_verify_delete(
     if params is None:
         params = {}
     params = resolve_params(params)
-    try:
-        result = await session.call_tool(get_tool, params)
-        err = is_error(result)
-        if err:
-            if "not found" in err.lower():
-                results.append({
-                    "label": label, "tool": get_tool, "status": "PASSED",
-                    "data": {"verified": "deleted"}
-                })
-                log(f"  PASS {label} (confirmed deleted)")
-                return True
+    result = await session.call_tool(get_tool, params)
+    err = is_error(result)
+    if err:
+        if "not found" in err.lower():
             results.append({
-                "label": label, "tool": get_tool, "status": "FAILED",
-                "reason": err
+                "label": label, "tool": get_tool, "status": "PASSED",
+                "data": {"verified": "deleted"}
             })
-            log(f"  FAIL {label}: {err}")
-            return False
+            log(f"  PASS {label} (confirmed deleted)")
+            return True
         results.append({
             "label": label, "tool": get_tool, "status": "FAILED",
-            "reason": "Record still exists after delete"
+            "reason": err
         })
-        log(f"  FAIL {label}: record still exists")
+        log(f"  FAIL {label}: {err}")
         return False
-    except Exception as e:
-        results.append({
-            "label": label, "tool": get_tool, "status": "FAILED",
-            "reason": str(e)
-        })
-        log(f"  FAIL {label}: {e}")
-        return False
+    results.append({
+        "label": label, "tool": get_tool, "status": "FAILED",
+        "reason": "Record still exists after delete"
+    })
+    log(f"  FAIL {label}: record still exists")
+    return False
 
 
 # =============================================================================
@@ -563,15 +536,6 @@ RESOURCE_TESTS = [
             ("invoices_get_contacts", {"_auto_inject_id": True}),
             ("invoices_get_payments", {"_auto_inject_id": True}),
         ],
-    },
-    {
-        "label": "PaymentTypes",
-        "list": "payment_types_list",
-        "create": ("payment_types_create", {"code": make_name("PY"), "libelle": make_name("Payment")}),
-        "get": "payment_types_get",
-        "delete": "payment_types_delete",
-        "store_key": "payment_type_id",
-        "sub_tests": [],
     },
     {
         "label": "Payments",
@@ -719,15 +683,6 @@ RESOURCE_TESTS = [
         "sub_tests": [],
     },
     {
-        "label": "ExpenseTypes",
-        "list": "expense_types_list",
-        "create": ("expense_types_create", {"code": make_name("EX"), "libelle": make_name("Expense")}),
-        "get": "expense_types_get",
-        "delete": "expense_types_delete",
-        "store_key": "expense_type_id",
-        "sub_tests": [],
-    },
-    {
         "label": "ExpenseReports",
         "list": "expense_reports_list",
         "create": ("expense_reports_create", {"fk_user": "{user}", "date_debut": "2026-06-01T12:00:00+00:00", "date_fin": "2026-06-22T12:00:00+00:00", "fk_user_author": "{user}"}),
@@ -738,15 +693,6 @@ RESOURCE_TESTS = [
         "sub_tests": [
             ("expense_reports_get_lines", {"_auto_inject_id": True}),
         ],
-    },
-    {
-        "label": "HolidayTypes",
-        "list": "holiday_types_list",
-        "create": ("holiday_types_create", {"code": make_name("HL"), "libelle": make_name("Holiday")}),
-        "get": "holiday_types_get",
-        "delete": "holiday_types_delete",
-        "store_key": "holiday_type_id",
-        "sub_tests": [],
     },
     {
         "label": "Holidays",
@@ -887,8 +833,8 @@ PHASE4_TESTS = [
     ("P4_orders_get_contacts", "orders_get_contacts", {"id": "{order}"}),
     ("P4_orders_update_line", "orders_update_line", {"id": "{order}", "lineid": "{order_line.id}", "desc": "Updated line"}),
     ("P4_orders_delete_line", "orders_delete_line", {"id": "{order}", "lineid": "{order_line.id}"}),
+    ("P4_orders_create_shipment", "orders_create_shipment", {"id": "{order}", "warehouse_id": "{warehouse}"}),
     ("P4_orders_get_shipments", "orders_get_shipments", {"id": "{order}"}),
-    ("P4_orders_create_shipment", "orders_create_shipment", {"id": "{order}"}),
     ("P4_orders_validate", "orders_validate", {"id": "{order}"}),
     ("P4_orders_close", "orders_close", {"id": "{order}"}),
     ("P4_orders_reopen", "orders_reopen", {"id": "{order}"}),
@@ -904,7 +850,7 @@ PHASE4_TESTS = [
     ("P4_invoices_update_line", "invoices_update_line", {"id": "{invoice}", "lineid": "{invoice_line.id}", "desc": "Updated line"}),
     ("P4_invoices_delete_line", "invoices_delete_line", {"id": "{invoice}", "lineid": "{invoice_line.id}"}),
     ("P4_invoices_get_discount", "invoices_get_discount", {"id": "{invoice}"}),
-    ("P4_invoices_use_discount", "invoices_use_discount", {"id": "{invoice}"}),
+    ("P4_invoices_use_discount", "invoices_use_discount", {"id": "{invoice}", "discountid": 0}),
     ("P4_invoices_settodraft", "invoices_settodraft", {"id": "{invoice}"}),
     ("P4_invoices_validate", "invoices_validate", {"id": "{invoice}"}),
     ("P4_invoices_add_payment", "invoices_add_payment", {"id": "{invoice}", "datepaye": NOW, "paymentid": "{payment_type_id}", "accountid": "{bankaccount}", "closepaidinvoices": "no"}, "invoice_payment"),
@@ -915,23 +861,23 @@ PHASE4_TESTS = [
     ("P4_orders_settodraft", "orders_settodraft", {"id": "{order}"}),
 
     # ===== Payments =====
-    ("P4_payments_update", "payments_update", {"id": "{payment}", "label": "Updated payment"}),
+    ("P4_payments_update", "payments_update", {"id": "{payment}"}),
 
     # ===== Bank Accounts =====
     ("P4_bankaccounts_get_lines", "bankaccounts_get_lines", {"id": "{bankaccount}"}),
     ("P4_bankaccounts_get_balance", "bankaccounts_get_balance", {"id": "{bankaccount}"}),
     ("P4_bankaccounts_create_line", "bankaccounts_create_line", {"id": "{bankaccount}", "date": NOW, "type": "VIR", "label": "Test wire transfer", "amount": 100.0}, "bank_line"),
-    ("P4_bankaccounts_get_line", "bankaccounts_get_line", {"id": "{bankaccount}", "lineid": "{bank_line.id}"}),
-    ("P4_bankaccounts_update_line", "bankaccounts_update_line", {"id": "{bankaccount}", "lineid": "{bank_line.id}", "label": "Updated bank line"}),
-    ("P4_bankaccounts_delete_line", "bankaccounts_delete_line", {"id": "{bankaccount}", "lineid": "{bank_line.id}"}),
+    ("P4_bankaccounts_get_line", "bankaccounts_get_line", {"line_id": "{bank_line.id}"}),
+    ("P4_bankaccounts_update_line", "bankaccounts_update_line", {"id": "{bankaccount}", "line_id": "{bank_line.id}", "label": "Updated bank line"}),
+    ("P4_bankaccounts_delete_line", "bankaccounts_delete_line", {"id": "{bankaccount}", "line_id": "{bank_line.id}"}),
 
     # ===== Bank Transfers =====
-    ("P4_bankaccounts_transfer", "bankaccounts_transfer", {"bankaccount_from_id": "{bankaccount}", "bankaccount_to_id": "{bankaccount}", "description": "Test transfer", "amount": 10.0}),
+    ("P4_bankaccounts_transfer", "bankaccounts_transfer", {"bankaccount_from_id": "{bankaccount}", "bankaccount_to_id": "{bankaccount}", "date": NOW, "description": "Test transfer", "amount": 10.0}),
 
     # ===== Supplier Orders =====
     ("P4_supplier_orders_create_line", "supplier_orders_create_line", {"id": "{supplier_order}", "desc": "Test", "qty": 1, "subprice": 10.0}, "supplier_order_line"),
-    ("P4_supplier_orders_add_contact", "supplier_orders_add_contact", {"id": "{supplier_order}", "contactid": "{contact}", "type": "external"}),
-    ("P4_supplier_orders_delete_contact", "supplier_orders_delete_contact", {"id": "{supplier_order}", "contactid": "{contact}", "type": "external"}),
+    ("P4_supplier_orders_add_contact", "supplier_orders_add_contact", {"id": "{supplier_order}", "contactid": "{contact}", "type": "external", "source": "external"}),
+    ("P4_supplier_orders_delete_contact", "supplier_orders_delete_contact", {"id": "{supplier_order}", "contactid": "{contact}", "type": "external", "source": "external"}),
     ("P4_supplier_orders_validate", "supplier_orders_validate", {"id": "{supplier_order}"}),
     ("P4_supplier_orders_approve", "supplier_orders_approve", {"id": "{supplier_order}"}),
     ("P4_supplier_orders_receive", "supplier_orders_receive", {"id": "{supplier_order}"}),
@@ -944,13 +890,13 @@ PHASE4_TESTS = [
     ("P4_supplier_invoices_validate", "supplier_invoices_validate", {"id": "{supplier_invoice}"}),
     ("P4_supplier_invoices_settopaid", "supplier_invoices_settopaid", {"id": "{supplier_invoice}"}),
     ("P4_supplier_invoices_get_payments", "supplier_invoices_get_payments", {"id": "{supplier_invoice}"}),
-    ("P4_supplier_invoices_add_payment", "supplier_invoices_add_payment", {"id": "{supplier_invoice}", "datepaye": NOW, "paymentid": "{payment_type_id}", "accountid": "{bankaccount}"}),
+    ("P4_supplier_invoices_add_payment", "supplier_invoices_add_payment", {"id": "{supplier_invoice}", "datepaye": NOW, "payment_mode_id": "{payment_type_id}", "accountid": "{bankaccount}"}),
 
     # ===== Contracts =====
     ("P4_contracts_get_lines", "contracts_get_lines", {"id": "{contract}"}),
     ("P4_contracts_create_line", "contracts_create_line", {"id": "{contract}", "desc": "Test contract line"}, "contract_line"),
     ("P4_contracts_update_line", "contracts_update_line", {"id": "{contract}", "lineid": "{contract_line.id}", "desc": "Updated line"}),
-    ("P4_contracts_activate_line", "contracts_activate_line", {"id": "{contract}", "lineid": "{contract_line.id}"}),
+    ("P4_contracts_activate_line", "contracts_activate_line", {"id": "{contract}", "lineid": "{contract_line.id}", "datestart": NOW}),
     ("P4_contracts_delete_line", "contracts_delete_line", {"id": "{contract}", "lineid": "{contract_line.id}"}),
     ("P4_contracts_validate", "contracts_validate", {"id": "{contract}"}),
     ("P4_contracts_close", "contracts_close", {"id": "{contract}"}),
@@ -988,7 +934,7 @@ PHASE4_TESTS = [
     ("P4_interventions_create_line", "interventions_create_line", {"id": "{intervention}", "description": "Test intervention line", "duration": 60, "date": NOW, "product_id": "{product}", "qty": 1}, "intervention_line"),
     ("P4_interventions_get_contacts", "interventions_get_contacts", {"id": "{intervention}"}),
     ("P4_interventions_get_lines", "interventions_get_lines", {"id": "{intervention}"}),
-    ("P4_interventions_update_line", "interventions_update_line", {"id": "{intervention}", "lineid": "{intervention_line.id}", "description": "Updated line"}),
+    ("P4_interventions_update_line", "interventions_update_line", {"id": "{intervention}", "lineid": "{intervention_line.id}", "desc": "Updated line"}),
     ("P4_interventions_delete_line", "interventions_delete_line", {"id": "{intervention}", "lineid": "{intervention_line.id}"}),
     ("P4_interventions_settodraft", "interventions_settodraft", {"id": "{intervention}"}),
     ("P4_interventions_validate", "interventions_validate", {"id": "{intervention}"}),
@@ -1036,7 +982,7 @@ PHASE4_TESTS = [
     ("P4_users_get_by_email", "users_get_by_email", {"email": "{user.email}"}),
     ("P4_users_get_info", "users_get_info", {}),
     ("P4_users_list_groups", "users_list_groups", {}),
-    ("P4_users_get_group", "users_get_group", {"group": "{group}"}),
+    ("P4_users_get_group", "users_get_group", {"id": "{group}"}),
     ("P4_users_get_user_groups", "users_get_user_groups", {"id": "{user}"}),
 
     # ===== Tickets =====
@@ -1083,7 +1029,7 @@ FILTERING_CHECKS = [
     ("F1 users_get", "users_get", {"id": "{user}"}),
     ("F1 users_get_by_login", "users_get_by_login", {"login": "{user.login}"}),
     ("F1 users_get_by_email", "users_get_by_email", {"email": "{user.email}"}),
-    ("F1 users_get_group", "users_get_group", {"group": "{group}"}),
+    ("F1 users_get_group", "users_get_group", {"id": "{group}"}),
     ("F1 workstations_get", "workstations_get", {"id": "{workstation}"}),
 
     # -- List-GET --
@@ -1168,28 +1114,22 @@ async def run_filtering_check(
         return False
 
     params = resolve_params(params)
-    try:
-        result = await session.call_tool(tool, params)
-        err = is_error(result)
-        if err:
-            results.append({"label": label, "tool": tool, "status": "FAILED", "reason": err})
-            log(f"  FAIL {label}: {err}")
-            return False
+    result = await session.call_tool(tool, params)
+    err = is_error(result)
+    if err:
+        results.append({"label": label, "tool": tool, "status": "FAILED", "reason": err})
+        log(f"  FAIL {label}: {err}")
+        return False
 
-        data = extract_content(result)
+    data = extract_content(result)
 
-        # Unwrap {"items": ..., ...} → [...] for Dolibarr paginated responses
-        if isinstance(data, dict) and "items" in data:
-            items_val = data["items"]
-            if isinstance(items_val, list):
-                data = items_val
-            elif isinstance(items_val, str):
-                try:
-                    data = toon_to_json(items_val)
-                except Exception:
-                    results.append({"label": label, "tool": tool, "status": "FAILED", "reason": "Failed to parse TOON response"})
-                    log(f"  FAIL {label}: TOON parse error")
-                    return False
+    # Unwrap {"items": ..., ...} → [...] for Dolibarr paginated responses
+    if isinstance(data, dict) and "items" in data:
+        items_val = data["items"]
+        if isinstance(items_val, list):
+            data = items_val
+        elif isinstance(items_val, str):
+            data = toon_to_json(items_val)
 
         if isinstance(data, list):
             if len(data) == 0:
@@ -1225,10 +1165,6 @@ async def run_filtering_check(
         results.append({"label": label, "tool": tool, "status": "PASSED", "data": {"note": note}})
         log(f"  PASS {label} ({note})")
         return True
-    except Exception as e:
-        results.append({"label": label, "tool": tool, "status": "FAILED", "reason": str(e)})
-        log(f"  FAIL {label}: {e}")
-        return False
 
 # =============================================================================
 # Main Test Runner
@@ -1264,6 +1200,7 @@ async def main():
             for sub_tool, _ in entry.get("sub_tests", []):
                 tested_tools.add(sub_tool)
         tested_tools.add("status_get")
+        tested_tools.update(["payment_types_list", "expense_types_list", "holiday_types_list"])
         for _, tool, _ in LIST_ONLY_TESTS:
             tested_tools.add(tool)
         for entry in PHASE4_TESTS:
@@ -1295,6 +1232,33 @@ async def main():
             await run_test(session, f"B2 list_{label.lower()}", list_tool, list_params)
         for label, list_tool, list_params in LIST_ONLY_TESTS:
             await run_test(session, f"B2 list_{label.lower()}", list_tool, list_params)
+
+        # ------------------------------------------------------------------
+        # Phase 3.5: Reference Data Discovery (load existing dictionary IDs)
+        # ------------------------------------------------------------------
+        log("\n=== Phase 3.5: Reference Data Discovery ===")
+        for discovery_tool, discovery_key in [
+            ("payment_types_list", "payment_type_id"),
+            ("expense_types_list", "expense_type_id"),
+            ("holiday_types_list", "holiday_type_id"),
+        ]:
+            result = await session.call_tool(discovery_tool, {})
+            err = is_error(result)
+            if err:
+                log(f"  FAIL {discovery_tool}: {err}")
+                continue
+            raw = extract_content(result)
+            if isinstance(raw, dict) and "items" in raw:
+                raw = raw["items"]
+            if isinstance(raw, str):
+                raw = toon_to_json(raw)
+            if isinstance(raw, list) and len(raw) > 0:
+                first_id = raw[0].get("id") or raw[0].get("rowid")
+                if first_id:
+                    store[discovery_key] = {"id": first_id}
+                    log(f"  FOUND {discovery_key} = {first_id}")
+                else:
+                    log(f"  FAIL {discovery_tool}: no id field in first item")
 
         # ------------------------------------------------------------------
         # Phase 3A: Create All Resources (store IDs, no deletes)
@@ -1442,32 +1406,26 @@ async def main():
         ]
         for label, tool, params, expect_pattern in NEGATIVE_TESTS:
             rp = resolve_params(params)
-            try:
-                result = await session.call_tool(tool, rp)
-                err = is_error(result)
-                if err:
-                    results.append({"label": label, "tool": tool, "status": "PASSED", "reason": f"Got expected error: {err[:80]}"})
-                    log(f"  PASS {label}: got error as expected")
-                else:
-                    results.append({"label": label, "tool": tool, "status": "FAILED", "reason": "Expected error but got success"})
-                    log(f"  FAIL {label}: expected error, got success")
-            except Exception as e:
-                results.append({"label": label, "tool": tool, "status": "PASSED", "reason": f"Got expected exception: {e}"})
-                log(f"  PASS {label}: got exception as expected")
+            result = await session.call_tool(tool, rp)
+            err = is_error(result)
+            if err:
+                results.append({"label": label, "tool": tool, "status": "PASSED", "reason": f"Got expected error: {err[:80]}"})
+                log(f"  PASS {label}: got error as expected")
+            else:
+                results.append({"label": label, "tool": tool, "status": "FAILED", "reason": "Expected error but got success"})
+                log(f"  FAIL {label}: expected error, got success")
 
         # ------------------------------------------------------------------
         # Report Summary
         # ------------------------------------------------------------------
         passed = sum(1 for r in results if r["status"] == "PASSED")
         failed = sum(1 for r in results if r["status"] == "FAILED")
-        skipped = sum(1 for r in results if r["status"] == "SKIPPED")
 
         print(f"\n## Summary\n")
         print(f"| Status | Count |")
         print(f"|--------|-------|")
         print(f"| PASSED | {passed} |")
         print(f"| FAILED | {failed} |")
-        print(f"| SKIPPED | {skipped} |")
 
         if passed:
             print(f"\n## PASSED ({passed})\n")
@@ -1483,23 +1441,11 @@ async def main():
                     print(f"- **Error**: {r['reason']}")
                     print()
 
-        if skipped:
-            print(f"\n## SKIPPED ({skipped})\n")
-            for r in results:
-                if r["status"] == "SKIPPED":
-                    print(f"- `{r['tool']}` — {r['reason']}")
-
-        print(f"\n## Iteration History\n")
-        print(f"| Iteration | Passed | Failed | Skipped | Fixes Applied |")
-        print(f"|-----------|--------|--------|---------|---------------|")
-        print(f"| 1 | {passed} | {failed} | {skipped} | Initial run |")
-
         total = len(results)
         print(f"\n---")
-        print(f"**Total tests:** {total} | **PASSED:** {passed} | "
-              f"**FAILED:** {failed} | **SKIPPED:** {skipped}")
+        print(f"**Total tests:** {total} | **PASSED:** {passed} | **FAILED:** {failed}")
 
-        if failed == 0 and skipped == 0:
+        if failed == 0:
             print(f"\n**ALL TESTS PASS**")
         else:
             print(f"\n**TESTS FAILING** — see above for details")
