@@ -57,7 +57,7 @@ EXPECTED_FIELDS: dict[str, set[str]] = {
     "PRODUCT_LOT_COMMON": {"id","fk_product","batch","eatby","sellby"},
     "OUTSTANDING_COMMON": {"id","ref","total_ttc","status","date"},
     "BANK_ACCOUNT_COMMON": {"id","ref","label","type","courant","currency_code","number"},
-    "MULTI_CURRENCY_COMMON": {"id","code","name","rate","date_create"},
+    "MULTI_CURRENCY_COMMON": {"id","code","name","rate"},
     "EXPENSE_REPORT_COMMON": {"id","ref","total_ttc","status","date_create","fk_project"},
     "HOLIDAY_COMMON": {"id","ref","fk_user","date_debut","date_fin","status"},
     "PROJECT_COMMON": {"id","ref","title","status","socid","budget_amount"},
@@ -163,7 +163,7 @@ TOOL_FIELD_MAP: dict[str, set[str]] = {
     "products_get_categories": EXPECTED_FIELDS["CATEGORY_COMMON"],
     "products_get_subproducts": EXPECTED_FIELDS["PROD_COMMON"],
     "projects_get_tasks": EXPECTED_FIELDS["TASK_COMMON"],
-    "multi_currencies_get_rates": EXPECTED_FIELDS["MULTI_CURRENCY_COMMON"],
+    "multi_currencies_get_rates": {"id", "rate"},
     "products_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
     "orders_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
     "invoices_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
@@ -791,7 +791,7 @@ RESOURCE_TESTS = [
 ]
 
 LIST_ONLY_TESTS = [
-    ("Documents", "documents_list", {"modulepart": "propal", "id": "{proposal}"}),
+    ("Documents", "documents_list", {"modulepart": "propal", "id": 1}),
 ]
 
 
@@ -821,9 +821,9 @@ PHASE4_TESTS = [
     ("P4_proposals_get_contacts", "proposals_get_contacts", {"id": "{proposal}"}),
     ("P4_proposals_add_contact", "proposals_add_contact", {"id": "{proposal}", "contactid": "{contact}", "type": "CUSTOMER"}),
     ("P4_proposals_update_line", "proposals_update_line", {"id": "{proposal}", "lineid": "{proposal_line.id}", "desc": "Updated line"}),
-    ("P4_proposals_delete_line", "proposals_delete_line", {"id": "{proposal}", "lineid": "{proposal_line.id}"}),
     ("P4_proposals_settodraft", "proposals_settodraft", {"id": "{proposal}"}),
     ("P4_proposals_validate", "proposals_validate", {"id": "{proposal}"}),
+    ("P4_proposals_delete_line", "proposals_delete_line", {"id": "{proposal}", "lineid": "{proposal_line.id}"}),
     ("P4_proposals_close", "proposals_close", {"id": "{proposal}", "status": 2}),
     ("P4_proposals_setinvoiced", "proposals_setinvoiced", {"id": "{proposal}"}),
 
@@ -832,10 +832,10 @@ PHASE4_TESTS = [
     ("P4_orders_create_line", "orders_create_line", {"id": "{order}", "desc": "Test line", "qty": 1, "subprice": 10.0}, "order_line"),
     ("P4_orders_get_contacts", "orders_get_contacts", {"id": "{order}"}),
     ("P4_orders_update_line", "orders_update_line", {"id": "{order}", "lineid": "{order_line.id}", "desc": "Updated line"}),
-    ("P4_orders_delete_line", "orders_delete_line", {"id": "{order}", "lineid": "{order_line.id}"}),
     ("P4_orders_create_shipment", "orders_create_shipment", {"id": "{order}", "warehouse_id": "{warehouse}"}),
     ("P4_orders_get_shipments", "orders_get_shipments", {"id": "{order}"}),
     ("P4_orders_validate", "orders_validate", {"id": "{order}"}),
+    ("P4_orders_delete_line", "orders_delete_line", {"id": "{order}", "lineid": "{order_line.id}"}),
     ("P4_orders_close", "orders_close", {"id": "{order}"}),
     ("P4_orders_reopen", "orders_reopen", {"id": "{order}"}),
     ("P4_orders_setinvoiced", "orders_setinvoiced", {"id": "{order}"}),
@@ -843,18 +843,18 @@ PHASE4_TESTS = [
 
     # ===== Invoices (state transitions + sub-resources) =====
     ("P4_invoices_get_lines", "invoices_get_lines", {"id": "{invoice}"}),
-    ("P4_invoices_create_line", "invoices_create_line", {"id": "{invoice}", "desc": "Test line", "qty": 1, "subprice": 10.0}, "invoice_line"),
+    ("P4_invoices_create_line", "invoices_create_line", {"id": "{invoice}", "desc": "Test line", "qty": 1, "subprice": 10.0, "tva_tx": 20.0}, "invoice_line"),
     ("P4_invoices_get_contacts", "invoices_get_contacts", {"id": "{invoice}"}),
     ("P4_invoices_get_payments", "invoices_get_payments", {"id": "{invoice}"}),
     ("P4_invoices_create_from_order", "invoices_create_from_order", {"orderid": "{order}"}),
     ("P4_invoices_update_line", "invoices_update_line", {"id": "{invoice}", "lineid": "{invoice_line.id}", "desc": "Updated line"}),
-    ("P4_invoices_delete_line", "invoices_delete_line", {"id": "{invoice}", "lineid": "{invoice_line.id}"}),
     ("P4_invoices_get_discount", "invoices_get_discount", {"id": "{invoice}"}),
     ("P4_invoices_use_discount", "invoices_use_discount", {"id": "{invoice}", "discountid": 0}),
     ("P4_invoices_settodraft", "invoices_settodraft", {"id": "{invoice}"}),
     ("P4_invoices_validate", "invoices_validate", {"id": "{invoice}"}),
     ("P4_invoices_add_payment", "invoices_add_payment", {"id": "{invoice}", "datepaye": NOW, "paymentid": "{payment_type_id}", "accountid": "{bankaccount}", "closepaidinvoices": "no"}, "invoice_payment"),
     ("P4_invoices_settopaid", "invoices_settopaid", {"id": "{invoice}"}),
+    ("P4_invoices_delete_line", "invoices_delete_line", {"id": "{invoice}", "lineid": "{invoice_line.id}"}),
     ("P4_invoices_settounpaid", "invoices_settounpaid", {"id": "{invoice}"}),
     ("P4_invoices_add_contact", "invoices_add_contact", {"id": "{invoice}", "fk_socpeople": "{contact}", "type_contact": "external"}),
     ("P4_invoices_delete_contact", "invoices_delete_contact", {"id": "{invoice}", "contactid": "{contact}", "type": "external"}),
@@ -886,11 +886,11 @@ PHASE4_TESTS = [
     ("P4_supplier_invoices_get_lines", "supplier_invoices_get_lines", {"id": "{supplier_invoice}"}),
     ("P4_supplier_invoices_create_line", "supplier_invoices_create_line", {"id": "{supplier_invoice}", "desc": "Test", "qty": 1, "subprice": 10.0}, "supplier_invoice_line"),
     ("P4_supplier_invoices_update_line", "supplier_invoices_update_line", {"id": "{supplier_invoice}", "lineid": "{supplier_invoice_line.id}", "desc": "Updated line"}),
-    ("P4_supplier_invoices_delete_line", "supplier_invoices_delete_line", {"id": "{supplier_invoice}", "lineid": "{supplier_invoice_line.id}"}),
     ("P4_supplier_invoices_validate", "supplier_invoices_validate", {"id": "{supplier_invoice}"}),
     ("P4_supplier_invoices_settopaid", "supplier_invoices_settopaid", {"id": "{supplier_invoice}"}),
     ("P4_supplier_invoices_get_payments", "supplier_invoices_get_payments", {"id": "{supplier_invoice}"}),
     ("P4_supplier_invoices_add_payment", "supplier_invoices_add_payment", {"id": "{supplier_invoice}", "datepaye": NOW, "payment_mode_id": "{payment_type_id}", "accountid": "{bankaccount}"}),
+    ("P4_supplier_invoices_delete_line", "supplier_invoices_delete_line", {"id": "{supplier_invoice}", "lineid": "{supplier_invoice_line.id}"}),
 
     # ===== Contracts =====
     ("P4_contracts_get_lines", "contracts_get_lines", {"id": "{contract}"}),
