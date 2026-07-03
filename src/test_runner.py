@@ -160,6 +160,8 @@ TOOL_FIELD_MAP: dict[str, set[str]] = {
     "contacts_get_categories": EXPECTED_FIELDS["CATEGORY_COMMON"],
     "products_get_categories": EXPECTED_FIELDS["CATEGORY_COMMON"],
     "products_get_subproducts": EXPECTED_FIELDS["PROD_COMMON"],
+    "products_get_stock": {"id", "stock_reel", "stock_theorique", "stock_warehouses", "label"},
+    "proposals_get_contacts": {"address", "civility", "code", "country", "country_id", "email", "firstname", "fk_c_type_contact", "gender", "id", "lastname", "libelle", "login", "nom", "parentId", "photo", "rowid", "socid", "source", "status", "statuscontact", "town", "zip"},
     "projects_get_tasks": EXPECTED_FIELDS["TASK_COMMON"],
     "multi_currencies_get_rates": {"id", "rate"},
     "products_get_contacts": EXPECTED_FIELDS["CONTACT_COMMON"],
@@ -937,7 +939,7 @@ async def run_filtering_check(
     data = extract_content(result)
     raw = isinstance(data, dict) and isinstance(data.get("items"), str) and toon_to_json(data["items"]) or data
     data = isinstance(raw, dict) and "items" in raw and raw["items"] or raw
-    items = isinstance(raw, list) and raw or isinstance(raw, dict) and [raw] or []
+    items = isinstance(data, list) and data or isinstance(data, dict) and [data] or []
     empty_list = isinstance(items, list) and len(items) == 0
     items = empty_list and [] or (isinstance(items, list) and items or [items])
     item = isinstance(items, list) and len(items) > 0 and items[0] or {}
