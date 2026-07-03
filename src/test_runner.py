@@ -256,6 +256,7 @@ ALL_TESTS = [
     ("B2 list_supplier_orders", "supplier_orders_list", '{}', "last", ""),
     ("B2 list_supplier_invoices", "supplier_invoices_list", '{}', "last", ""),
     ("B2 list_supplier_proposals", "supplier_proposals_list", '{}', "last", ""),
+    ("B2 list_users", "users_list", '{}', "last", ""),
     ("B2 list_contracts", "contracts_list", '{}', "last", ""),
     ("B2 list_boms", "boms_list", '{}', "last", ""),
     ("B2 list_mos", "mos_list", '{}', "last", ""),
@@ -336,6 +337,7 @@ ALL_TESTS = [
     ("P4_invoices_settounpaid", "invoices_settounpaid", '{"id": {invoice.id}}', "last", ""),
     ("P4_invoices_settodraft", "invoices_settodraft", '{"id": {invoice.id}}', "last", ""),
     ("P4_invoices_add_contact", "invoices_add_contact", '{"id": {invoice.id}, "fk_socpeople": {contact.id}, "type_contact": "BILLING", "source": "external"}', "last", ""),
+    ("P4_invoices_delete_contact", "invoices_delete_contact", '{"id": {invoice.id}, "contactid": {contact.id}, "type": "external"}', "last", ""),
     ("P4_orders_settodraft", "orders_settodraft", '{"id": {order.id}}', "last", ""),
     # Payments
     # REMOVED: P4_payments_update — no api_payments.class.php in backend, endpoint returns 501
@@ -350,7 +352,8 @@ ALL_TESTS = [
     # Supplier Orders
     ("P4_supplier_orders_get_contacts", "supplier_orders_get_contacts", '{"id": {supplier_order.id}}', "last", ""),
     ("P4_supplier_orders_create_line", "supplier_orders_create_line", '{"id": {supplier_order.id}, "desc": "Test", "qty": 1, "subprice": 10.0}', "supplier_order_line", ""),
-    ("P4_supplier_orders_add_contact", "supplier_orders_add_contact", '{"id": {supplier_order.id}, "contactid": {contact.id}, "type": "external", "source": "external"}', "last", ""),
+    ("P4_supplier_orders_add_contact", "supplier_orders_add_contact", '{"id": {supplier_order.id}, "contactid": {contact.id}, "type": "BILLING", "source": "external"}', "last", ""),
+    ("P4_supplier_orders_delete_contact", "supplier_orders_delete_contact", '{"id": {supplier_order.id}, "contactid": {contact.id}, "type": "BILLING", "source": "external"}', "last", ""),
     ("P4_supplier_orders_validate", "supplier_orders_validate", '{"id": {supplier_order.id}}', "last", ""),
     ("P4_supplier_orders_approve", "supplier_orders_approve", '{"id": {supplier_order.id}}', "last", ""),
     ("P4_supplier_orders_setsent", "supplier_orders_update", '{"id": {supplier_order.id}, "status": 3}', "last", ""),
