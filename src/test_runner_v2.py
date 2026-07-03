@@ -21,7 +21,6 @@ store["holiday_type_id.id"] = "1"
 # HARDCODED: Workstations — API rejects create/delete on seed data,
 # so all read/update/list operations reference existing seed ID 1.
 store["workstation.id"] = "1"
-
 # Pre-computed truncated codes (Python expressions evaluated at module load)
 _CODE_MC = rid[-3:]
 
@@ -210,7 +209,6 @@ ALL_TESTS = [
     ("C3 update_productlots", "productlots_update", '{"id": {productlot.id}, "qty": 5.0}', "last", ""),
     # StockMovements
     ("C2 get_stockmovements_by_id", "stockmovements_get", '{"id": {stockmovement.id}}', "stockmovement", ""),
-    ("C3 update_stockmovements", "stockmovements_update", '{"id": {stockmovement.id}, "qty": 5.0}', "last", ""),
     # BankAccount
     ("C2 get_bankaccounts_by_id", "bankaccounts_get", '{"id": {bankaccount.id}}', "bankaccount", ""),
     ("C3 update_bankaccounts", "bankaccounts_update", '{"id": {bankaccount.id}, "label": "t{rid}-UpdBank"}', "last", ""),

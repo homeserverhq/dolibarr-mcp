@@ -1713,16 +1713,6 @@ async def stockmovements_create(product_id: int, warehouse_id: int, qty: float, 
     return await get_client().stockmovements_create(params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool()
-async def stockmovements_update(id: int, qty: float, ctx: Context = None) -> dict[str, Any]:
-    """Update a stock movement.
-
-    Args:
-        id: The unique ID of the resource (required).
-        qty: Quantity.
-    """
-    payload = {k: v for k, v in {"qty": qty}.items() if v is not None}
-    return await get_client().stockmovements_update(id, payload, get_user_token())
-
 @mcp.tool()
 async def stockmovements_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a stock movement by ID.
