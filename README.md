@@ -1,15 +1,28 @@
-# Dolibarr MCP Multi-Tenant Proxy Server
+# Dolibarr MCP Multitenant Proxy Server
 
-This repository contains a Model Context Protocol (MCP) server that acts as a secure, multi-tenant proxy between an AI Assistant and the Dolibarr ERP/CRM backend API. It exposes **285 MCP tools** covering 34 resource domains with full CRUD, domain-specific tools, and relationship management.
+This repository contains a Model Context Protocol (MCP) server that acts
+as a secure, multi-tenant proxy between an AI Assistant and the
+Dolibarr ERP/CRM backend API. It exposes **299 MCP tools** covering
+34 resource domains with full CRUD, lifecycle management, and
+relationship management.
 
 ## ✨ Features
 
-- **🔑 Identity Passthrough** — Extracts the `Authorization: Bearer <token>` header from incoming HTTP requests and forwards it to the Dolibarr API without server-side authentication.
-- **👥 Multi-Tenancy** — Uses Python `contextvars` to maintain thread-safe user identity isolation, ensuring all AI-driven actions are scoped to the authenticated user's permissions.
-- **📊 Full Dolibarr Coverage** — 285 tools mapped to Dolibarr API endpoints across 34 resource domains.
-- **⚡ TOON Optimization** — Bulk list responses are automatically compressed using TOON (Token-Optimized Object Notation) to reduce token consumption and maximize context window efficiency.
-- **🚀 Efficient Gets** — GET responses return only commonly used fields by default. Full objects are available via an `include_all_fields` flag.
-- **🧪 Comprehensive Testing** — 420+ automated tests covering all tool domains, run via the test runner pipeline.
+- **🔑 Identity Passthrough** — Extracts the `Authorization: Bearer <token>`
+  header from incoming HTTP requests and forwards it to the Dolibarr
+  API without server-side authentication.
+- **👥 Multi-Tenancy** — Uses Python `contextvars` to maintain thread-safe
+  user identity isolation, ensuring all AI-driven actions are scoped to
+  the authenticated user's permissions.
+- **📊 Full Dolibarr Coverage** — 299 tools mapped to Dolibarr
+  API endpoints across 34 resource domains.
+- **⚡ TOON Optimization** — Bulk list responses are automatically compressed
+  using TOON (Token-Optimized Object Notation) to reduce token consumption
+  and maximize context window efficiency.
+- **⚡ Efficient Gets** — GET responses return only commonly used fields by
+  default. Full objects are available via an `include_all_fields` flag.
+- **🧪 Comprehensive Testing** — 529 automated tests covering all tool
+  domains, run via the test runner pipeline.
 
 ## 🔧 Environment Variables
 
@@ -17,6 +30,8 @@ This repository contains a Model Context Protocol (MCP) server that acts as a se
 |----------|----------|-------------|
 | `DOLIBARR_BASE_URL` | Yes | Docker-internal URL of the Dolibarr API |
 | `MCP_SERVER_PORT` | Yes | Port number the MCP server listens on |
+| `ALLOW_ALL_AGGREGATE` | No | When `true`, aggregate listing tools honor the `include_all_fields` parameter. When `false` (default), the parameter is silently forced to `False` for aggregate list operations. |
+| `IS_STATEFUL` | No | When `true`, uses stateful Streamable HTTP with session tracking. When `false` (default), uses stateless mode. |
 
 ## 📦 Installation & Local Development
 
@@ -28,7 +43,7 @@ This repository contains a Model Context Protocol (MCP) server that acts as a se
 3. Run the server:
     ```bash
     export DOLIBARR_BASE_URL=http://localhost:8040/api/index.php
-    export MCP_SERVER_PORT=6033
+    export MCP_SERVER_PORT=80
     python -m src.main
     ```
 
@@ -40,21 +55,31 @@ Build and run the server using Docker:
 docker build -t dolibarr-mcp:latest .
 docker run -d --name dolibarr-mcp \
     -e DOLIBARR_BASE_URL="http://dolibarr-app:80/api/index.php" \
-    -e MCP_SERVER_PORT=6033 \
+    -e MCP_SERVER_PORT=80 \
     dolibarr-mcp:latest
-```
 
-The MCP server serves at `http://dolibarr-mcp:6033/mcp` (Streamable HTTP).
+The MCP server serves at `http://dolibarr-mcp:80/mcp`
+(Streamable HTTP).
+```
 
 ## ⚠️ Important Notes
 
-- **📋 `include_all_fields`** — The `include_all_fields` parameter (available on all `get_*` and `list_*` tools) controls whether all available fields are included in responses. Defaults to `False` for performance; set to `True` only when additional fields are needed.
-- **⚡ TOON Compression** — All bulk list responses are automatically compressed using TOON (Token-Optimized Object Notation) to reduce token consumption by 30-60%.
-- **📝 Required Fields & Defaults** — Each `create_*` tool requires specific key fields (e.g. `name` for third parties). All other fields default to empty strings or reasonable values. The owner/user assignment field is automatically set to the authenticated user for most resources.
+- **📋 `include_all_fields`** — The `include_all_fields` parameter (available
+  on all `get_*` and `list_*` tools) controls whether all available fields
+  are included in responses. Defaults to `False` for performance; set to
+  `True` only when additional fields are needed.
+- **⚡ TOON Compression** — All bulk list responses are automatically
+  compressed using TOON (Token-Optimized Object Notation) to reduce token
+  consumption by 30-60%.
+- **📝 Required Fields & Defaults** — Each `create_*` tool requires specific
+  key fields (e.g. `name` for third parties). All other fields default to
+  empty strings or reasonable values. The owner/user assignment field is
+  automatically set to the authenticated user for most resources.
 
 ## 🛠️ API Tool Mapping
 
-The server implements 285 MCP tools organized into the following categories:
+The server implements 299 MCP tools organized into the following
+categories:
 
 ### ✅ Status (1 tool)
 - `status_get` — Health check endpoint for backend connectivity
@@ -63,16 +88,18 @@ The server implements 285 MCP tools organized into the following categories:
 - `documents_list` — List documents/attachments for a given element
 - `documents_list_types` — List available document types
 
-### 🏢 Third Parties (10 tools)
+### 🏢 Third Parties (12 tools)
 - `thirdparties_list` — List all third parties
 - `thirdparties_get` — Get a third party by ID
 - `thirdparties_create` — Create a new third party
 - `thirdparties_update` — Update an existing third party
 - `thirdparties_delete` — Delete a third party by ID
-- `thirdparties_get_outstanding_proposals` — Get outstanding proposals for a third party
-- `thirdparties_get_outstanding_orders` — Get outstanding orders for a third party
-- `thirdparties_get_outstanding_invoices` — Get outstanding invoices for a third party
-- `thirdparties_get_representatives` — Get representatives for a third party
+- `thirdparties_add_representative` — Add a sales representative
+- `thirdparties_delete_representative` — Remove a sales representative
+- `thirdparties_get_outstanding_proposals` — Get outstanding proposals
+- `thirdparties_get_outstanding_orders` — Get outstanding orders
+- `thirdparties_get_outstanding_invoices` — Get outstanding invoices
+- `thirdparties_get_representatives` — Get sales representatives
 - `thirdparties_get_categories` — Get categories for a third party
 
 ### 👤 Contacts (6 tools)
@@ -152,7 +179,7 @@ The server implements 285 MCP tools organized into the following categories:
 - `orders_create_shipment` — Create a shipment from an order
 - `orders_get_contacts` — Get contacts for an order
 
-### 🧾 Invoices (21 tools)
+### 🧾 Invoices (22 tools)
 - `invoices_list` — List all invoices
 - `invoices_get` — Get an invoice by ID
 - `invoices_create` — Create a new invoice
@@ -174,11 +201,12 @@ The server implements 285 MCP tools organized into the following categories:
 - `invoices_delete_contact` — Remove a contact from an invoice
 - `invoices_get_discount` — Get available discounts for an invoice
 - `invoices_use_discount` — Apply a discount to an invoice
+- `invoices_mark_as_credit_available` — Mark a credit note as available
 
 ### 💳 Payments (4 tools)
 - `payments_list` — List all payments
 - `payments_get` — Get a payment by ID
-- `payments_update` — Update an existing payment
+- `payments_create` — Create a new payment
 - `payments_delete` — Delete a payment by ID
 
 ### 🏦 Bank Accounts (12 tools)
@@ -389,9 +417,12 @@ The server implements 285 MCP tools organized into the following categories:
 - `tickets_delete` — Delete a ticket by ID
 - `tickets_create_message` — Create a message on a ticket
 
-### 🖥️ Workstations (2 tools)
+### 🖥️ Workstations (5 tools)
 - `workstations_list` — List all workstations
 - `workstations_get` — Get a workstation by ID
+- `workstations_create` — Create a new workstation
+- `workstations_update` — Update an existing workstation
+- `workstations_delete` — Delete a workstation by ID
 
 ### 🔗 Object Links (4 tools)
 - `object_links_get` — Get an object link by ID
@@ -399,12 +430,24 @@ The server implements 285 MCP tools organized into the following categories:
 - `object_links_get_by_values` — Get object links by values
 - `object_links_delete` — Delete an object link by ID
 
-### 👥 Users (8 tools)
+### 👥 Users (11 tools)
 - `users_list` — List all users
 - `users_get` — Get a user by ID
+- `users_create` — Create a new user
+- `users_update` — Update an existing user
+- `users_delete` — Delete a user by ID
 - `users_get_by_login` — Get a user by login
 - `users_get_by_email` — Get a user by email
 - `users_get_group` — Get a user group by ID
 - `users_get_info` — Get current user info
 - `users_list_groups` — List all user groups
 - `users_get_user_groups` — Get groups for a user
+
+### 👪 Groups (2 tools)
+- `groups_create` — Create a new user group
+- `groups_delete` — Delete a user group by ID
+
+### 📊 Reference Data (3 tools)
+- `payment_types_list` — List payment types
+- `expense_types_list` — List expense report types
+- `holiday_types_list` — List holiday types
