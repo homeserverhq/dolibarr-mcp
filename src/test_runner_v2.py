@@ -71,7 +71,7 @@ ALL_TESTS = [
     ("C1 create_tickets", "tickets_create", '{"subject": "t{rid}-Ticket", "type_code": "COM", "severity_code": "MINOR", "category_code": "OTH"}', "ticket", ""),
     ("C1 create_groups", "groups_create", '{"name": "t{rid}-GRP"}', "group", ""),
     ("C1 create_workstations", "workstations_create", '{"label": "t{rid}-WS", "status": 1}', "workstation", ""),
-    ("C1 create_objectlinks", "object_links_create", '{"fk_source": {thirdparty.id}, "sourcetype": "thirdparty", "fk_target": {contact.id}, "targettype": "contact", "relationtype": "link"}', "object_link", ""),
+    ("C1 create_objectlinks", "object_links_create", '{"fk_source": {proposal.id}, "sourcetype": "propal", "fk_target": {order.id}, "targettype": "commande", "relationtype": "link"}', "object_link", ""),
 
     # ===== Phase 3A.5: Fetches (GET overwrites store with verified data) =====
     ("C1b fetch_products", "products_get", '{"id": {product.id}}', "product", ""),
@@ -106,12 +106,12 @@ ALL_TESTS = [
     ("C1b fetch_tickets", "tickets_get", '{"id": {ticket.id}}', "ticket", ""),
     ("C1b fetch_groups", "users_get_group", '{"id": {group.id}}', "group", ""),
     ("C1b fetch_workstations", "workstations_get", '{"id": {workstation.id}}', "workstation", ""),
-    ("C1b fetch_objectlinks", "object_links_get", '{"id": {object_link.id}}', "object_link", ""),
+    ("C1b fetch_objectlinks", "object_links_get_by_values", '{"fk_source": {proposal.id}, "sourcetype": "propal", "fk_target": {order.id}, "targettype": "commande"}', "object_link", ""),
 
     # ===== Phase 3B.1: Gets (reversed), Updates (reversed), Sub-tests (reversed) =====
     # ObjectLinks
     ("C2 get_objectlinks_by_id", "object_links_get", '{"id": {object_link.id}}', "object_link", ""),
-    ("C3s objectlinks_object_links_get_by_values", "object_links_get_by_values", '{"fk_source": {thirdparty.id}, "sourcetype": "thirdparty", "fk_target": {contact.id}, "targettype": "contact"}', "last", ""),
+    ("C3s objectlinks_object_links_get_by_values", "object_links_get_by_values", '{"fk_source": {proposal.id}, "sourcetype": "propal", "fk_target": {order.id}, "targettype": "commande"}', "last", ""),
     # Workstations
     ("C2 get_workstations_by_id", "workstations_get", '{"id": {workstation.id}}', "workstation", ""),
     ("C3 update_workstations", "workstations_update", '{"id": {workstation.id}, "label": "Updated WS"}', "last", ""),
@@ -272,7 +272,7 @@ ALL_TESTS = [
     ("B2 list_tickets", "tickets_list", '{}', "last", ""),
     ("B2 list_groups", "users_list_groups", '{}', "last", ""),
     ("B2 list_workstations", "workstations_list", '{}', "last", ""),
-    ("B2 list_objectlinks", "object_links_get_by_values", '{"fk_source": {thirdparty.id}, "sourcetype": "thirdparty", "fk_target": {contact.id}, "targettype": "contact"}', "last", ""),
+    ("B2 list_objectlinks", "object_links_get_by_values", '{"fk_source": {proposal.id}, "sourcetype": "propal", "fk_target": {order.id}, "targettype": "commande"}', "last", ""),
 
     # ===== Phase 4: Domain-Specific Tools =====
     # ThirdParty
@@ -421,7 +421,7 @@ ALL_TESTS = [
     # Multi Currencies
     ("P4_multi_currencies_get_rates", "multi_currencies_get_rates", '{"id": {multi_currency.id}}', "last", ""),
     # Object Links
-    ("P4_object_links_get_by_values", "object_links_get_by_values", '{"fk_source": {thirdparty.id}, "sourcetype": "thirdparty", "fk_target": {contact.id}, "targettype": "contact"}', "last", ""),
+    ("P4_object_links_get_by_values", "object_links_get_by_values", '{"fk_source": {proposal.id}, "sourcetype": "propal", "fk_target": {order.id}, "targettype": "commande"}', "last", ""),
     # Discovery
     ("P4_documents_list_types", "documents_list_types", '{}', "last", ""),
     ("P4_categories_get_types", "categories_get_types", '{}', "last", ""),
