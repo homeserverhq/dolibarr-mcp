@@ -1127,6 +1127,16 @@ async def thirdparties_get_representatives(
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
+async def thirdparties_add_representative(id: int, fk_user: int, ctx: Context = None) -> dict[str, Any]:
+    """Add a representative to a third party.
+
+    Args:
+        id: The unique ID of the third party (required).
+        fk_user: User ID to set as representative (required).
+    """
+    return await get_client().thirdparties_add_representative(id, fk_user, get_user_token())
+
+@mcp.tool()
 async def thirdparties_get_categories(
     id: int,
     sortfield: str = "",
@@ -2556,6 +2566,15 @@ async def invoices_use_discount(id: int, discountid: int, ctx: Context = None) -
         discountid: Discount ID (required).
     """
     return await get_client().invoices_use_discount(id, discountid, get_user_token())
+
+@mcp.tool()
+async def invoices_mark_as_credit_available(id: int, ctx: Context = None) -> dict[str, Any]:
+    """Mark a credit note as available to be used as a discount.
+
+    Args:
+        id: The unique ID of the validated credit note (required).
+    """
+    return await get_client().invoices_mark_as_credit_available(id, get_user_token())
 
 # ============================================================
 # Payments

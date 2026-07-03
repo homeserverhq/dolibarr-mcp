@@ -233,6 +233,9 @@ class DolibarrClient:
         params = {}
         return await self.get(f"/thirdparties/{id}/representatives", api_key, params=params)
 
+    async def thirdparties_add_representative(self, id: int, fk_user: int, api_key: Optional[str] = None) -> Any:
+        return await self.post(f"/thirdparties/{id}/representative/{fk_user}", api_key)
+
     async def thirdparties_get_categories(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
         params = {}
         if sortfield: params["sortfield"] = sortfield
@@ -675,6 +678,9 @@ class DolibarrClient:
 
     async def invoices_use_discount(self, id: int, discountid: int, api_key: Optional[str] = None) -> Any:
         return await self.post(f"/invoices/{id}/usediscount/{discountid}", api_key)
+
+    async def invoices_mark_as_credit_available(self, id: int, api_key: Optional[str] = None) -> Any:
+        return await self.post(f"/invoices/{id}/markAsCreditAvailable", api_key)
 
     # ============================================================
     # Payments
