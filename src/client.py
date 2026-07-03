@@ -34,6 +34,23 @@ def _to_timestamp(value: str) -> int:
     raise ValueError(f"Cannot convert to timestamp: {value}")
 
 
+def _to_iso8601(value: Any) -> Any:
+    if isinstance(value, int) and value > 1000000000:
+        return dt.datetime.fromtimestamp(value, tz=dt.timezone.utc).isoformat()
+    if isinstance(value, str) and re.match(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$', value):
+        parsed = dt.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').replace(tzinfo=dt.timezone.utc)
+        return parsed.isoformat()
+    return value
+
+
+def _normalize_response(obj: Any) -> Any:
+    if isinstance(obj, dict):
+        return {k: _normalize_response(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_normalize_response(v) for v in obj]
+    return obj
+
+
 TP_COMMON = "id,ref,name,client,fournisseur,code_client,code_fournisseur,address,zip,town,country_id,country_code,phone,email,status,tva_intra"
 PROD_COMMON = "id,ref,label,type,status,price_ttc,stock_reel,barcode,weight"
 INV_COMMON = "id,ref,socid,total_ttc,status"
@@ -137,7 +154,7 @@ class DolibarrClient:
             data = response.json()
             if isinstance(data, int):
                 return {"id": data}
-            return data
+            return _normalize_response(data)
         return {"text": response.text}
 
     async def get(self, path: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:

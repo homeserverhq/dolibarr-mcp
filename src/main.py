@@ -1278,6 +1278,7 @@ async def contacts_create(
         poste: Job position.
         default_lang: Default language code.
     """
+    birthday = _normalize_datetime(birthday)
     params = CreateContactParam(
         lastname=lastname, socid=socid, firstname=firstname,
         address=address, zip=zip, town=town, country_id=country_id,
@@ -1331,6 +1332,7 @@ async def contacts_update(
         poste: Job position.
         default_lang: Default language code.
     """
+    birthday = _normalize_datetime(birthday) if birthday else birthday
     params = UpdateContactParam(
         lastname=lastname, socid=socid, firstname=firstname,
         address=address, zip=zip, town=town, country_id=country_id,
@@ -1749,6 +1751,9 @@ async def stockmovements_create(product_id: int, warehouse_id: int, qty: float, 
         origin_type: Origin object type.
         origin_id: Origin object ID.
     """
+    datem = _normalize_datetime(datem)
+    eatBy = _normalize_datetime(eatBy)
+    sellBy = _normalize_datetime(sellBy)
     params = CreateStockMovementParam(product_id=product_id, warehouse_id=warehouse_id, qty=qty, type=type, batch=batch, movementcode=movementcode, label=label, price=price, datem=datem, sellBy=sellBy, eatBy=eatBy, origin_type=origin_type, origin_id=origin_id)
     return await get_client().stockmovements_create(params.model_dump(exclude_unset=True), get_user_token())
 
@@ -1797,6 +1802,9 @@ async def productlots_create(ref: str, fk_product: int, batch: str, qty: float =
         note_public: Public note.
         note_private: Private note.
     """
+    datem = _normalize_datetime(datem)
+    eatby = _normalize_datetime(eatby)
+    sellby = _normalize_datetime(sellby)
     params = CreateProductLotParam(ref=ref, fk_product=fk_product, batch=batch, qty=qty, warehouse_id=warehouse_id, price=price, datem=datem, eatby=eatby, sellby=sellby, note_public=note_public, note_private=note_private)
     return await get_client().productlots_create(params.model_dump(exclude_unset=True), get_user_token())
 
@@ -1819,6 +1827,9 @@ async def productlots_update(id: int, ref: Optional[str] = None, fk_product: Opt
         note_private: Private note.
     """
     payload = {k: v for k, v in {"ref": ref, "fk_product": fk_product, "batch": batch, "qty": qty, "warehouse_id": warehouse_id, "price": price, "datem": datem, "eatby": eatby, "sellby": sellby, "note_public": note_public, "note_private": note_private}.items() if v is not None}
+    for key in ['datem', 'eatby', 'sellby']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().productlots_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -1908,6 +1919,9 @@ async def proposals_update(id: int, socid: Optional[int] = None, date: Optional[
         delivery_date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
     """
     payload = {k: v for k, v in {"socid": socid, "date": date, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc, "multicurrency_code": multicurrency_code, "payment_terms": payment_terms, "delivery_date": delivery_date}.items() if v is not None}
+    for key in ['date', 'delivery_date']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().proposals_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -1949,6 +1963,8 @@ async def proposals_create_line(id: int, desc: str, qty: float, subprice: float,
         product_type: Product type (0=product, 1=service).
         rang: Line position.
     """
+    date_end = _normalize_datetime(date_end)
+    date_start = _normalize_datetime(date_start)
     params = CreateProposalLineParam(desc=desc, qty=qty, subprice=subprice, product_id=product_id, tva_tx=tva_tx, remise_percent=remise_percent, remise=remise, price_base_type=price_base_type, date_start=date_start, date_end=date_end, product_type=product_type, rang=rang)
     return await get_client().proposals_create_line(id, params.model_dump(exclude_unset=True), get_user_token())
 
@@ -1973,6 +1989,9 @@ async def proposals_update_line(id: int, lineid: int, desc: Optional[str] = None
         rang: Line position.
     """
     payload = {k: v for k, v in {"desc": desc, "qty": qty, "subprice": subprice, "product_id": product_id, "tva_tx": tva_tx, "remise_percent": remise_percent, "remise": remise, "price_base_type": price_base_type, "date_start": date_start, "date_end": date_end, "product_type": product_type, "rang": rang}.items() if v is not None}
+    for key in ['date_end', 'date_start']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().proposals_update_line(id, lineid, payload, get_user_token())
 
 @mcp.tool()
@@ -2128,6 +2147,9 @@ async def orders_update(id: int, socid: Optional[int] = None, date: Optional[str
         delivery_date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
     """
     payload = {k: v for k, v in {"socid": socid, "date": date, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc, "multicurrency_code": multicurrency_code, "payment_terms": payment_terms, "delivery_date": delivery_date}.items() if v is not None}
+    for key in ['date', 'delivery_date']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().orders_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -2178,6 +2200,8 @@ async def orders_create_line(id: int, desc: str, qty: float, subprice: float, pr
         product_type: Product type (0=product, 1=service).
         rang: Line position.
     """
+    date_end = _normalize_datetime(date_end)
+    date_start = _normalize_datetime(date_start)
     params = CreateOrderLineParam(desc=desc, qty=qty, subprice=subprice, product_id=product_id, tva_tx=tva_tx, remise_percent=remise_percent, price_base_type=price_base_type, date_start=date_start, date_end=date_end, product_type=product_type, rang=rang)
     return await get_client().orders_create_line(id, params.model_dump(exclude_unset=True), get_user_token())
 
@@ -2201,6 +2225,9 @@ async def orders_update_line(id: int, lineid: int, desc: Optional[str] = None, q
         rang: Line position.
     """
     payload = {k: v for k, v in {"desc": desc, "qty": qty, "subprice": subprice, "product_id": product_id, "tva_tx": tva_tx, "remise_percent": remise_percent, "price_base_type": price_base_type, "date_start": date_start, "date_end": date_end, "product_type": product_type, "rang": rang}.items() if v is not None}
+    for key in ['date_end', 'date_start']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().orders_update_line(id, lineid, payload, get_user_token())
 
 @mcp.tool()
@@ -2380,6 +2407,9 @@ async def invoices_update(id: int, socid: Optional[int] = None, date: Optional[s
         payment_terms: Payment terms.
     """
     payload = {k: v for k, v in {"socid": socid, "date": date, "type": type, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc, "multicurrency_code": multicurrency_code, "payment_terms": payment_terms}.items() if v is not None}
+    for key in ['date']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().invoices_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -2419,6 +2449,8 @@ async def invoices_create_line(id: int, desc: str, qty: float, subprice: float, 
         product_type: Product type (0=product, 1=service).
         rang: Line position.
     """
+    date_end = _normalize_datetime(date_end)
+    date_start = _normalize_datetime(date_start)
     params = CreateInvoiceLineParam(desc=desc, qty=qty, subprice=subprice, product_id=product_id, tva_tx=tva_tx, remise_percent=remise_percent, price_base_type=price_base_type, date_start=date_start, date_end=date_end, product_type=product_type, rang=rang)
     return await get_client().invoices_create_line(id, params.model_dump(exclude_unset=True), get_user_token())
 
@@ -2442,6 +2474,9 @@ async def invoices_update_line(id: int, lineid: int, desc: Optional[str] = None,
         rang: Line position.
     """
     payload = {k: v for k, v in {"desc": desc, "qty": qty, "subprice": subprice, "product_id": product_id, "tva_tx": tva_tx, "remise_percent": remise_percent, "price_base_type": price_base_type, "date_start": date_start, "date_end": date_end, "product_type": product_type, "rang": rang}.items() if v is not None}
+    for key in ['date_end', 'date_start']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().invoices_update_line(id, lineid, payload, get_user_token())
 
 @mcp.tool()
@@ -2530,6 +2565,7 @@ async def invoices_add_payment(id: int, datepaye: str, paymentid: int, accountid
         chqemetteur: Check issuer.
         chqbank: Check bank.
     """
+    datepaye = _normalize_datetime(datepaye)
     params = CreateInvoicePaymentParam(datepaye=datepaye, paymentid=paymentid, accountid=accountid, closepaidinvoices=closepaidinvoices, num_payment=num_payment, comment=comment, amount=amount, chqemetteur=chqemetteur, chqbank=chqbank)
     return await get_client().invoices_add_payment(id, params.model_dump(exclude_unset=True), get_user_token())
 
@@ -2915,6 +2951,9 @@ async def supplier_orders_update(id: int, socid: Optional[int] = None, date: Opt
         multicurrency_code: Multi-currency code.
     """
     payload = {k: v for k, v in {"socid": socid, "date": date, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc, "multicurrency_code": multicurrency_code}.items() if v is not None}
+    for key in ['date']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().supplier_orders_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -2944,6 +2983,8 @@ async def supplier_orders_create_line(id: int, desc: str, qty: float, subprice: 
         product_type: Product type (0=product, 1=service).
         rang: Line position.
     """
+    date_end = _normalize_datetime(date_end)
+    date_start = _normalize_datetime(date_start)
     params = CreateSupplierOrderLineParam(desc=desc, qty=qty, subprice=subprice, product_id=product_id, tva_tx=tva_tx, remise_percent=remise_percent, price_base_type=price_base_type, date_start=date_start, date_end=date_end, product_type=product_type, rang=rang)
     return await get_client().supplier_orders_create_line(id, params.model_dump(exclude_unset=True), get_user_token())
 
@@ -3089,6 +3130,9 @@ async def supplier_invoices_update(id: int, socid: Optional[int] = None, date: O
         multicurrency_code: Multi-currency code.
     """
     payload = {k: v for k, v in {"socid": socid, "date": date, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc, "multicurrency_code": multicurrency_code}.items() if v is not None}
+    for key in ['date']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().supplier_invoices_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -3274,6 +3318,9 @@ async def supplier_proposals_update(id: int, socid: Optional[int] = None, date: 
         total_ttc: Total including tax.
     """
     payload = {k: v for k, v in {"socid": socid, "date": date, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc}.items() if v is not None}
+    for key in ['date']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().supplier_proposals_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -3328,6 +3375,7 @@ async def contracts_create(socid: int, ref: str, date_contrat: str, commercial_s
         note_public: Public note.
         note_private: Private note.
     """
+    date_contrat = _normalize_datetime(date_contrat)
     params = CreateContractParam(socid=socid, ref=ref, date_contrat=date_contrat, commercial_signature_id=commercial_signature_id, commercial_suivi_id=commercial_suivi_id, status=status, note_public=note_public, note_private=note_private)
     return await get_client().contracts_create(params.model_dump(exclude_unset=True), get_user_token())
 
@@ -3345,6 +3393,9 @@ async def contracts_update(id: int, socid: Optional[int] = None, ref: Optional[s
         note_private: Private note.
     """
     payload = {k: v for k, v in {"socid": socid, "ref": ref, "date_contrat": date_contrat, "status": status, "note_public": note_public, "note_private": note_private}.items() if v is not None}
+    for key in ['date_contrat']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().contracts_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -3388,6 +3439,8 @@ async def contracts_create_line(id: int, desc: str = "", qty: float = 0.0, subpr
         remise_percent: Discount percentage.
         price_base_type: Price base type (HT or TTC).
     """
+    date_end = _normalize_datetime(date_end)
+    date_start = _normalize_datetime(date_start)
     params = CreateContractLineParam(desc=desc, qty=qty, subprice=subprice, product_id=product_id, tva_tx=tva_tx, date_start=date_start, date_end=date_end, remise_percent=remise_percent, price_base_type=price_base_type)
     return await get_client().contracts_create_line(id, params.model_dump(exclude_unset=True), get_user_token())
 
@@ -3409,6 +3462,9 @@ async def contracts_update_line(id: int, lineid: int, desc: Optional[str] = None
         price_base_type: Price base type (HT or TTC).
     """
     payload = {k: v for k, v in {"desc": desc, "qty": qty, "subprice": subprice, "product_id": product_id, "tva_tx": tva_tx, "date_start": date_start, "date_end": date_end, "remise_percent": remise_percent, "price_base_type": price_base_type}.items() if v is not None}
+    for key in ['date_end', 'date_start']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().contracts_update_line(id, lineid, payload, get_user_token())
 
 @mcp.tool()
@@ -3618,6 +3674,7 @@ async def mos_create(ref: str, label: str, fk_product: int, qty: float, fk_wareh
         bom_id: BOM ID.
         priority: Priority.
     """
+    date_planned = _normalize_datetime(date_planned)
     params = CreateMOParam(ref=ref, label=label, fk_product=fk_product, qty=qty, fk_warehouse=fk_warehouse, mrptype=mrptype, status=status, note_public=note_public, note_private=note_private, date_planned=date_planned, bom_id=bom_id, priority=priority)
     return await get_client().mos_create(params.model_dump(exclude_unset=True), get_user_token())
 
@@ -3640,6 +3697,9 @@ async def mos_update(id: int, ref: Optional[str] = None, label: Optional[str] = 
         priority: Priority.
     """
     payload = {k: v for k, v in {"ref": ref, "label": label, "fk_product": fk_product, "qty": qty, "fk_warehouse": fk_warehouse, "status": status, "note_public": note_public, "note_private": note_private, "date_planned": date_planned, "bom_id": bom_id, "priority": priority}.items() if v is not None}
+    for key in ['date_planned']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().mos_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -3726,6 +3786,8 @@ async def projects_create(ref: str, title: str, socid: int = 0, description: str
         public: Public access flag.
         percent: Progress percentage.
     """
+    date_end = _normalize_datetime(date_end)
+    date_start = _normalize_datetime(date_start)
     params = CreateProjectParam(ref=ref, title=title, socid=socid, description=description, note_public=note_public, note_private=note_private, status=status, date_start=date_start, date_end=date_end, budget_amount=budget_amount, usage_opportunity=usage_opportunity, usage_task=usage_task, usage_bill_time=usage_bill_time, usage_organize_event=usage_organize_event, public=public, percent=percent)
     return await get_client().projects_create(params.model_dump(exclude_unset=True), get_user_token())
 
@@ -3753,6 +3815,9 @@ async def projects_update(id: int, ref: Optional[str] = None, title: Optional[st
         percent: Progress percentage.
     """
     payload = {k: v for k, v in {"ref": ref, "title": title, "socid": socid, "description": description, "note_public": note_public, "note_private": note_private, "status": status, "date_start": date_start, "date_end": date_end, "budget_amount": budget_amount, "usage_opportunity": usage_opportunity, "usage_task": usage_task, "usage_bill_time": usage_bill_time, "usage_organize_event": usage_organize_event, "public": public, "percent": percent}.items() if v is not None}
+    for key in ['date_end', 'date_start']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().projects_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -3853,6 +3918,8 @@ async def tasks_create(ref: str, label: str, fk_project: int, description: str =
         progress: Progress percentage.
         budget_amount: Budget amount.
     """
+    date_end = _normalize_datetime(date_end)
+    date_start = _normalize_datetime(date_start)
     params = CreateTaskParam(ref=ref, label=label, fk_project=fk_project, description=description, note_public=note_public, note_private=note_private, status=status, date_start=date_start, date_end=date_end, planned_workload=planned_workload, progress=progress, budget_amount=budget_amount)
     return await get_client().tasks_create(params.model_dump(exclude_unset=True), get_user_token())
 
@@ -3876,6 +3943,9 @@ async def tasks_update(id: int, ref: Optional[str] = None, label: Optional[str] 
         budget_amount: Budget amount.
     """
     payload = {k: v for k, v in {"ref": ref, "label": label, "fk_project": fk_project, "description": description, "note_public": note_public, "note_private": note_private, "status": status, "date_start": date_start, "date_end": date_end, "planned_workload": planned_workload, "progress": progress, "budget_amount": budget_amount}.items() if v is not None}
+    for key in ['date_end', 'date_start']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().tasks_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -3911,6 +3981,7 @@ async def tasks_add_timespent(id: int, date: str, duration: float, product_id: i
         progress: Progress percentage.
         billable: Billable (1 = yes, 0 = no).
     """
+    date = _normalize_datetime(date)
     params = CreateTaskTimeSpentParam(date=date, duration=duration, product_id=product_id, user_id=user_id, note=note, progress=progress)
     payload = params.model_dump(exclude_unset=True)
     if billable != 1:
@@ -3938,6 +4009,9 @@ async def tasks_update_timespent(id: int, timespent_id: int, date: Optional[str]
         note: Note.
     """
     payload = {k: v for k, v in {"date": date, "duration": duration, "product_id": product_id, "user_id": user_id, "note": note}.items() if v is not None}
+    for key in ['date']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().tasks_update_timespent(id, timespent_id, payload, get_user_token())
 
 @mcp.tool()
@@ -4011,6 +4085,7 @@ async def shipments_create(socid: int, ref: str, origin_id: int = 0, origin_type
         weight: Weight.
         volume: Volume.
     """
+    date_delivery = _normalize_datetime(date_delivery)
     params = CreateShipmentParam(socid=socid, ref=ref, origin_id=origin_id, origin_type=origin_type, status=status, note_public=note_public, note_private=note_private, date_delivery=date_delivery, shipping_method_id=shipping_method_id, warehouse_id=warehouse_id, total_ht=total_ht, total_tva=total_tva, total_ttc=total_ttc, weight=weight, volume=volume)
     return await get_client().shipments_create(params.model_dump(exclude_unset=True), get_user_token())
 
@@ -4035,6 +4110,9 @@ async def shipments_update(id: int, socid: Optional[int] = None, ref: Optional[s
         volume: Volume.
     """
     payload = {k: v for k, v in {"socid": socid, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "date_delivery": date_delivery, "shipping_method_id": shipping_method_id, "warehouse_id": warehouse_id, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc, "weight": weight, "volume": volume}.items() if v is not None}
+    for key in ['date_delivery']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().shipments_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -4113,6 +4191,7 @@ async def receptions_create(socid: int, ref: str, origin_id: int = 0, origin_typ
         total_tva: Total VAT.
         total_ttc: Total including tax.
     """
+    date_delivery = _normalize_datetime(date_delivery)
     params = CreateReceptionParam(socid=socid, ref=ref, origin_id=origin_id, origin_type=origin_type, status=status, note_public=note_public, note_private=note_private, date_delivery=date_delivery, warehouse_id=warehouse_id, total_ht=total_ht, total_tva=total_tva, total_ttc=total_ttc)
     return await get_client().receptions_create(params.model_dump(exclude_unset=True), get_user_token())
 
@@ -4134,6 +4213,9 @@ async def receptions_update(id: int, socid: Optional[int] = None, ref: Optional[
         total_ttc: Total including tax.
     """
     payload = {k: v for k, v in {"socid": socid, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "date_delivery": date_delivery, "warehouse_id": warehouse_id, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc}.items() if v is not None}
+    for key in ['date_delivery']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().receptions_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -4210,6 +4292,7 @@ async def interventions_create(socid: int, ref: str = "", status: int = 0, note_
         fk_user_intervenant: Intervening user ID.
         fk_project: Project ID.
     """
+    date = _normalize_datetime(date)
     params = CreateInterventionParam(socid=socid, ref=ref, status=status, note_public=note_public, note_private=note_private, date=date, description=description, fk_user_author=fk_user_author, fk_user_intervenant=fk_user_intervenant, fk_project=fk_project)
     return await get_client().interventions_create(params.model_dump(exclude_unset=True), get_user_token())
 
@@ -4231,6 +4314,9 @@ async def interventions_update(id: int, socid: Optional[int] = None, ref: Option
         fk_project: Project ID.
     """
     payload = {k: v for k, v in {"socid": socid, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "date": date, "description": description, "fk_user_author": fk_user_author, "fk_user_intervenant": fk_user_intervenant, "fk_project": fk_project}.items() if v is not None}
+    for key in ['date']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().interventions_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -4268,6 +4354,7 @@ async def interventions_create_line(id: int, description: str = "", duration: fl
         price_base_type: Price base type (HT or TTC).
         rang: Line position.
     """
+    date = _normalize_datetime(date)
     params = CreateInterventionLineParam(description=description, duration=duration, product_id=product_id, qty=qty, subprice=subprice, tva_tx=tva_tx, date=date, price_base_type=price_base_type, rang=rang)
     return await get_client().interventions_create_line(id, params.model_dump(exclude_unset=True), get_user_token())
 
@@ -4289,6 +4376,9 @@ async def interventions_update_line(id: int, lineid: int, desc: Optional[str] = 
         rang: Line position.
     """
     payload = {k: v for k, v in {"desc": desc, "duration": duration, "product_id": product_id, "qty": qty, "subprice": subprice, "tva_tx": tva_tx, "date": date, "price_base_type": price_base_type, "rang": rang}.items() if v is not None}
+    for key in ['date']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().interventions_update_line(id, lineid, payload, get_user_token())
 
 @mcp.tool()
@@ -4418,6 +4508,9 @@ async def expense_reports_update(id: int, fk_user: Optional[int] = None, date_de
         fk_project: Project ID.
     """
     payload = {k: v for k, v in {"fk_user": fk_user, "date_debut": date_debut, "date_fin": date_fin, "fk_user_author": fk_user_author, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc, "fk_project": fk_project}.items() if v is not None}
+    for key in ['date_debut', 'date_fin']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().expense_reports_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -4457,6 +4550,7 @@ async def expense_reports_create_line(id: int, date: str, fk_c_type_fees: int, q
         fk_project: Project ID.
         fk_soc: Third party ID.
     """
+    date = _normalize_datetime(date)
     params = CreateExpenseReportLineParam(date=date, fk_c_type_fees=fk_c_type_fees, qty=qty, value_unit=value_unit, product_id=product_id, comment=comment, vatrate=vatrate, localtax1_tx=localtax1_tx, localtax2_tx=localtax2_tx, fk_project=fk_project, fk_soc=fk_soc)
     return await get_client().expense_reports_create_line(id, params.model_dump(exclude_unset=True), get_user_token())
 
@@ -4480,6 +4574,9 @@ async def expense_reports_update_line(id: int, lineid: int, date: Optional[str] 
         fk_soc: Third party ID.
     """
     payload = {k: v for k, v in {"date": date, "fk_c_type_fees": fk_c_type_fees, "qty": qty, "value_unit": value_unit, "product_id": product_id, "comment": comment, "tva_tx": tva_tx, "localtax1_tx": localtax1_tx, "localtax2_tx": localtax2_tx, "fk_project": fk_project, "fk_soc": fk_soc}.items() if v is not None}
+    for key in ['date']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().expense_reports_update_line(id, lineid, payload, get_user_token())
 
 @mcp.tool()
@@ -4586,6 +4683,8 @@ async def holidays_create(fk_user: int, date_debut: str, date_fin: str, halfday:
         note: Note.
         status: Status.
     """
+    date_debut = _normalize_datetime(date_debut)
+    date_fin = _normalize_datetime(date_fin)
     params = CreateHolidayParam(fk_user=fk_user, date_debut=date_debut, date_fin=date_fin, halfday=halfday, fk_type=fk_type, fk_validator=fk_validator, note=note, status=status)
     return await get_client().holidays_create(params.model_dump(exclude_unset=True), get_user_token())
 
@@ -4604,6 +4703,9 @@ async def holidays_update(id: int, fk_user: Optional[int] = None, date_debut: Op
         status: Status.
     """
     payload = {k: v for k, v in {"fk_user": fk_user, "date_debut": date_debut, "date_fin": date_fin, "halfday": halfday, "fk_type": fk_type, "note": note, "status": status}.items() if v is not None}
+    for key in ['date_debut', 'date_fin']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().holidays_update(id, payload, get_user_token())
 
 @mcp.tool()
@@ -4705,6 +4807,8 @@ async def agenda_events_create(type_code: str, datep: str, label: str, note: str
         fulldayevent: Full day event flag.
         punctual: Punctual event flag.
     """
+    datep = _normalize_datetime(datep)
+    datep2 = _normalize_datetime(datep2)
     params = CreateAgendaEventParam(type_code=type_code, datep=datep, label=label, note=note, author_user_id=author_user_id, userownerid=userownerid, socid=socid, fk_project=fk_project, datep2=datep2, duration=duration, location=location, percent=percent, fulldayevent=fulldayevent, punctual=punctual)
     return await get_client().agenda_events_create(params.model_dump(exclude_unset=True), get_user_token())
 
@@ -4730,6 +4834,9 @@ async def agenda_events_update(id: int, type_code: Optional[str] = None, datep: 
         punctual: Punctual event flag.
     """
     payload = {k: v for k, v in {"type_code": type_code, "datep": datep, "label": label, "note": note, "author_user_id": author_user_id, "userownerid": userownerid, "socid": socid, "fk_project": fk_project, "datep2": datep2, "duration": duration, "location": location, "percent": percent, "fulldayevent": fulldayevent, "punctual": punctual}.items() if v is not None}
+    for key in ['datep', 'datep2']:
+        if isinstance(payload.get(key), str) and payload[key]:
+            payload[key] = _normalize_datetime(payload[key])
     return await get_client().agenda_events_update(id, payload, get_user_token())
 
 @mcp.tool()
