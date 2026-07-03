@@ -743,6 +743,14 @@ class CreateObjectLinkParam(BaseModel):
     targettype: str
     relationtype: str = ""
 
+
+class ReceiveLine(BaseModel):
+    id: int
+    qty: float
+    warehouse: int
+    fk_product: int
+
+
 # ============================================================
 # Status
 # ============================================================
@@ -2984,14 +2992,14 @@ async def supplier_orders_approve(id: int, idwarehouse: int = 0, secondlevel: in
     return await get_client().supplier_orders_approve(id, get_user_token(), idwarehouse=idwarehouse, secondlevel=secondlevel)
 
 @mcp.tool()
-async def supplier_orders_receive(id: int, closeopenorder: int = 0, comment: str = "", lines: str = "[]", ctx: Context = None) -> dict[str, Any]:
+async def supplier_orders_receive(id: int, closeopenorder: int = 0, comment: str = "", lines: list[ReceiveLine] = [], ctx: Context = None) -> dict[str, Any]:
     """Supplier Orders Receive.
 
     Args:
         id: The unique ID of the resource (required).
         closeopenorder: Close open order flag.
         comment: Comment.
-        lines: JSON array of line objects with id and qty.
+        lines: List of line objects with id, qty, warehouse, fk_product.
     """
     return await get_client().supplier_orders_receive(id, get_user_token(), closeopenorder=closeopenorder, comment=comment, lines=lines)
 

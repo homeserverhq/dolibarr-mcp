@@ -357,7 +357,7 @@ ALL_TESTS = [
     ("P4_supplier_orders_validate", "supplier_orders_validate", '{"id": {supplier_order.id}}', "last", ""),
     ("P4_supplier_orders_approve", "supplier_orders_approve", '{"id": {supplier_order.id}}', "last", ""),
     ("P4_supplier_orders_setsent", "supplier_orders_update", '{"id": {supplier_order.id}, "status": 3}', "last", ""),
-    ("P4_supplier_orders_receive", "supplier_orders_receive", '{"id": {supplier_order.id}, "lines": "[{\\"id\\": {supplier_order_line.id}, \\"qty\\": 1, \\"warehouse\\": {warehouse.id}, \\"fk_product\\": {product.id}}]"}', "last", ""),
+    ("P4_supplier_orders_receive", "supplier_orders_receive", '{"id": {supplier_order.id}, "lines": [{"id": {supplier_order_line.id}, "qty": 1, "warehouse": {warehouse.id}, "fk_product": {product.id}}]}', "last", ""),
     # Supplier Invoices
     ("P4_supplier_invoices_get_lines", "supplier_invoices_get_lines", '{"id": {supplier_invoice.id}}', "last", ""),
     ("P4_supplier_invoices_create_line", "supplier_invoices_create_line", '{"id": {supplier_invoice.id}, "desc": "Test", "qty": 1, "subprice": 10.0}', "supplier_invoice_line", ""),

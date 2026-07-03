@@ -823,13 +823,15 @@ class DolibarrClient:
         if secondlevel: params["secondlevel"] = secondlevel
         return await self.post(f"/supplierorders/{id}/approve", api_key, params=params or None)
 
-    async def supplier_orders_receive(self, id: int, api_key: Optional[str] = None, closeopenorder: int = 0, comment: str = "", lines: str = "") -> Any:
+    async def supplier_orders_receive(self, id: int, api_key: Optional[str] = None, closeopenorder: int = 0, comment: str = "", lines: Any = None) -> Any:
         body = {}
         if closeopenorder: body["closeopenorder"] = closeopenorder
         if comment: body["comment"] = comment
-        if lines:
-            parsed = json.loads(lines) if isinstance(lines, str) else lines
-            body["lines"] = parsed
+        if lines is not None:
+            if isinstance(lines, list):
+                body["lines"] = [l.model_dump() if hasattr(l, "model_dump") else l for l in lines]
+            else:
+                body["lines"] = json.loads(lines) if isinstance(lines, str) else lines
         return await self.post(f"/supplierorders/{id}/receive", api_key, json=body if body else None)
 
     # ============================================================
