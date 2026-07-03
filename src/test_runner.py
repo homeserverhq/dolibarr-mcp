@@ -558,6 +558,9 @@ ALL_TESTS = [
     ("P4_invoices_delete_payment", "payments_delete", '{"id": {invoice_payment.id}}', "last", ""),
     # Reverse stock movement to allow warehouse delete
     ("P4_warehouses_reverse_stock", "stockmovements_create", '{"product_id": {product.id}, "warehouse_id": {warehouse.id}, "qty": 10.0, "type": 1, "label": "t{rid}-Reverse"}', "last", ""),
+    # Delete throwaway entities and placeholder invoice before thirdparty
+    ("P4_delete_order_throwaway", "orders_delete", '{"id": {order_throw.id}}', "last", ""),
+    ("P4_delete_invoice_throwaway", "invoices_delete", '{"id": {invoice_throw.id}}', "last", ""),
     # User representative cleanup (remove rep link before user delete)
     ("P4_thirdparty_remove_rep", "thirdparties_delete_representative", '{"id": {thirdparty.id}, "representative_id": {user.id}}', "last", ""),
 
@@ -608,6 +611,7 @@ ALL_TESTS = [
     ("C5 verify_delete_supplier_orders", "supplier_orders_get", '{"id": {supplier_order.id}}', "last", "error"),
     ("C4 delete_payments", "payments_delete", '{"id": {payment.id}}', "last", ""),
     ("C5 verify_delete_payments", "payments_get", '{"id": {payment.id}}', "last", "error"),
+    ("C4 delete_placeholder_invoice", "invoices_delete", '{"id": {payment._placeholder_invoice_id}}', "last", ""),
     ("C4 delete_invoices", "invoices_delete", '{"id": {invoice.id}}', "last", ""),
     ("C4 delete_invoice_from_order", "invoices_delete", '{"id": {invoice_from_order.id}}', "last", ""),
     ("C4 delete_order_shipment", "shipments_delete", '{"id": {order_shipment.id}}', "last", ""),
