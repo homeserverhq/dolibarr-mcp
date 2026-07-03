@@ -383,8 +383,8 @@ ALL_TESTS = [
     ("P4_projects_get_contacts", "projects_get_contacts", '{"id": {project.id}}', "last", ""),
     # Tasks
     ("P4_tasks_get_timespent", "tasks_get_timespent", '{"id": {task.id}}', "last", ""),
-    ("P4_tasks_add_timespent", "tasks_add_timespent", '{"id": {task.id}, "date": "{now}", "duration": 3600, "note": "Test entry"}', "timespent", ""),
-    ("P4_tasks_update_timespent", "tasks_update_timespent", '{"id": {task.id}, "timespent_id": {timespent.id}, "duration": 30}', "last", ""),
+    ("P4_tasks_add_timespent", "tasks_add_timespent", '{"id": {task.id}, "date": "{dtfmt}", "duration": 3600, "note": "Test entry", "user_id": {user.id}, "billable": 1}', "timespent", ""),
+    ("P4_tasks_update_timespent", "tasks_update_timespent", '{"id": {task.id}, "timespent_id": {timespent.id}, "date": "{dtfmt}", "duration": 3600, "note": "Updated timespent"}', "last", ""),
     ("P4_tasks_delete_timespent", "tasks_delete_timespent", '{"id": {task.id}, "timespent_id": {timespent.id}}', "last", ""),
     ("P4_tasks_get_contacts", "tasks_get_contacts", '{"id": {task.id}}', "last", ""),
     # Shipments
@@ -394,8 +394,8 @@ ALL_TESTS = [
     ("P4_receptions_close", "receptions_close", '{"id": {reception.id}}', "last", ""),
     ("P4_receptions_validate", "receptions_validate", '{"id": {reception.id}}', "last", ""),
     # Interventions
-    ("P4_interventions_get_lines", "interventions_get_lines", '{"id": {intervention.id}}', "last", ""),
     ("P4_interventions_create_line", "interventions_create_line", '{"id": {intervention.id}, "description": "Test intervention line", "duration": 60, "date": "{now}", "product_id": {product.id}, "qty": 1}', "intervention_line", ""),
+    ("P4_interventions_get_lines", "interventions_get_lines", '{"id": {intervention.id}}', "last", ""),
     ("P4_interventions_update_line", "interventions_update_line", '{"id": {intervention.id}, "lineid": {intervention_line.id}, "desc": "Updated line"}', "last", ""),
     ("P4_interventions_delete_line", "interventions_delete_line", '{"id": {intervention.id}, "lineid": {intervention_line.id}}', "last", ""),
     ("P4_interventions_settodraft", "interventions_settodraft", '{"id": {intervention.id}}', "last", ""),
@@ -550,6 +550,8 @@ ALL_TESTS = [
     ("P4_supplier_invoices_delete_line", "supplier_invoices_delete_line", '{"id": {supplier_invoice.id}, "lineid": {supplier_invoice_line.id}}', "last", ""),
     ("P4_contracts_delete_line", "contracts_delete_line", '{"id": {contract.id}, "lineid": {contract_line.id}}', "last", ""),
     ("P4_boms_delete_line", "boms_delete_line", '{"id": {bom.id}, "lineid": {bom_line.id}}', "last", ""),
+    # Invoice financial cleanup (remove payment before invoice delete)
+    ("P4_invoices_delete_payment", "payments_delete", '{"id": {invoice_payment.id}}', "last", ""),
 
     # ===== Phase 3B.2: Deletes + Verify Deletes (reversed order) =====
     ("C4 delete_objectlinks", "object_links_delete", '{"id": {object_link.id}}', "last", ""),
@@ -599,6 +601,8 @@ ALL_TESTS = [
     ("C4 delete_payments", "payments_delete", '{"id": {payment.id}}', "last", ""),
     ("C5 verify_delete_payments", "payments_get", '{"id": {payment.id}}', "last", "error"),
     ("C4 delete_invoices", "invoices_delete", '{"id": {invoice.id}}', "last", ""),
+    ("C4 delete_credit_note", "invoices_delete", '{"id": {credit_note.id}}', "last", ""),
+    ("C5 verify_delete_credit_note", "invoices_get", '{"id": {credit_note.id}}', "last", "error"),
     ("C5 verify_delete_invoices", "invoices_get", '{"id": {invoice.id}}', "last", "error"),
     ("C4 delete_orders", "orders_delete", '{"id": {order.id}}', "last", ""),
     ("C5 verify_delete_orders", "orders_get", '{"id": {order.id}}', "last", "error"),
@@ -641,7 +645,7 @@ async def main():
         await client.post(MCP_URL, headers=_hdr, json={"jsonrpc": "2.0", "method": "notifications/initialized"})
         for label, tool, params_json, prefix, expect_err in ALL_TESTS:
             params_str = params_json
-            combined = {"rid": rid, "now": now()}
+            combined = {"rid": rid, "now": now(), "dtfmt": __import__("time").strftime('%Y-%m-%d %H:%M:%S')}
             combined.update(store)
             for k, v in combined.items():
                 params_str = params_str.replace("{" + k + "}", str(v))

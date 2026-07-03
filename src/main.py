@@ -3887,7 +3887,7 @@ async def tasks_get_timespent(id: int, ctx: Context = None) -> dict[str, Any]:
     return {"items": json_to_toon(data)}
 
 @mcp.tool()
-async def tasks_add_timespent(id: int, date: str, duration: float, product_id: int = 0, user_id: int = 0, note: str = "", progress: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def tasks_add_timespent(id: int, date: str, duration: float, product_id: int = 0, user_id: int = 0, note: str = "", progress: int = 0, billable: int = 1, ctx: Context = None) -> dict[str, Any]:
     """Add time spent to a task.
 
     Args:
@@ -3898,9 +3898,20 @@ async def tasks_add_timespent(id: int, date: str, duration: float, product_id: i
         user_id: User ID.
         note: Note.
         progress: Progress percentage.
+        billable: Billable (1 = yes, 0 = no).
     """
     params = CreateTaskTimeSpentParam(date=date, duration=duration, product_id=product_id, user_id=user_id, note=note, progress=progress)
-    return await get_client().tasks_add_timespent(id, params.model_dump(exclude_unset=True), get_user_token())
+    payload = params.model_dump(exclude_unset=True)
+    if billable != 1:
+        payload["billable"] = billable
+    result = await get_client().tasks_add_timespent(id, payload, get_user_token())
+    # Fetch the timespent list to get the created entry's ID
+    timespent_list = await get_client().tasks_get_timespent(id, get_user_token())
+    if isinstance(timespent_list, list) and timespent_list:
+        ts = timespent_list[-1]
+        tsid = ts.get("timespent_line_id", 0)
+        return {"id": tsid, "success": {"code": 200, "message": "Time spent added"}}
+    return result
 
 @mcp.tool()
 async def tasks_update_timespent(id: int, timespent_id: int, date: Optional[str] = None, duration: Optional[float] = None, product_id: Optional[int] = None, user_id: Optional[int] = None, note: Optional[str] = None, ctx: Context = None) -> dict[str, Any]:
