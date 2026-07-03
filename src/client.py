@@ -236,6 +236,9 @@ class DolibarrClient:
     async def thirdparties_add_representative(self, id: int, fk_user: int, api_key: Optional[str] = None) -> Any:
         return await self.post(f"/thirdparties/{id}/representative/{fk_user}", api_key)
 
+    async def thirdparties_delete_representative(self, id: int, representative_id: int, api_key: Optional[str] = None) -> Any:
+        return await self.delete(f"/thirdparties/{id}/representative/{representative_id}", api_key)
+
     async def thirdparties_get_categories(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
         params = {}
         if sortfield: params["sortfield"] = sortfield

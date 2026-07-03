@@ -544,14 +544,20 @@ ALL_TESTS = [
     ("F3 warehouses_list_products", "warehouses_list_products", '{"id": {warehouse.id}}', "last", ""),
 
     # ===== Phase 5.5: Line Cleanup =====
-    ("P4_orders_delete_line", "orders_delete_line", '{"id": {order.id}, "lineid": {order_line.id}}', "last", ""),
-    ("P4_invoices_delete_line", "invoices_delete_line", '{"id": {invoice.id}, "lineid": {invoice_line.id}}', "last", ""),
+    ("P4_orders_create_throwaway", "orders_create", '{"socid": {thirdparty.id}, "date": "{now}"}', "order_throw", ""),
+    ("P4_orders_add_line_throwaway", "orders_create_line", '{"id": {order_throw.id}, "desc": "Cleanup line", "qty": 1, "subprice": 1.0}', "order_line", ""),
+    ("P4_orders_delete_line", "orders_delete_line", '{"id": {order_throw.id}, "lineid": {order_line.id}}', "last", ""),
+    ("P4_invoices_create_throwaway", "invoices_create", '{"socid": {thirdparty.id}, "date": "{now}", "type": 0}', "invoice_throw", ""),
+    ("P4_invoices_add_line_throwaway", "invoices_create_line", '{"id": {invoice_throw.id}, "desc": "Cleanup line", "qty": 1, "subprice": 1.0, "tva_tx": 20.0, "price_base_type": "HT"}', "invoice_line", ""),
+    ("P4_invoices_delete_line", "invoices_delete_line", '{"id": {invoice_throw.id}, "lineid": {invoice_line.id}}', "last", ""),
     ("P4_bankaccounts_delete_line", "bankaccounts_delete_line", '{"id": {bankaccount.id}, "line_id": {bank_line.id}}', "last", ""),
     ("P4_supplier_invoices_delete_line", "supplier_invoices_delete_line", '{"id": {supplier_invoice.id}, "lineid": {supplier_invoice_line.id}}', "last", ""),
     ("P4_contracts_delete_line", "contracts_delete_line", '{"id": {contract.id}, "lineid": {contract_line.id}}', "last", ""),
     ("P4_boms_delete_line", "boms_delete_line", '{"id": {bom.id}, "lineid": {bom_line.id}}', "last", ""),
     # Invoice financial cleanup (remove payment before invoice delete)
     ("P4_invoices_delete_payment", "payments_delete", '{"id": {invoice_payment.id}}', "last", ""),
+    # User representative cleanup (remove rep link before user delete)
+    ("P4_thirdparty_remove_rep", "thirdparties_delete_representative", '{"id": {thirdparty.id}, "representative_id": {user.id}}', "last", ""),
 
     # ===== Phase 3B.2: Deletes + Verify Deletes (reversed order) =====
     ("C4 delete_objectlinks", "object_links_delete", '{"id": {object_link.id}}', "last", ""),

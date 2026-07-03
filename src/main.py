@@ -1137,6 +1137,16 @@ async def thirdparties_add_representative(id: int, fk_user: int, ctx: Context = 
     return await get_client().thirdparties_add_representative(id, fk_user, get_user_token())
 
 @mcp.tool()
+async def thirdparties_delete_representative(id: int, representative_id: int, ctx: Context = None) -> dict[str, Any]:
+    """Remove a representative from a third party.
+
+    Args:
+        id: The unique ID of the third party (required).
+        representative_id: ID of the representative to remove (required).
+    """
+    return await get_client().thirdparties_delete_representative(id, representative_id, get_user_token())
+
+@mcp.tool()
 async def thirdparties_get_categories(
     id: int,
     sortfield: str = "",
