@@ -109,16 +109,103 @@ docker cp /tmp/api_thirdparties.class.php dolibarr-app:/var/www/html/societe/cla
 
 **Reason**: The `Workstations` API class only had `get()`, `getByRef()`, and `index()` methods. No `post()`, `put()`, or `delete()` handlers existed, so POST/PUT/DELETE returned 404. The `Workstation` model class has `create()`, `update()`, and `delete()` methods, so adding the API handlers was straightforward.
 
-**Added** three new methods (~80 lines total):
-- `post($request_data)` — creates a workstation, returns `$this->get($id)`
-- `put($id, $request_data)` — updates a workstation, returns `$this->get($id)`
-- `delete($id)` — deletes a workstation, returns success array
-
 **Permission checks** (matching DB right defs: `module=workstation, perms=workstation`):
 - POST/PUT: `$user->rights->workstation->workstation->write`
 - DELETE: `$user->rights->workstation->workstation->delete`
 
 **Note**: The workstation module's permission subperms use English names (`read`, `write`, `delete`) rather than French (`lire`, `creer`, `supprimer`). The admin user (aeinstein, user 1) requires these rights to be explicitly granted in `llx_user_rights`.
+
+**Added: `post()`** — creates a workstation, returns `$this->get($id)`:
+```php
+public function post($request_data = null)
+{
+    if (!DolibarrApiAccess::$user->rights->workstation->workstation->write) {
+        throw new RestException(403);
+    }
+    foreach ($request_data as $field => $value) {
+        if ($field === 'caller') {
+            $this->workstation->context['caller'] = sanitizeVal($request_data['caller'], 'aZ09');
+            continue;
+        }
+        if ($field == 'array_options' && is_array($value)) {
+            foreach ($value as $index => $val) {
+                $this->workstation->array_options[$index] = $this->_checkValForAPI('extrafields', $val, $this->workstation);
+            }
+            continue;
+        }
+        $this->workstation->$field = $this->_checkValForAPI($field, $value, $this->workstation);
+    }
+    $id = $this->workstation->create(DolibarrApiAccess::$user);
+    if ($id > 0) {
+        return $this->get($id);
+    } else {
+        throw new RestException(500, $this->workstation->error);
+    }
+}
+```
+
+**Added: `put()`** — updates a workstation, returns `$this->get($id)`:
+```php
+public function put($id, $request_data = null)
+{
+    if (!DolibarrApiAccess::$user->rights->workstation->workstation->write) {
+        throw new RestException(403);
+    }
+    $result = $this->workstation->fetch($id);
+    if (!$result) {
+        throw new RestException(404, 'Workstation not found');
+    }
+    if (!DolibarrApi::_checkAccessToResource('workstation', $this->workstation->id)) {
+        throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login);
+    }
+    foreach ($request_data as $field => $value) {
+        if ($field == 'id') { continue; }
+        if ($field === 'caller') {
+            $this->workstation->context['caller'] = sanitizeVal($request_data['caller'], 'aZ09');
+            continue;
+        }
+        if ($field == 'array_options' && is_array($value)) {
+            foreach ($value as $index => $val) {
+                $this->workstation->array_options[$index] = $this->_checkValForAPI('extrafields', $val, $this->workstation);
+            }
+            continue;
+        }
+        $this->workstation->$field = $this->_checkValForAPI($field, $value, $this->workstation);
+    }
+    $updateresult = $this->workstation->update(DolibarrApiAccess::$user);
+    if ($updateresult > 0) {
+        return $this->get($id);
+    } else {
+        throw new RestException(500, $this->workstation->error);
+    }
+}
+```
+
+**Added: `delete()`** — deletes a workstation, returns success array:
+```php
+public function delete($id)
+{
+    if (!DolibarrApiAccess::$user->rights->workstation->workstation->delete) {
+        throw new RestException(403);
+    }
+    $result = $this->workstation->fetch($id);
+    if (!$result) {
+        throw new RestException(404, 'Workstation not found');
+    }
+    if (!DolibarrApi::_checkAccessToResource('workstation', $this->workstation->id)) {
+        throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login);
+    }
+    if (!$this->workstation->delete(DolibarrApiAccess::$user)) {
+        throw new RestException(500, 'Error when deleting workstation');
+    }
+    return array(
+        'success' => array(
+            'code' => 200,
+            'message' => 'Workstation deleted'
+        )
+    );
+}
+```
 
 **Applied via**: Copied file out, added methods via Python, copied back.
 ```bash
@@ -133,10 +220,40 @@ docker cp /tmp/api_workstations.class.php dolibarr-app:/var/www/html/workstation
 
 **Reason**: The `getLines()` handler was wrapped in `/* TODO */` and `*/` — the PHP code was written but commented out. The implementation called `$this->fichinter->getLinesArray()` which doesn't exist on the `Fichinter` model. The correct method is `$this->fichinter->fetch_lines()`.
 
-**Changes**:
-- Removed `/* TODO` and `*/` comment markers (lines 358, 380)
-- Changed `@return int` to `@return array` in docblock
-- Changed `$this->fichinter->getLinesArray()` to `$this->fichinter->fetch_lines()`
+**Before** — the entire function was wrapped in `/* TODO ... */`, and called `$this->fichinter->getLinesArray()` which doesn't exist on the `Fichinter` model:
+```php
+/* TODO
+public function getLines($id)
+{
+    ...
+    $this->fichinter->getLinesArray();
+    ...
+}
+*/
+```
+
+**After** — uncommented, `@return int` → `@return array`, `getLinesArray()` → `fetch_lines()`:
+```php
+public function getLines($id)
+{
+    if (!DolibarrApiAccess::$user->hasRight('ficheinter', 'lire')) {
+        throw new RestException(403);
+    }
+    $result = $this->fichinter->fetch($id);
+    if (!$result) {
+        throw new RestException(404, 'Intervention not found');
+    }
+    if (!DolibarrApi::_checkAccessToResource('fichinter', $this->fichinter->id)) {
+        throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login);
+    }
+    $this->fichinter->fetch_lines();
+    $result = array();
+    foreach ($this->fichinter->lines as $line) {
+        array_push($result, $this->_cleanObjectDatas($line));
+    }
+    return $result;
+}
+```
 
 **Applied via**:
 ```bash
