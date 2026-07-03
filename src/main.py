@@ -997,8 +997,7 @@ async def thirdparties_create(
         outstanding_limit=outstanding_limit, multicurrency_code=multicurrency_code,
     )
     return await get_client().thirdparties_create(
-        params.model_dump(), get_user_token()
-    )
+        params.model_dump(), get_user_token())
 
 @mcp.tool(tags={"basic", "dolibarr", "write"})
 async def thirdparties_update(
@@ -1071,8 +1070,7 @@ async def thirdparties_update(
         outstanding_limit=outstanding_limit, multicurrency_code=multicurrency_code,
     )
     return await get_client().thirdparties_update(
-        id, params.model_dump(exclude_none=True), get_user_token()
-    )
+        id, params.model_dump(exclude_none=True), get_user_token())
 
 @mcp.tool(tags={"basic", "dolibarr", "write"})
 async def thirdparties_delete(
@@ -1234,8 +1232,7 @@ async def contacts_get(
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().contacts_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().contacts_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"basic", "dolibarr", "write"})
 async def contacts_create(
     lastname: str,
@@ -1417,8 +1414,7 @@ async def products_get(id: int, include_all_fields: bool = False, ctx: Context =
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().products_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().products_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"basic", "dolibarr", "write"})
 async def products_create(
     ref: str, label: str, type: int, status: int, price: float, price_base_type: str,
@@ -1635,8 +1631,7 @@ async def warehouses_get(id: int, include_all_fields: bool = False, ctx: Context
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().warehouses_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().warehouses_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def warehouses_create(ref: str, label: str, status: int, description: str = "", lieu: str = "", address: str = "", zip: str = "", town: str = "", country_id: int = 0, phone: str = "", fax: str = "", accountancy_code: str = "", ctx: Context = None) -> dict[str, Any]:
     """Create a new warehouse.
@@ -1730,8 +1725,7 @@ async def stockmovements_get(id: int, include_all_fields: bool = False, ctx: Con
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().stockmovements_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().stockmovements_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "write"})
 async def stockmovements_create(product_id: int, warehouse_id: int, qty: float, type: int, batch: str = "", movementcode: str = "", label: str = "", price: float = 0.0, datem: str = "", sellBy: str = "", eatBy: str = "", origin_type: str = "", origin_id: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Create a new stock movement.
@@ -1783,8 +1777,7 @@ async def productlots_get(id: int, include_all_fields: bool = False, ctx: Contex
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().productlots_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().productlots_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "write"})
 async def productlots_create(ref: str, fk_product: int, batch: str, qty: float = 0.0, warehouse_id: int = 0, price: float = 0.0, datem: str = "", eatby: str = "", sellby: str = "", note_public: str = "", note_private: str = "", ctx: Context = None) -> dict[str, Any]:
     """Create a new product lot/batch.
@@ -1868,8 +1861,7 @@ async def proposals_get(id: int, include_all_fields: bool = False, ctx: Context 
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().proposals_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().proposals_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"basic", "dolibarr", "write"})
 async def proposals_create(socid: int, date: str, ref: str = "", status: int = 0, note_public: str = "", note_private: str = "", total_ht: float = 0.0, total_tva: float = 0.0, total_ttc: float = 0.0, multicurrency_code: str = "", payment_terms: int = 0, delivery_date: str = "", ctx: Context = None) -> dict[str, Any]:
     """Create a new commercial proposal.
@@ -2096,8 +2088,7 @@ async def orders_get(id: int, include_all_fields: bool = False, ctx: Context = N
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().orders_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().orders_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"basic", "dolibarr", "write"})
 async def orders_create(socid: int, date: str, ref: str = "", status: int = 0, note_public: str = "", note_private: str = "", total_ht: float = 0.0, total_tva: float = 0.0, total_ttc: float = 0.0, multicurrency_code: str = "", payment_terms: int = 0, delivery_date: str = "", ctx: Context = None) -> dict[str, Any]:
     """Create a new customer order.
@@ -2180,8 +2171,7 @@ async def orders_get_line(id: int, lineid: int, include_all_fields: bool = False
         lineid: The line ID.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().orders_get_line(id, lineid, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().orders_get_line(id, lineid, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def orders_create_line(id: int, desc: str, qty: float, subprice: float, product_id: int = 0, tva_tx: float = 0.0, remise_percent: float = 0.0, price_base_type: str = "HT", date_start: str = "", date_end: str = "", product_type: int = 0, rang: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Add a line to an order.
@@ -2357,8 +2347,7 @@ async def invoices_get(id: int, include_all_fields: bool = False, ctx: Context =
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().invoices_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().invoices_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"basic", "dolibarr", "write"})
 async def invoices_create(socid: int, date: str, type: int, ref: str = "", status: int = 0, note_public: str = "", note_private: str = "", total_ht: float = 0.0, total_tva: float = 0.0, total_ttc: float = 0.0, multicurrency_code: str = "", payment_terms: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Create a new customer invoice.
@@ -2659,8 +2648,7 @@ async def payments_get(id: int, include_all_fields: bool = False, ctx: Context =
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().payments_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().payments_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"basic", "dolibarr", "write"})
 async def payments_create(datepaye: str, paymentid: int, amount: float, accountid: int, closepaidinvoices: str = "no", socid: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Create a new payment.
@@ -2719,8 +2707,7 @@ async def bankaccounts_get(id: int, include_all_fields: bool = False, ctx: Conte
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().bankaccounts_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().bankaccounts_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def bankaccounts_create(ref: str, label: str, type: int, currency_code: str, account_number: str = "", country_id: int = 0, bank: str = "", code_banque: str = "", code_guichet: str = "", cle_rib: str = "", bic: str = "", iban: str = "", domiciliation: str = "", state_id: int = 0, opening_balance: float = 0.0, min_balance: float = 0.0, proprio: str = "", note_public: str = "", note_private: str = "", status: int = 1, ctx: Context = None) -> dict[str, Any]:
     """Create a new bank account.
@@ -2906,8 +2893,7 @@ async def supplier_orders_get(id: int, include_all_fields: bool = False, ctx: Co
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().supplier_orders_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().supplier_orders_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def supplier_orders_create(socid: int, date: str, ref: str = "", status: int = 0, note_public: str = "", note_private: str = "", total_ht: float = 0.0, total_tva: float = 0.0, total_ttc: float = 0.0, multicurrency_code: str = "", ctx: Context = None) -> dict[str, Any]:
     """Supplier Orders Create.
@@ -3085,8 +3071,7 @@ async def supplier_invoices_get(id: int, include_all_fields: bool = False, ctx: 
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().supplier_invoices_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().supplier_invoices_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def supplier_invoices_create(socid: int, date: str, ref: str = "", status: int = 0, note_public: str = "", note_private: str = "", total_ht: float = 0.0, total_tva: float = 0.0, total_ttc: float = 0.0, multicurrency_code: str = "", ctx: Context = None) -> dict[str, Any]:
     """Supplier Invoices Create.
@@ -3276,8 +3261,7 @@ async def supplier_proposals_get(id: int, include_all_fields: bool = False, ctx:
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().supplier_proposals_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().supplier_proposals_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def supplier_proposals_create(socid: int, date: str, ref: str = "", status: int = 0, note_public: str = "", note_private: str = "", total_ht: float = 0.0, total_tva: float = 0.0, total_ttc: float = 0.0, ctx: Context = None) -> dict[str, Any]:
     """Supplier Proposals Create.
@@ -3359,8 +3343,7 @@ async def contracts_get(id: int, include_all_fields: bool = False, ctx: Context 
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().contracts_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().contracts_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def contracts_create(socid: int, ref: str, date_contrat: str, commercial_signature_id: int = 0, commercial_suivi_id: int = 0, status: int = 0, note_public: str = "", note_private: str = "", ctx: Context = None) -> dict[str, Any]:
     """Create a new contract.
@@ -3420,7 +3403,7 @@ async def contracts_get_lines(id: int, sortfield: str = "", sortorder: str = "AS
         sqlfilters: Dolibarr SQL filter syntax.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    data = await get_client().contracts_get_lines(id, get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
+    data = await get_client().contracts_get_lines(id, get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
     return {"items": json_to_toon(data)}
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
@@ -3540,8 +3523,7 @@ async def boms_get(id: int, include_all_fields: bool = False, ctx: Context = Non
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().boms_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().boms_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "write"})
 async def boms_create(ref: str, label: str, fk_product: int, qty: float, bomtype: int = 0, status: int = 0, description: str = "", note_public: str = "", note_private: str = "", duration: float = 0.0, efficiency: float = 0.0, warehouse_id: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Create a new bill of materials.
@@ -3654,8 +3636,7 @@ async def mos_get(id: int, include_all_fields: bool = False, ctx: Context = None
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().mos_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().mos_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "write"})
 async def mos_create(ref: str, label: str, fk_product: int, qty: float, fk_warehouse: int, mrptype: int = 0, status: int = 0, note_public: str = "", note_private: str = "", date_planned: str = "", bom_id: int = 0, priority: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Mos Create.
@@ -3762,8 +3743,7 @@ async def projects_get(id: int, include_all_fields: bool = False, ctx: Context =
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().projects_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().projects_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def projects_create(ref: str, title: str, socid: int = 0, description: str = "", note_public: str = "", note_private: str = "", status: int = 0, date_start: str = "", date_end: str = "", budget_amount: float = 0.0, usage_opportunity: int = 0, usage_task: int = 0, usage_bill_time: int = 0, usage_organize_event: int = 0, public: int = 0, percent: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Create a new project.
@@ -3898,8 +3878,7 @@ async def tasks_get(id: int, includetimespent: int = 0, include_all_fields: bool
         includetimespent: Include time spent flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().tasks_get(id, get_user_token(), includetimespent=includetimespent, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().tasks_get(id, get_user_token(), includetimespent=includetimespent, include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def tasks_create(ref: str, label: str, fk_project: int, description: str = "", note_public: str = "", note_private: str = "", status: int = 0, date_start: str = "", date_end: str = "", planned_workload: float = 0.0, progress: int = 0, budget_amount: float = 0.0, ctx: Context = None) -> dict[str, Any]:
     """Create a new project task.
@@ -4062,8 +4041,7 @@ async def shipments_get(id: int, include_all_fields: bool = False, ctx: Context 
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().shipments_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().shipments_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def shipments_create(socid: int, ref: str, origin_id: int = 0, origin_type: str = "", status: int = 0, note_public: str = "", note_private: str = "", date_delivery: str = "", shipping_method_id: int = 0, warehouse_id: int = 0, total_ht: float = 0.0, total_tva: float = 0.0, total_ttc: float = 0.0, weight: float = 0.0, volume: float = 0.0, ctx: Context = None) -> dict[str, Any]:
     """Create a new shipment.
@@ -4171,8 +4149,7 @@ async def receptions_get(id: int, include_all_fields: bool = False, ctx: Context
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().receptions_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().receptions_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def receptions_create(socid: int, ref: str, origin_id: int = 0, origin_type: str = "", status: int = 0, note_public: str = "", note_private: str = "", date_delivery: str = "", warehouse_id: int = 0, total_ht: float = 0.0, total_tva: float = 0.0, total_ttc: float = 0.0, ctx: Context = None) -> dict[str, Any]:
     """Create a new reception.
@@ -4274,8 +4251,7 @@ async def interventions_get(id: int, include_all_fields: bool = False, ctx: Cont
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().interventions_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().interventions_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def interventions_create(socid: int, ref: str = "", status: int = 0, note_public: str = "", note_private: str = "", date: str = "", description: str = "", fk_user_author: int = 0, fk_user_intervenant: int = 0, fk_project: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Create a new intervention.
@@ -4458,8 +4434,7 @@ async def expense_reports_get(id: int, include_all_fields: bool = False, ctx: Co
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().expense_reports_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().expense_reports_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def expense_reports_create(fk_user: int, date_debut: str, date_fin: str, fk_user_author: int, ref: str = "", status: int = 0, note_public: str = "", note_private: str = "", total_ht: float = 0.0, total_tva: float = 0.0, total_ttc: float = 0.0, fk_project: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Expense Reports Create.
@@ -4667,8 +4642,7 @@ async def holidays_get(id: int, include_all_fields: bool = False, ctx: Context =
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().holidays_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().holidays_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def holidays_create(fk_user: int, date_debut: str, date_fin: str, halfday: int, fk_type: int, fk_validator: int = 0, note: str = "", status: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Create a new leave/holiday request.
@@ -4785,8 +4759,7 @@ async def agenda_events_get(id: int, include_all_fields: bool = False, ctx: Cont
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().agenda_events_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().agenda_events_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def agenda_events_create(type_code: str, datep: str, label: str, note: str = "", author_user_id: int = 0, userownerid: int = 0, socid: int = 0, fk_project: int = 0, datep2: str = "", duration: int = 0, location: str = "", percent: int = 0, fulldayevent: int = 0, punctual: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Agenda Events Create.
@@ -4876,8 +4849,7 @@ async def categories_get(id: int, include_childs: bool = False, include_all_fiel
         include_childs: Include child categories flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().categories_get(id, get_user_token(), include_childs=include_childs, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().categories_get(id, get_user_token(), include_childs=include_childs, include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
 async def categories_create(ref: str, label: str, type: str, description: str = "", color: str = "", parent: int = 0, note_public: str = "", note_private: str = "", status: int = 1, ctx: Context = None) -> dict[str, Any]:
     """Create a new category.
@@ -5004,8 +4976,7 @@ async def mailings_get(id: int, include_all_fields: bool = False, ctx: Context =
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().mailings_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().mailings_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "write"})
 async def mailings_create(title: str, sujet: str, body: str, email_from: str, mail_template_id: int = 0, mail_subject: str = "", note: str = "", status: int = 0, email_to: str = "", email_cc: str = "", email_bcc: str = "", lang: str = "", ctx: Context = None) -> dict[str, Any]:
     """Create a new mailing.
@@ -5093,8 +5064,7 @@ async def multi_currencies_get(id: int, include_all_fields: bool = False, ctx: C
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().multi_currencies_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().multi_currencies_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "write"})
 async def multi_currencies_create(code: str, name: str, rate: float = 1.0, status: int = 1, note: str = "", ctx: Context = None) -> dict[str, Any]:
     """Multi Currencies Create.
@@ -5170,8 +5140,7 @@ async def tickets_get(id: int, include_all_fields: bool = False, ctx: Context = 
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().tickets_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().tickets_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "write"})
 async def tickets_create(subject: str, type_code: str, severity_code: str, category_code: str, socid: int = 0, note_public: str = "", note_private: str = "", track_id: str = "", fk_user_assign: int = 0, email: str = "", origin: str = "", origin_id: int = 0, message: str = "", ctx: Context = None) -> dict[str, Any]:
     """Create a new ticket.
@@ -5269,8 +5238,7 @@ async def workstations_get(id: int, include_all_fields: bool = False, ctx: Conte
         id: The unique ID of the resource.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().workstations_get(id, get_user_token(), include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().workstations_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "write"})
 async def workstations_create(label: str, status: int = 0, ref: str = "", type: str = "", nb_operator: int = 1, cost: float = 0.0, ctx: Context = None) -> dict[str, Any]:
     """Create a new workstation.
@@ -5400,8 +5368,7 @@ async def users_get(id: int, includepermissions: int = 0, include_all_fields: bo
         includepermissions: Include permissions flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().users_get(id, get_user_token(), includepermissions=includepermissions, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().users_get(id, get_user_token(), includepermissions=includepermissions, include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "read"})
 async def users_get_by_login(login: str, includepermissions: int = 0, include_all_fields: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Users Get By Login.
@@ -5411,8 +5378,7 @@ async def users_get_by_login(login: str, includepermissions: int = 0, include_al
         includepermissions: Include permissions flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().users_get_by_login(login, get_user_token(), includepermissions=includepermissions, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().users_get_by_login(login, get_user_token(), includepermissions=includepermissions, include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "read"})
 async def users_get_by_email(email: str, includepermissions: int = 0, include_all_fields: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Users Get By Email.
@@ -5461,8 +5427,7 @@ async def users_get_group(id: int, load_members: int = 0, includepermissions: in
         includepermissions: Include permissions flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
-    return await get_client().users_get_group(id, get_user_token(), load_members=load_members, includepermissions=includepermissions, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
-
+    return await get_client().users_get_group(id, get_user_token(), load_members=load_members, includepermissions=includepermissions, include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "read"})
 async def users_get_user_groups(id: int, ctx: Context = None) -> dict[str, Any]:
     """Users Get User Groups.

@@ -51,38 +51,40 @@ def _normalize_response(obj: Any) -> Any:
     return obj
 
 
-TP_COMMON = "id,ref,name,client,fournisseur,code_client,code_fournisseur,address,zip,town,country_id,country_code,phone,email,status,tva_intra"
-PROD_COMMON = "id,ref,label,type,status,price_ttc,stock_reel,barcode,weight"
-INV_COMMON = "id,ref,socid,total_ttc,status"
-CONTACT_COMMON = "id,lastname,firstname,socid,socname,email,phone_pro,phone_mobile,status"
-TICKET_COMMON = "id,ref,subject,type_label,status,track_id"
-LINE_COMMON = "id,product_label,qty,subprice,total_ttc,desc"
-BOM_LINE_COMMON = "id,ref,fk_product,qty"
-EXPENSE_LINE_COMMON = "id,type_fees_libelle,qty,total_ttc,date,projet_title"
-BANK_LINE_COMMON = "id,ref,label,amount,dateo,bank_account_label"
-PAYMENT_LINE_COMMON = "id,amount,date,type_label,fk_paiement"
-USER_COMMON = "id,ref,login,firstname,lastname,email,status,entity"
-GROUP_COMMON = "id,name,nom,entity"
-CATEGORY_COMMON = "id,ref,label,type,fk_parent"
-WAREHOUSE_COMMON = "id,ref,label,status,lieu"
-STOCK_MOVEMENT_COMMON = "id,ref,product_id,qty,datem,label"
-PRODUCT_LOT_COMMON = "id,fk_product,batch,eatby,sellby"
-OUTSTANDING_COMMON = "id,ref,total_ttc,status,date"
-BANK_ACCOUNT_COMMON = "id,ref,label,type,courant,currency_code,number"
-MULTI_CURRENCY_COMMON = "id,code,name,rate"
-EXPENSE_REPORT_COMMON = "id,ref,total_ttc,status,date_create,fk_project"
-HOLIDAY_COMMON = "id,ref,fk_user,date_debut,date_fin,status"
-PROJECT_COMMON = "id,ref,title,status,socid,budget_amount"
-TASK_COMMON = "id,ref,label,status,progress,planned_workload"
-SHIPMENT_COMMON = "id,ref,socid,status,date_delivery"
-RECEPTION_COMMON = "id,ref,socid,status,date_reception"
-INTERVENTION_COMMON = "id,ref,socid,status,datec"
-AGENDA_EVENT_COMMON = "id,ref,label,type,datep,status"
-MAILING_COMMON = "id,title,status,nbemail,date_creation"
-BOM_COMMON = "id,ref,label,status,fk_product"
-MO_COMMON = "id,ref,label,status,fk_product,qty"
-WORKSTATION_COMMON = "id,ref,label,status,type"
-DOC_COMMON = "id,ref,label,module,type,date_c"
+COMMON_FIELDS: dict[str, set[str]] = {
+    "thirdparty": {"id", "ref", "name", "client", "fournisseur", "code_client", "code_fournisseur", "address", "zip", "town", "country_id", "country_code", "phone", "email", "status", "tva_intra"},
+    "product": {"id", "ref", "label", "type", "status", "price_ttc", "stock_reel", "barcode", "weight"},
+    "invoice": {"id", "ref", "socid", "total_ttc", "status"},
+    "contact": {"id", "lastname", "firstname", "socid", "socname", "email", "phone_pro", "phone_mobile", "status"},
+    "ticket": {"id", "ref", "subject", "type_label", "status", "track_id"},
+    "line": {"id", "product_label", "qty", "subprice", "total_ttc", "desc"},
+    "bom_line": {"id", "ref", "fk_product", "qty"},
+    "expense_line": {"id", "type_fees_libelle", "qty", "total_ttc", "date", "projet_title"},
+    "bank_line": {"id", "ref", "label", "amount", "dateo", "bank_account_label"},
+    "payment_line": {"id", "amount", "date", "type_label", "fk_paiement"},
+    "user": {"id", "ref", "login", "firstname", "lastname", "email", "status", "entity"},
+    "group": {"id", "name", "nom", "entity"},
+    "category": {"id", "ref", "label", "type", "fk_parent"},
+    "warehouse": {"id", "ref", "label", "status", "lieu"},
+    "stock_movement": {"id", "ref", "product_id", "qty", "datem", "label"},
+    "product_lot": {"id", "fk_product", "batch", "eatby", "sellby"},
+    "outstanding": {"id", "ref", "total_ttc", "status", "date"},
+    "bank_account": {"id", "ref", "label", "type", "courant", "currency_code", "number"},
+    "multi_currency": {"id", "code", "name", "rate"},
+    "expense_report": {"id", "ref", "total_ttc", "status", "date_create", "fk_project"},
+    "holiday": {"id", "ref", "fk_user", "date_debut", "date_fin", "status"},
+    "project": {"id", "ref", "title", "status", "socid", "budget_amount"},
+    "task": {"id", "ref", "label", "status", "progress", "planned_workload"},
+    "shipment": {"id", "ref", "socid", "status", "date_delivery"},
+    "reception": {"id", "ref", "socid", "status", "date_reception"},
+    "intervention": {"id", "ref", "socid", "status", "datec"},
+    "agenda_event": {"id", "ref", "label", "type", "datep", "status"},
+    "mailing": {"id", "title", "status", "nbemail", "date_creation"},
+    "bom": {"id", "ref", "label", "status", "fk_product"},
+    "mo": {"id", "ref", "label", "status", "fk_product", "qty"},
+    "workstation": {"id", "ref", "label", "status", "type"},
+    "doc": {"id", "ref", "label", "module", "type", "date_c"},
+}
 
 MODULEPART_MAP = {
     "societe": "societe", "thirdparty": "societe", "company": "societe",
@@ -115,6 +117,14 @@ MODULEPART_MAP = {
 
 def _normalize_modulepart(value: str) -> str:
     return MODULEPART_MAP.get(value.lower(), value)
+
+
+def _filter_fields(data: Any, common_set: set[str]) -> Any:
+    if isinstance(data, dict):
+        return {k: v for k, v in data.items() if k in common_set}
+    if isinstance(data, list):
+        return [_filter_fields(item, common_set) for item in data]
+    return data
 
 
 class DolibarrClient:
@@ -158,28 +168,18 @@ class DolibarrClient:
         return {"text": response.text}
 
     async def get(self, path: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:
-        data = await self.request("GET", path, api_key, **kwargs)
-        params = kwargs.get("params")
-        if isinstance(params, dict) and "properties" in params:
-            data = self._filter_fields(data, params["properties"])
-        return data
+        return await self.request("GET", path, api_key, **kwargs)
 
     async def post(self, path: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:
+        kwargs.pop("include_all_fields", None)
         return await self.request("POST", path, api_key, **kwargs)
 
     async def put(self, path: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:
+        kwargs.pop("include_all_fields", None)
         return await self.request("PUT", path, api_key, **kwargs)
 
     async def delete(self, path: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.request("DELETE", path, api_key, **kwargs)
-
-    def _filter_fields(self, data: Any, common_fields: str) -> Any:
-        keep = set(common_fields.split(","))
-        if isinstance(data, dict):
-            return {k: v for k, v in data.items() if k in keep}
-        if isinstance(data, list):
-            return [self._filter_fields(item, common_fields) for item in data]
-        return data
 
     async def status_get(self, api_key: Optional[str] = None) -> Any:
         return await self.get("/status/", api_key)
@@ -201,7 +201,7 @@ class DolibarrClient:
         if page != 0:
             params["page"] = page
         if not include_all_fields:
-            params["properties"] = DOC_COMMON
+            params["properties"] = ",".join(sorted(COMMON_FIELDS["doc"]))
         return await self.get("/documents/", api_key, params=params)
 
     # ============================================================
@@ -216,22 +216,21 @@ class DolibarrClient:
         if mode: params["mode"] = mode
         if category: params["category"] = category
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = TP_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["thirdparty"]))
         return await self.get("/thirdparties/", api_key, params=params)
 
     async def thirdparties_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/thirdparties/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, TP_COMMON)
         return data
 
-    async def thirdparties_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
-        return await self.post("/thirdparties/", api_key, json=payload)
+    async def thirdparties_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
+        data = await self.post("/thirdparties/", api_key, json=payload)
+        return data
 
-    async def thirdparties_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def thirdparties_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/thirdparties/{id}", api_key, json=payload)
 
-    async def thirdparties_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def thirdparties_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/thirdparties/{id}", api_key)
 
     async def thirdparties_get_outstanding_proposals(self, id: int, api_key: Optional[str] = None, mode: str = "") -> Any:
@@ -253,7 +252,7 @@ class DolibarrClient:
     async def thirdparties_add_representative(self, id: int, fk_user: int, api_key: Optional[str] = None) -> Any:
         return await self.post(f"/thirdparties/{id}/representative/{fk_user}", api_key)
 
-    async def thirdparties_delete_representative(self, id: int, representative_id: int, api_key: Optional[str] = None) -> Any:
+    async def thirdparties_delete_representative(self, id: int, representative_id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/thirdparties/{id}/representative/{representative_id}", api_key)
 
     async def thirdparties_get_categories(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
@@ -262,7 +261,7 @@ class DolibarrClient:
         if sortorder != "ASC": params["sortorder"] = sortorder
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
-        params["properties"] = CATEGORY_COMMON
+        params["properties"] = ",".join(sorted(COMMON_FIELDS["category"]))
         return await self.get(f"/thirdparties/{id}/categories", api_key, params=params)
 
     # ============================================================
@@ -277,22 +276,20 @@ class DolibarrClient:
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if category: params["category"] = category
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = CONTACT_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["contact"]))
         return await self.get("/contacts/", api_key, params=params)
 
     async def contacts_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/contacts/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, CONTACT_COMMON)
         return data
 
-    async def contacts_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def contacts_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/contacts/", api_key, json=payload)
 
-    async def contacts_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def contacts_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/contacts/{id}", api_key, json=payload)
 
-    async def contacts_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def contacts_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/contacts/{id}", api_key)
 
     async def contacts_get_categories(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
@@ -301,7 +298,7 @@ class DolibarrClient:
         if sortorder != "ASC": params["sortorder"] = sortorder
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
-        params["properties"] = CATEGORY_COMMON
+        params["properties"] = ",".join(sorted(COMMON_FIELDS["category"]))
         return await self.get(f"/contacts/{id}/categories", api_key, params=params)
 
     # ============================================================
@@ -317,26 +314,24 @@ class DolibarrClient:
         if category: params["category"] = category
         if sqlfilters: params["sqlfilters"] = sqlfilters
         if variant_filter: params["variant_filter"] = variant_filter
-        if not include_all_fields: params["properties"] = PROD_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["product"]))
         return await self.get("/products/", api_key, params=params)
 
     async def products_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/products/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, PROD_COMMON)
         return data
 
-    async def products_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def products_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/products/", api_key, json=payload)
 
-    async def products_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def products_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/products/{id}", api_key, json=payload)
 
-    async def products_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def products_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/products/{id}", api_key)
 
     async def products_get_subproducts(self, id: int, api_key: Optional[str] = None) -> Any:
-        params = {"properties": PROD_COMMON}
+        params = {"properties": ",".join(sorted(COMMON_FIELDS["product"]))}
         return await self.get(f"/products/{id}/subproducts", api_key, params=params)
 
     async def products_get_categories(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0) -> Any:
@@ -345,7 +340,7 @@ class DolibarrClient:
         if sortorder != "ASC": params["sortorder"] = sortorder
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
-        params["properties"] = CATEGORY_COMMON
+        params["properties"] = ",".join(sorted(COMMON_FIELDS["category"]))
         return await self.get(f"/products/{id}/categories", api_key, params=params)
 
     async def products_get_stock(self, id: int, api_key: Optional[str] = None, selected_warehouse_id: int = 0) -> Any:
@@ -356,7 +351,7 @@ class DolibarrClient:
     async def products_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
         params = {}
         if type: params["type"] = type
-        params["properties"] = CONTACT_COMMON
+        params["properties"] = ",".join(sorted(COMMON_FIELDS["contact"]))
         return await self.get(f"/products/{id}/contacts", api_key, params=params)
 
     # ============================================================
@@ -370,22 +365,20 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if category: params["category"] = category
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = WAREHOUSE_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["warehouse"]))
         return await self.get("/warehouses/", api_key, params=params)
 
     async def warehouses_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/warehouses/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, WAREHOUSE_COMMON)
         return data
 
-    async def warehouses_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def warehouses_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/warehouses/", api_key, json=payload)
 
-    async def warehouses_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def warehouses_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/warehouses/{id}", api_key, json=payload)
 
-    async def warehouses_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def warehouses_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/warehouses/{id}", api_key)
 
     async def warehouses_list_products(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0, include_all_fields: bool = False) -> Any:
@@ -394,7 +387,7 @@ class DolibarrClient:
         if sortorder != "ASC": params["sortorder"] = sortorder
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
-        if not include_all_fields: params["properties"] = PROD_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["product"]))
         return await self.get(f"/warehouses/{id}/products", api_key, params=params)
 
     # ============================================================
@@ -407,16 +400,14 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = STOCK_MOVEMENT_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["stock_movement"]))
         return await self.get("/stockmovements/", api_key, params=params)
 
     async def stockmovements_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/stockmovements/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, STOCK_MOVEMENT_COMMON)
         return data
 
-    async def stockmovements_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def stockmovements_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/stockmovements/", api_key, json=payload)
 
     # ============================================================
@@ -429,22 +420,20 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = PRODUCT_LOT_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["product_lot"]))
         return await self.get("/productlots/", api_key, params=params)
 
     async def productlots_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/productlots/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, PRODUCT_LOT_COMMON)
         return data
 
-    async def productlots_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def productlots_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/productlots/", api_key, json=payload)
 
-    async def productlots_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def productlots_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/productlots/{id}", api_key, json=payload)
 
-    async def productlots_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def productlots_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/productlots/{id}", api_key)
 
     # ============================================================
@@ -458,37 +447,35 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = INV_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["invoice"]))
         return await self.get("/proposals/", api_key, params=params)
 
     async def proposals_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/proposals/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, INV_COMMON)
         return data
 
-    async def proposals_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def proposals_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/proposals/", api_key, json=payload)
 
-    async def proposals_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def proposals_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/proposals/{id}", api_key, json=payload)
 
-    async def proposals_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def proposals_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/proposals/{id}", api_key)
 
     async def proposals_get_lines(self, id: int, api_key: Optional[str] = None, sqlfilters: str = "") -> Any:
         params = {}
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        params["properties"] = LINE_COMMON
+        params["properties"] = ",".join(sorted(COMMON_FIELDS["line"]))
         return await self.get(f"/proposals/{id}/lines", api_key, params=params)
 
-    async def proposals_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def proposals_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post(f"/proposals/{id}/lines", api_key, json=payload)
 
-    async def proposals_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def proposals_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/proposals/{id}/lines/{lineid}", api_key, json=payload)
 
-    async def proposals_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None) -> Any:
+    async def proposals_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/proposals/{id}/lines/{lineid}", api_key)
 
     async def proposals_settodraft(self, id: int, api_key: Optional[str] = None) -> Any:
@@ -532,41 +519,37 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = INV_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["invoice"]))
         return await self.get("/orders/", api_key, params=params)
 
     async def orders_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/orders/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, INV_COMMON)
         return data
 
-    async def orders_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def orders_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/orders/", api_key, json=payload)
 
-    async def orders_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def orders_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/orders/{id}", api_key, json=payload)
 
-    async def orders_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def orders_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/orders/{id}", api_key)
 
     async def orders_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
-        params = {"properties": LINE_COMMON}
+        params = {"properties": ",".join(sorted(COMMON_FIELDS["line"]))}
         return await self.get(f"/orders/{id}/lines", api_key, params=params)
 
     async def orders_get_line(self, id: int, lineid: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/orders/{id}/lines/{lineid}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, LINE_COMMON)
         return data
 
-    async def orders_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def orders_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post(f"/orders/{id}/lines", api_key, json=payload)
 
-    async def orders_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def orders_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/orders/{id}/lines/{lineid}", api_key, json=payload)
 
-    async def orders_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None) -> Any:
+    async def orders_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/orders/{id}/lines/{lineid}", api_key)
 
     async def orders_settodraft(self, id: int, api_key: Optional[str] = None, idwarehouse: int = 0) -> Any:
@@ -591,19 +574,19 @@ class DolibarrClient:
     async def orders_setinvoiced(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.post(f"/orders/{id}/setinvoiced", api_key)
 
-    async def orders_create_from_proposal(self, proposalid: int, api_key: Optional[str] = None) -> Any:
+    async def orders_create_from_proposal(self, proposalid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post(f"/orders/createfromproposal/{proposalid}", api_key)
 
     async def orders_get_shipments(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.get(f"/orders/{id}/shipment", api_key)
 
-    async def orders_create_shipment(self, id: int, warehouse_id: int, api_key: Optional[str] = None) -> Any:
+    async def orders_create_shipment(self, id: int, warehouse_id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post(f"/orders/{id}/shipment/{warehouse_id}", api_key)
 
     async def orders_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
         params = {}
         if type: params["type"] = type
-        params["properties"] = CONTACT_COMMON
+        params["properties"] = ",".join(sorted(COMMON_FIELDS["contact"]))
         return await self.get(f"/orders/{id}/contacts", api_key, params=params)
 
     # ============================================================
@@ -618,38 +601,36 @@ class DolibarrClient:
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if status: params["status"] = status
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = INV_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["invoice"]))
         return await self.get("/invoices/", api_key, params=params)
 
     async def invoices_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/invoices/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, INV_COMMON)
         return data
 
-    async def invoices_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def invoices_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/invoices/", api_key, json=payload)
 
-    async def invoices_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def invoices_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/invoices/{id}", api_key, json=payload)
 
-    async def invoices_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def invoices_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/invoices/{id}", api_key)
 
     async def invoices_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
-        params = {"properties": LINE_COMMON}
+        params = {"properties": ",".join(sorted(COMMON_FIELDS["line"]))}
         return await self.get(f"/invoices/{id}/lines", api_key, params=params)
 
-    async def invoices_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def invoices_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post(f"/invoices/{id}/lines", api_key, json=payload)
 
-    async def invoices_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def invoices_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/invoices/{id}/lines/{lineid}", api_key, json=payload)
 
-    async def invoices_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None) -> Any:
+    async def invoices_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/invoices/{id}/lines/{lineid}", api_key)
 
-    async def invoices_create_from_order(self, orderid: int, api_key: Optional[str] = None) -> Any:
+    async def invoices_create_from_order(self, orderid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post(f"/invoices/createfromorder/{orderid}", api_key)
 
     async def invoices_settodraft(self, id: int, api_key: Optional[str] = None) -> Any:
@@ -672,7 +653,7 @@ class DolibarrClient:
         return await self.post(f"/invoices/{id}/settounpaid", api_key)
 
     async def invoices_get_payments(self, id: int, api_key: Optional[str] = None) -> Any:
-        params = {"properties": PAYMENT_LINE_COMMON}
+        params = {"properties": ",".join(sorted(COMMON_FIELDS["payment_line"]))}
         return await self.get(f"/invoices/{id}/payments", api_key, params=params)
 
     async def invoices_add_payment(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -681,13 +662,13 @@ class DolibarrClient:
     async def invoices_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
         params = {}
         if type: params["type"] = type
-        params["properties"] = CONTACT_COMMON
+        params["properties"] = ",".join(sorted(COMMON_FIELDS["contact"]))
         return await self.get(f"/invoices/{id}/contacts", api_key, params=params)
 
     async def invoices_add_contact(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post(f"/invoices/{id}/contacts", api_key, json=payload)
 
-    async def invoices_delete_contact(self, id: int, contactid: int, type: str, api_key: Optional[str] = None) -> Any:
+    async def invoices_delete_contact(self, id: int, contactid: int, type: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/invoices/{id}/contact/{contactid}/{type}", api_key)
 
     async def invoices_get_discount(self, id: int, api_key: Optional[str] = None) -> Any:
@@ -709,19 +690,17 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = PAYMENT_LINE_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["payment_line"]))
         return await self.get("/paiements/", api_key, params=params)
 
     async def payments_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/paiements/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, PAYMENT_LINE_COMMON)
         return data
 
-    async def payments_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def payments_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/paiements/", api_key, json=payload)
 
-    async def payments_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def payments_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/paiements/{id}", api_key)
 
     # ============================================================
@@ -735,22 +714,20 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if category: params["category"] = category
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BANK_ACCOUNT_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["bank_account"]))
         return await self.get("/bankaccounts/", api_key, params=params)
 
     async def bankaccounts_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/bankaccounts/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BANK_ACCOUNT_COMMON)
         return data
 
-    async def bankaccounts_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def bankaccounts_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/bankaccounts/", api_key, json=payload)
 
-    async def bankaccounts_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def bankaccounts_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/bankaccounts/{id}", api_key, json=payload)
 
-    async def bankaccounts_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def bankaccounts_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/bankaccounts/{id}", api_key)
 
     async def bankaccounts_transfer(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -759,10 +736,10 @@ class DolibarrClient:
     async def bankaccounts_get_lines(self, id: int, api_key: Optional[str] = None, sqlfilters: str = "") -> Any:
         params = {}
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        params["properties"] = BANK_LINE_COMMON
+        params["properties"] = ",".join(sorted(COMMON_FIELDS["bank_line"]))
         return await self.get(f"/bankaccounts/{id}/lines", api_key, params=params)
 
-    async def bankaccounts_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def bankaccounts_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         p = dict(payload)
         if "date" in p and isinstance(p["date"], str):
             p["date"] = _to_timestamp(p["date"])
@@ -771,11 +748,11 @@ class DolibarrClient:
     async def bankaccounts_get_line(self, line_id: int, api_key: Optional[str] = None) -> Any:
         return await self.get(f"/bankaccounts/lines/{line_id}", api_key)
 
-    async def bankaccounts_update_line(self, id: int, line_id: int, label: str, api_key: Optional[str] = None) -> Any:
+    async def bankaccounts_update_line(self, id: int, line_id: int, label: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         payload = {"label": label}
         return await self.put(f"/bankaccounts/{id}/lines/{line_id}", api_key, json=payload)
 
-    async def bankaccounts_delete_line(self, id: int, line_id: int, api_key: Optional[str] = None) -> Any:
+    async def bankaccounts_delete_line(self, id: int, line_id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/bankaccounts/{id}/lines/{line_id}", api_key)
 
     async def bankaccounts_get_balance(self, id: int, api_key: Optional[str] = None) -> Any:
@@ -794,25 +771,23 @@ class DolibarrClient:
         if product_ids: params["product_ids"] = product_ids
         if status: params["status"] = status
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = INV_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["invoice"]))
         return await self.get("/supplierorders/", api_key, params=params)
 
     async def supplier_orders_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/supplierorders/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, INV_COMMON)
         return data
 
-    async def supplier_orders_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def supplier_orders_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/supplierorders/", api_key, json=payload)
 
-    async def supplier_orders_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def supplier_orders_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/supplierorders/{id}", api_key, json=payload)
 
-    async def supplier_orders_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def supplier_orders_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/supplierorders/{id}", api_key)
 
-    async def supplier_orders_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def supplier_orders_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post(f"/supplierorders/{id}/lines", api_key, json=payload)
 
     async def supplier_orders_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
@@ -820,12 +795,12 @@ class DolibarrClient:
         if type: params["type"] = type
         params["source"] = "external"
         data = await self.get(f"/supplierorders/{id}/contacts", api_key, params=params)
-        return self._filter_fields(data, CONTACT_COMMON)
+        return _filter_fields(data, COMMON_FIELDS["contact"])
 
     async def supplier_orders_add_contact(self, id: int, contactid: int, type: str, source: str, api_key: Optional[str] = None) -> Any:
         return await self.post(f"/supplierorders/{id}/contact/{contactid}/{type}/{source}", api_key)
 
-    async def supplier_orders_delete_contact(self, id: int, contactid: int, type: str, source: str, api_key: Optional[str] = None) -> Any:
+    async def supplier_orders_delete_contact(self, id: int, contactid: int, type: str, source: str, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/supplierorders/{id}/contact/{contactid}/{type}/{source}", api_key)
 
     async def supplier_orders_validate(self, id: int, api_key: Optional[str] = None, idwarehouse: int = 0, notrigger: int = 0) -> Any:
@@ -863,35 +838,33 @@ class DolibarrClient:
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if status: params["status"] = status
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = INV_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["invoice"]))
         return await self.get("/supplierinvoices/", api_key, params=params)
 
     async def supplier_invoices_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/supplierinvoices/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, INV_COMMON)
         return data
 
-    async def supplier_invoices_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def supplier_invoices_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/supplierinvoices/", api_key, json=payload)
 
-    async def supplier_invoices_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def supplier_invoices_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/supplierinvoices/{id}", api_key, json=payload)
 
-    async def supplier_invoices_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def supplier_invoices_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/supplierinvoices/{id}", api_key)
 
     async def supplier_invoices_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
-        params = {"properties": LINE_COMMON}
+        params = {"properties": ",".join(sorted(COMMON_FIELDS["line"]))}
         return await self.get(f"/supplierinvoices/{id}/lines", api_key, params=params)
 
-    async def supplier_invoices_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def supplier_invoices_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post(f"/supplierinvoices/{id}/lines", api_key, json=payload)
 
-    async def supplier_invoices_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def supplier_invoices_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/supplierinvoices/{id}/lines/{lineid}", api_key, json=payload)
 
-    async def supplier_invoices_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None) -> Any:
+    async def supplier_invoices_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/supplierinvoices/{id}/lines/{lineid}", api_key)
 
     async def supplier_invoices_validate(self, id: int, api_key: Optional[str] = None, idwarehouse: int = 0, notrigger: int = 0) -> Any:
@@ -907,7 +880,7 @@ class DolibarrClient:
         return await self.post(f"/supplierinvoices/{id}/settopaid", api_key, params=params or None)
 
     async def supplier_invoices_get_payments(self, id: int, api_key: Optional[str] = None) -> Any:
-        params = {"properties": PAYMENT_LINE_COMMON}
+        params = {"properties": ",".join(sorted(COMMON_FIELDS["payment_line"]))}
         return await self.get(f"/supplierinvoices/{id}/payments", api_key, params=params)
 
     async def supplier_invoices_add_payment(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -924,22 +897,20 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = INV_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["invoice"]))
         return await self.get("/supplierproposals/", api_key, params=params)
 
     async def supplier_proposals_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/supplierproposals/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, INV_COMMON)
         return data
 
-    async def supplier_proposals_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def supplier_proposals_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/supplierproposals/", api_key, json=payload)
 
-    async def supplier_proposals_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def supplier_proposals_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/supplierproposals/{id}", api_key, json=payload)
 
-    async def supplier_proposals_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def supplier_proposals_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/supplierproposals/{id}", api_key)
 
     # ============================================================
@@ -953,22 +924,20 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = INV_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["invoice"]))
         return await self.get("/contracts/", api_key, params=params)
 
     async def contracts_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/contracts/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, INV_COMMON)
         return data
 
-    async def contracts_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def contracts_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/contracts/", api_key, json=payload)
 
-    async def contracts_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def contracts_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/contracts/{id}", api_key, json=payload)
 
-    async def contracts_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def contracts_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/contracts/{id}", api_key)
 
     async def contracts_get_lines(self, id: int, api_key: Optional[str] = None, sortfield: str = "", sortorder: str = "ASC", limit: int = 100, page: int = 0, sqlfilters: str = "", include_all_fields: bool = False) -> Any:
@@ -978,19 +947,19 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = LINE_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["line"]))
         return await self.get(f"/contracts/{id}/lines", api_key, params=params or None)
 
-    async def contracts_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def contracts_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post(f"/contracts/{id}/lines", api_key, json=payload)
 
-    async def contracts_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def contracts_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/contracts/{id}/lines/{lineid}", api_key, json=payload)
 
     async def contracts_activate_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.put(f"/contracts/{id}/lines/{lineid}/activate", api_key, json=payload)
 
-    async def contracts_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None) -> Any:
+    async def contracts_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/contracts/{id}/lines/{lineid}", api_key)
 
     async def contracts_validate(self, id: int, api_key: Optional[str] = None, notrigger: int = 0) -> Any:
@@ -1013,32 +982,30 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = BOM_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["bom"]))
         return await self.get("/boms/", api_key, params=params)
 
     async def boms_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/boms/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, BOM_COMMON)
         return data
 
-    async def boms_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def boms_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/boms/", api_key, json=payload)
 
-    async def boms_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def boms_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/boms/{id}", api_key, json=payload)
 
-    async def boms_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def boms_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/boms/{id}", api_key)
 
     async def boms_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
-        params = {"properties": BOM_LINE_COMMON}
+        params = {"properties": ",".join(sorted(COMMON_FIELDS["bom_line"]))}
         return await self.get(f"/boms/{id}/lines", api_key, params=params)
 
-    async def boms_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def boms_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post(f"/boms/{id}/lines", api_key, json=payload)
 
-    async def boms_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None) -> Any:
+    async def boms_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/boms/{id}/lines/{lineid}", api_key)
 
     # ============================================================
@@ -1051,22 +1018,20 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = MO_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["mo"]))
         return await self.get("/mos/", api_key, params=params)
 
     async def mos_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/mos/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, MO_COMMON)
         return data
 
-    async def mos_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def mos_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/mos/", api_key, json=payload)
 
-    async def mos_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def mos_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/mos/{id}", api_key, json=payload)
 
-    async def mos_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def mos_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/mos/{id}", api_key)
 
     async def mos_produce_and_consume(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
@@ -1084,28 +1049,26 @@ class DolibarrClient:
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if category: params["category"] = category
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = PROJECT_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["project"]))
         return await self.get("/projects/", api_key, params=params)
 
     async def projects_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/projects/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, PROJECT_COMMON)
         return data
 
-    async def projects_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def projects_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/projects/", api_key, json=payload)
 
-    async def projects_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def projects_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/projects/{id}", api_key, json=payload)
 
-    async def projects_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def projects_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/projects/{id}", api_key)
 
     async def projects_get_tasks(self, id: int, api_key: Optional[str] = None, includetimespent: int = 0) -> Any:
         params = {}
         if includetimespent: params["includetimespent"] = includetimespent
-        params["properties"] = TASK_COMMON
+        params["properties"] = ",".join(sorted(COMMON_FIELDS["task"]))
         return await self.get(f"/projects/{id}/tasks", api_key, params=params)
 
     async def projects_get_timespent(self, id: int, api_key: Optional[str] = None) -> Any:
@@ -1119,7 +1082,7 @@ class DolibarrClient:
     async def projects_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
         params = {}
         if type: params["type"] = type
-        params["properties"] = CONTACT_COMMON
+        params["properties"] = ",".join(sorted(COMMON_FIELDS["contact"]))
         return await self.get(f"/projects/{id}/contacts", api_key, params=params)
 
     # ============================================================
@@ -1132,24 +1095,22 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = TASK_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["task"]))
         return await self.get("/tasks/", api_key, params=params)
 
     async def tasks_get(self, id: int, api_key: Optional[str] = None, includetimespent: int = 0, include_all_fields: bool = False) -> Any:
         params = {}
         if includetimespent: params["includetimespent"] = includetimespent
         data = await self.get(f"/tasks/{id}", api_key, params=params or None)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, TASK_COMMON)
         return data
 
-    async def tasks_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def tasks_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/tasks/", api_key, json=payload)
 
-    async def tasks_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def tasks_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/tasks/{id}", api_key, json=payload)
 
-    async def tasks_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def tasks_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/tasks/{id}", api_key)
 
     async def tasks_get_timespent(self, id: int, api_key: Optional[str] = None) -> Any:
@@ -1158,16 +1119,16 @@ class DolibarrClient:
     async def tasks_add_timespent(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
         return await self.post(f"/tasks/{id}/addtimespent", api_key, json=payload)
 
-    async def tasks_update_timespent(self, id: int, timespent_id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def tasks_update_timespent(self, id: int, timespent_id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/tasks/{id}/timespent/{timespent_id}", api_key, json=payload)
 
-    async def tasks_delete_timespent(self, id: int, timespent_id: int, api_key: Optional[str] = None) -> Any:
+    async def tasks_delete_timespent(self, id: int, timespent_id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/tasks/{id}/timespent/{timespent_id}", api_key)
 
     async def tasks_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
         params = {}
         if type: params["type"] = type
-        params["properties"] = CONTACT_COMMON
+        params["properties"] = ",".join(sorted(COMMON_FIELDS["contact"]))
         return await self.get(f"/tasks/{id}/contacts", api_key, params=params)
 
     # ============================================================
@@ -1181,22 +1142,20 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = SHIPMENT_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["shipment"]))
         return await self.get("/shipments/", api_key, params=params)
 
     async def shipments_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/shipments/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, SHIPMENT_COMMON)
         return data
 
-    async def shipments_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def shipments_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/shipments/", api_key, json=payload)
 
-    async def shipments_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def shipments_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/shipments/{id}", api_key, json=payload)
 
-    async def shipments_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def shipments_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/shipments/{id}", api_key)
 
     async def shipments_validate(self, id: int, api_key: Optional[str] = None, notrigger: int = 0) -> Any:
@@ -1220,22 +1179,20 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = RECEPTION_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["reception"]))
         return await self.get("/receptions/", api_key, params=params)
 
     async def receptions_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/receptions/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, RECEPTION_COMMON)
         return data
 
-    async def receptions_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def receptions_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/receptions/", api_key, json=payload)
 
-    async def receptions_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def receptions_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/receptions/{id}", api_key, json=payload)
 
-    async def receptions_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def receptions_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/receptions/{id}", api_key)
 
     async def receptions_validate(self, id: int, api_key: Optional[str] = None, notrigger: int = 0) -> Any:
@@ -1259,37 +1216,35 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if thirdparty_ids: params["thirdparty_ids"] = thirdparty_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = INTERVENTION_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["intervention"]))
         return await self.get("/interventions/", api_key, params=params)
 
     async def interventions_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/interventions/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, INTERVENTION_COMMON)
         return data
 
-    async def interventions_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def interventions_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/interventions/", api_key, json=payload)
 
-    async def interventions_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def interventions_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/interventions/{id}", api_key, json=payload)
 
-    async def interventions_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def interventions_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/interventions/{id}", api_key)
 
     async def interventions_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.get(f"/interventions/{id}/lines", api_key)
 
-    async def interventions_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def interventions_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         p = dict(payload)
         if "date" in p and isinstance(p["date"], str):
             p["date"] = _normalize_datetime(p["date"])
         return await self.post(f"/interventions/{id}/lines", api_key, json=p)
 
-    async def interventions_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def interventions_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/interventions/{id}/lines/{lineid}", api_key, json=payload)
 
-    async def interventions_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None) -> Any:
+    async def interventions_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/interventions/{id}/lines/{lineid}", api_key)
 
     async def interventions_settodraft(self, id: int, api_key: Optional[str] = None) -> Any:
@@ -1308,7 +1263,7 @@ class DolibarrClient:
     async def interventions_get_contacts(self, id: int, api_key: Optional[str] = None, type: str = "") -> Any:
         params = {}
         if type: params["type"] = type
-        params["properties"] = CONTACT_COMMON
+        params["properties"] = ",".join(sorted(COMMON_FIELDS["contact"]))
         return await self.get(f"/interventions/{id}/contacts", api_key, params=params)
 
     # ============================================================
@@ -1322,38 +1277,36 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if user_ids: params["user_ids"] = user_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = EXPENSE_REPORT_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["expense_report"]))
         return await self.get("/expensereports/", api_key, params=params)
 
     async def expense_reports_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/expensereports/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, EXPENSE_REPORT_COMMON)
         return data
 
-    async def expense_reports_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def expense_reports_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/expensereports/", api_key, json=payload)
 
-    async def expense_reports_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def expense_reports_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/expensereports/{id}", api_key, json=payload)
 
-    async def expense_reports_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def expense_reports_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/expensereports/{id}", api_key)
 
     async def expense_reports_get_lines(self, id: int, api_key: Optional[str] = None) -> Any:
-        params = {"properties": EXPENSE_LINE_COMMON}
+        params = {"properties": ",".join(sorted(COMMON_FIELDS["expense_line"]))}
         return await self.get(f"/expensereports/{id}/lines", api_key, params=params)
 
-    async def expense_reports_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def expense_reports_create_line(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         p = dict(payload)
         if "date" in p and isinstance(p["date"], str):
             p["date"] = _normalize_datetime(p["date"])
         return await self.post(f"/expensereports/{id}/line", api_key, json=p)
 
-    async def expense_reports_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def expense_reports_update_line(self, id: int, lineid: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/expensereports/{id}/lines/{lineid}", api_key, json=payload)
 
-    async def expense_reports_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None) -> Any:
+    async def expense_reports_delete_line(self, id: int, lineid: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/expensereports/{id}/lines/{lineid}", api_key)
 
     async def expense_reports_settodraft(self, id: int, api_key: Optional[str] = None) -> Any:
@@ -1392,22 +1345,20 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if user_ids: params["user_ids"] = user_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = HOLIDAY_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["holiday"]))
         return await self.get("/holidays/", api_key, params=params)
 
     async def holidays_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/holidays/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, HOLIDAY_COMMON)
         return data
 
-    async def holidays_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def holidays_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/holidays/", api_key, json=payload)
 
-    async def holidays_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def holidays_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/holidays/{id}", api_key, json=payload)
 
-    async def holidays_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def holidays_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/holidays/{id}", api_key)
 
     async def holidays_validate(self, id: int, api_key: Optional[str] = None, notrigger: int = 0) -> Any:
@@ -1442,22 +1393,20 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if user_ids: params["user_ids"] = user_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = AGENDA_EVENT_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["agenda_event"]))
         return await self.get("/agendaevents/", api_key, params=params)
 
     async def agenda_events_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/agendaevents/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, AGENDA_EVENT_COMMON)
         return data
 
-    async def agenda_events_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def agenda_events_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/agendaevents/", api_key, json=payload)
 
-    async def agenda_events_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def agenda_events_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/agendaevents/{id}", api_key, json=payload)
 
-    async def agenda_events_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def agenda_events_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/agendaevents/{id}", api_key)
 
     # ============================================================
@@ -1471,24 +1420,22 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if type: params["type"] = type
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = CATEGORY_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["category"]))
         return await self.get("/categories/", api_key, params=params)
 
     async def categories_get(self, id: int, api_key: Optional[str] = None, include_childs: bool = False, include_all_fields: bool = False) -> Any:
         params = {}
         if include_childs: params["include_childs"] = "true"
         data = await self.get(f"/categories/{id}", api_key, params=params or None)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, CATEGORY_COMMON)
         return data
 
-    async def categories_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def categories_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/categories/", api_key, json=payload)
 
-    async def categories_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def categories_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/categories/{id}", api_key, json=payload)
 
-    async def categories_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def categories_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/categories/{id}", api_key)
 
     async def categories_get_types(self, api_key: Optional[str] = None) -> Any:
@@ -1521,22 +1468,20 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = MAILING_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["mailing"]))
         return await self.get("/mailings/", api_key, params=params)
 
     async def mailings_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/mailings/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, MAILING_COMMON)
         return data
 
-    async def mailings_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def mailings_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/mailings/", api_key, json=payload)
 
-    async def mailings_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def mailings_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/mailings/{id}", api_key, json=payload)
 
-    async def mailings_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def mailings_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/mailings/{id}", api_key)
 
     async def mailings_validate(self, id: int, api_key: Optional[str] = None) -> Any:
@@ -1552,26 +1497,24 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = MULTI_CURRENCY_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["multi_currency"]))
         return await self.get("/multicurrencies/", api_key, params=params)
 
     async def multi_currencies_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/multicurrencies/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, MULTI_CURRENCY_COMMON)
         return data
 
-    async def multi_currencies_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def multi_currencies_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/multicurrencies/", api_key, json=payload)
 
-    async def multi_currencies_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def multi_currencies_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/multicurrencies/{id}", api_key, json=payload)
 
-    async def multi_currencies_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def multi_currencies_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/multicurrencies/{id}", api_key)
 
     async def multi_currencies_get_rates(self, id: int, api_key: Optional[str] = None) -> Any:
-        params = {"properties": MULTI_CURRENCY_COMMON}
+        params = {"properties": ",".join(sorted(COMMON_FIELDS["multi_currency"]))}
         return await self.get(f"/multicurrencies/{id}/rates", api_key, params=params)
 
     # ============================================================
@@ -1585,25 +1528,23 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if socid: params["socid"] = socid
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = TICKET_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["ticket"]))
         return await self.get("/tickets/", api_key, params=params)
 
     async def tickets_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/tickets/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, TICKET_COMMON)
         return data
 
-    async def tickets_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def tickets_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/tickets/", api_key, json=payload)
 
-    async def tickets_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def tickets_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/tickets/{id}", api_key, json=payload)
 
-    async def tickets_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def tickets_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/tickets/{id}", api_key)
 
-    async def tickets_create_message(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def tickets_create_message(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/tickets/newMessage/", api_key, json=payload)
 
     # ============================================================
@@ -1616,22 +1557,20 @@ class DolibarrClient:
         if limit != 100: params["limit"] = limit
         if page != 0: params["page"] = page
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = WORKSTATION_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["workstation"]))
         return await self.get("/workstations/", api_key, params=params)
 
     async def workstations_get(self, id: int, api_key: Optional[str] = None, include_all_fields: bool = False) -> Any:
         data = await self.get(f"/workstations/{id}", api_key)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, WORKSTATION_COMMON)
         return data
 
-    async def workstations_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def workstations_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/workstations/", api_key, json=payload)
 
-    async def workstations_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def workstations_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/workstations/{id}", api_key, json=payload)
 
-    async def workstations_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def workstations_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/workstations/{id}", api_key)
 
     # ============================================================
@@ -1640,7 +1579,7 @@ class DolibarrClient:
     async def object_links_get(self, id: int, api_key: Optional[str] = None) -> Any:
         return await self.get(f"/objectlinks/{id}", api_key)
 
-    async def object_links_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def object_links_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/objectlinks/", api_key, json=payload)
 
     async def object_links_get_by_values(self, api_key: Optional[str] = None, fk_source: int = 0, sourcetype: str = "", fk_target: int = 0, targettype: str = "", relationtype: str = "") -> Any:
@@ -1652,7 +1591,7 @@ class DolibarrClient:
         if relationtype: params["relationtype"] = relationtype
         return await self.get("/objectlinks/", api_key, params=params or None)
 
-    async def object_links_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def object_links_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/objectlinks/{id}", api_key)
 
     # ============================================================
@@ -1667,31 +1606,25 @@ class DolibarrClient:
         if user_ids: params["user_ids"] = user_ids
         if category: params["category"] = category
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = USER_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["user"]))
         return await self.get("/users/", api_key, params=params)
 
     async def users_get(self, id: int, api_key: Optional[str] = None, includepermissions: int = 0, include_all_fields: bool = False) -> Any:
         params = {}
         if includepermissions: params["includepermissions"] = includepermissions
         data = await self.get(f"/users/{id}", api_key, params=params or None)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, USER_COMMON)
         return data
 
     async def users_get_by_login(self, login: str, api_key: Optional[str] = None, includepermissions: int = 0, include_all_fields: bool = False) -> Any:
         params = {}
         if includepermissions: params["includepermissions"] = includepermissions
         data = await self.get(f"/users/login/{login}", api_key, params=params or None)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, USER_COMMON)
         return data
 
     async def users_get_by_email(self, email: str, api_key: Optional[str] = None, includepermissions: int = 0, include_all_fields: bool = False) -> Any:
         params = {}
         if includepermissions: params["includepermissions"] = includepermissions
         data = await self.get(f"/users/email/{email}", api_key, params=params or None)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, USER_COMMON)
         return data
 
     async def users_get_info(self, api_key: Optional[str] = None, includepermissions: int = 0) -> Any:
@@ -1707,7 +1640,7 @@ class DolibarrClient:
         if page != 0: params["page"] = page
         if group_ids: params["group_ids"] = group_ids
         if sqlfilters: params["sqlfilters"] = sqlfilters
-        if not include_all_fields: params["properties"] = GROUP_COMMON
+        if not include_all_fields: params["properties"] = ",".join(sorted(COMMON_FIELDS["group"]))
         return await self.get("/users/groups", api_key, params=params)
 
     async def users_get_group(self, group: int, api_key: Optional[str] = None, load_members: int = 0, includepermissions: int = 0, include_all_fields: bool = False) -> Any:
@@ -1715,27 +1648,25 @@ class DolibarrClient:
         if load_members: params["load_members"] = load_members
         if includepermissions: params["includepermissions"] = includepermissions
         data = await self.get(f"/users/groups/{group}", api_key, params=params or None)
-        if not include_all_fields and isinstance(data, dict):
-            data = self._filter_fields(data, GROUP_COMMON)
         return data
 
-    async def groups_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def groups_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/users/groups", api_key, json=payload)
 
-    async def groups_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def groups_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/users/groups/{id}", api_key)
 
     async def users_get_user_groups(self, id: int, api_key: Optional[str] = None) -> Any:
-        params = {"properties": GROUP_COMMON}
+        params = {"properties": ",".join(sorted(COMMON_FIELDS["group"]))}
         return await self.get(f"/users/{id}/groups", api_key, params=params)
 
-    async def users_create(self, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def users_create(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/users/", api_key, json=payload)
 
-    async def users_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None) -> Any:
+    async def users_update(self, id: int, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.put(f"/users/{id}", api_key, json=payload)
 
-    async def users_delete(self, id: int, api_key: Optional[str] = None) -> Any:
+    async def users_delete(self, id: int, api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.delete(f"/users/{id}", api_key)
 
     # ============================================================
