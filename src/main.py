@@ -1732,16 +1732,6 @@ async def stockmovements_create(product_id: int, warehouse_id: int, qty: float, 
     params = CreateStockMovementParam(product_id=product_id, warehouse_id=warehouse_id, qty=qty, type=type, batch=batch, movementcode=movementcode, label=label, price=price, datem=datem, sellBy=sellBy, eatBy=eatBy, origin_type=origin_type, origin_id=origin_id)
     return await get_client().stockmovements_create(params.model_dump(exclude_unset=True), get_user_token())
 
-@mcp.tool()
-@mcp.tool()
-async def stockmovements_delete(id: int, ctx: Context = None) -> dict[str, Any]:
-    """Delete a stock movement by ID.
-
-    Args:
-        id: The unique ID of the resource (required).
-    """
-    return await get_client().stockmovements_delete(id, get_user_token())
-
 # ============================================================
 # Product Lots
 # ============================================================
