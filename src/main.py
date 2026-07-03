@@ -31,7 +31,6 @@ class AuthMiddleware:
 
 
 mcp = FastMCP("dolibarr-mcp-server")
-_last_payment_placeholder_invoice_id: int | None = None
 
 _client: Optional[DolibarrClient] = None
 
@@ -2617,10 +2616,8 @@ async def payments_create(datepaye: str, paymentid: int, amount: float, accounti
         closepaidinvoices: Close paid invoices (yes/no).
         socid: Thirdparty ID for the placeholder invoice.
     """
-    global _last_payment_placeholder_invoice_id
     pay_inv = await get_client().invoices_create({"socid": socid, "date": int(_to_timestamp(datepaye)), "type": 0}, get_user_token())
     pay_inv_id = pay_inv.get("id") if isinstance(pay_inv, dict) else int(pay_inv)
-    _last_payment_placeholder_invoice_id = pay_inv_id
     line_data = {"desc": "Payment line", "qty": 1, "subprice": amount, "tva_tx": 0.0, "price_base_type": "HT"}
     await get_client().invoices_create_line(pay_inv_id, line_data, get_user_token())
     payload = CreateInvoicePaymentParam(datepaye=datepaye, paymentid=paymentid, accountid=accountid, closepaidinvoices=closepaidinvoices, amount=amount).model_dump(exclude_unset=True)
@@ -2648,18 +2645,6 @@ async def payments_delete(id: int, ctx: Context = None) -> dict[str, Any]:
         id: The unique ID of the resource (required).
     """
     return await get_client().payments_delete(id, get_user_token())
-
-@mcp.tool()
-async def payments_cleanup_placeholder_invoice(ctx: Context = None) -> dict[str, Any]:
-    """Delete the placeholder invoice from the last payment create call.
-    Used during testing to clean up orphan placeholder invoices.
-    """
-    global _last_payment_placeholder_invoice_id
-    if _last_payment_placeholder_invoice_id:
-        inv_id = _last_payment_placeholder_invoice_id
-        _last_payment_placeholder_invoice_id = None
-        return await get_client().invoices_delete(inv_id, get_user_token())
-    return {"success": {"code": 200, "message": "No placeholder invoice to clean up"}}
 
 # ============================================================
 # Bank Accounts
