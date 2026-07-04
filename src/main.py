@@ -5137,7 +5137,7 @@ async def tickets_get(id: int, include_all_fields: bool = False, ctx: Context = 
     """Get a single ticket by ID.
 
     Args:
-        id: The unique ID of the resource.
+        id: The unique ID of the ticket.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     return await get_client().tickets_get(id, get_user_token(), include_all_fields=include_all_fields)
@@ -5168,7 +5168,7 @@ async def tickets_update(id: int, subject: Optional[str] = None, type_code: Opti
     """Update an existing ticket.
 
     Args:
-        id: The unique ID of the resource.
+        id: The unique ID of the ticket.
         subject: Subject.
         type_code: Event type code.
         severity_code: Severity code.
@@ -5190,7 +5190,7 @@ async def tickets_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     """Delete a ticket by ID.
 
     Args:
-        id: The unique ID of the resource.
+        id: The unique ID of the ticket.
     """
     return await get_client().tickets_delete(id, get_user_token())
 
@@ -5211,6 +5211,31 @@ async def tickets_create_message(track_id: str, message: str, fk_user_author: in
     if not isinstance(result, dict):
         return {"id": result}
     return result
+
+@mcp.tool(tags={"advanced", "dolibarr", "write"})
+async def tickets_add_contact(id: int, contactid: int, type: str, source: str = "external", notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+    """Add a contact to a ticket.
+
+    Args:
+        id: The unique ID of the ticket.
+        contactid: Contact ID.
+        type: Contact type.
+        source: Source (internal or external).
+        notrigger: Disable triggers flag.
+    """
+    return await get_client().tickets_add_contact(id, contactid, type, source, notrigger, get_user_token())
+
+@mcp.tool(tags={"advanced", "dolibarr", "write"})
+async def tickets_delete_contact(id: int, contactid: int, type: str, source: str = "external", ctx: Context = None) -> dict[str, Any]:
+    """Delete a contact from a ticket.
+
+    Args:
+        id: The unique ID of the ticket.
+        contactid: Contact ID.
+        type: Type.
+        source: Source (internal or external).
+    """
+    return await get_client().tickets_delete_contact(id, contactid, type, source, get_user_token())
 
 # ============================================================
 # Workstations

@@ -438,6 +438,8 @@ ALL_TESTS = [
     # Tickets
     ("P4_tickets_refetch", "tickets_get", '{"id": {ticket.id}, "include_all_fields": true}', "ticket", ""),
     ("P4_tickets_create_message", "tickets_create_message", '{"track_id": "{ticket.track_id}", "message": "Test ticket message"}', "last", ""),
+    ("P4_tickets_add_contact", "tickets_add_contact", '{"id": {ticket.id}, "contactid": {contact.id}, "type": "SUPPORTCLI", "source": "external"}', "last", ""),
+    ("P4_tickets_delete_contact", "tickets_delete_contact", '{"id": {ticket.id}, "contactid": {contact.id}, "type": "SUPPORTCLI", "source": "external"}', "last", ""),
     # Users
     ("P4_users_get", "users_get", '{"id": {user.id}, "include_all_fields": true}', "user", ""),
     ("P4_users_get_by_login", "users_get_by_login", '{"login": "{user.login}"}', "last", ""),

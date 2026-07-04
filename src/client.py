@@ -1559,6 +1559,13 @@ class DolibarrClient:
     async def tickets_create_message(self, payload: dict[str, Any], api_key: Optional[str] = None, **kwargs: Any) -> Any:
         return await self.post("/tickets/newMessage/", api_key, json=payload)
 
+    async def tickets_add_contact(self, id: int, contactid: int, type: str, source: str = "external", notrigger: int = 0, api_key: Optional[str] = None, **kwargs: Any) -> Any:
+        return await self.post(f"/tickets/{id}/contact/{contactid}/{type}?source={source}&notrigger={notrigger}", api_key)
+
+    async def tickets_delete_contact(self, id: int, contactid: int, type: str, source: str = "external", api_key: Optional[str] = None, **kwargs: Any) -> Any:
+        await self.delete(f"/tickets/{id}/contact/{contactid}/{type}?source={source}", api_key)
+        return {"success": {"code": 200, "message": "Ticket contact deleted"}}
+
     # ============================================================
     # Workstations
     # ============================================================

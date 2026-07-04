@@ -410,13 +410,15 @@ categories:
 - `multi_currencies_delete` — Delete a multi-currency by ID
 - `multi_currencies_get_rates` — Get rates for a multi-currency
 
-### 🎫 Tickets (6 tools)
+### 🎫 Tickets (8 tools)
 - `tickets_list` — List all tickets
 - `tickets_get` — Get a ticket by ID
 - `tickets_create` — Create a new ticket
 - `tickets_update` — Update an existing ticket
 - `tickets_delete` — Delete a ticket by ID
 - `tickets_create_message` — Create a message on a ticket
+- `tickets_add_contact` — Add a contact to a ticket
+- `tickets_delete_contact` — Remove a contact from a ticket
 
 ### 🖥️ Workstations (5 tools)
 - `workstations_list` — List all workstations
