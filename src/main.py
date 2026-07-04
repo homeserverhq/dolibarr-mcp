@@ -1100,7 +1100,7 @@ async def thirdparties_get_outstanding_proposals(
 
     Args:
         id: The unique ID of the third party.
-        mode: 'customer' or 'supplier'.
+        mode: customer or supplier.
     """
     data = await get_client().thirdparties_get_outstanding_proposals(id, get_user_token(), mode=mode)
     return {"items": json_to_toon(data)}
@@ -1115,7 +1115,7 @@ async def thirdparties_get_outstanding_orders(
 
     Args:
         id: The unique ID of the third party.
-        mode: 'customer' or 'supplier'.
+        mode: customer or supplier.
     """
     data = await get_client().thirdparties_get_outstanding_orders(id, get_user_token(), mode=mode)
     return {"items": json_to_toon(data)}
@@ -1130,7 +1130,7 @@ async def thirdparties_get_outstanding_invoices(
 
     Args:
         id: The unique ID of the third party.
-        mode: 'customer' or 'supplier'.
+        mode: customer or supplier.
     """
     data = await get_client().thirdparties_get_outstanding_invoices(id, get_user_token(), mode=mode)
     return {"items": json_to_toon(data)}
