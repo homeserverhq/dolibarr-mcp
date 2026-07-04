@@ -798,7 +798,7 @@ async def documents_list(
     Use documents_list_types first to discover which modulepart values are available.
 
     Args:
-        modulepart: Object type to list documents for. Accepted values (any common alias works):
+        modulepart: Object type to list documents for. Accepted values: invoice, order, proposal, contract, project, thirdparty, etc.
             "thirdparty"/"societe"/"company" - Third parties
             "user" - Users
             "member"/"adherent" - Members
@@ -1395,7 +1395,7 @@ async def products_list(
         mode: 0=All, 1=Products, 2=Services.
         category: Category ID filter.
         sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
-        variant_filter: Variant filter.
+        variant_filter: 0=all, 1=products without variants, 2=parent of variants, 3=variants only.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().products_list(
@@ -1433,7 +1433,7 @@ async def products_create(
     Args:
         ref: Reference.
         label: Label.
-        type: Type.
+        type: Product type (0=product, 1=service).
         status: Status.
         price: Unit price.
         price_base_type: Price base type (HT or TTC).
@@ -1500,7 +1500,7 @@ async def products_update(
         id: The unique ID of the product.
         ref: Reference.
         label: Label.
-        type: Type.
+        type: Product type (0=product, 1=service).
         status: Status.
         price: Unit price.
         price_base_type: Price base type (HT or TTC).
@@ -1596,7 +1596,7 @@ async def products_get_contacts(id: int, type: str = "", ctx: Context = None) ->
 
     Args:
         id: The unique ID of the product.
-        type: Type.
+        type: Contact type code (e.g. BILLING, SHIPPING, CUSTOMER).
     """
     data = await get_client().products_get_contacts(id, get_user_token(), type=type)
     return {"items": json_to_toon(data)}
@@ -1734,7 +1734,7 @@ async def stockmovements_create(product_id: int, warehouse_id: int, qty: float, 
         product_id: Product ID.
         warehouse_id: Warehouse ID.
         qty: Quantity.
-        type: Type.
+        type: Movement type code.
         batch: Batch number.
         movementcode: Movement code.
         label: Label.
@@ -1942,7 +1942,7 @@ async def proposals_create_line(id: int, desc: str, qty: float, subprice: float,
 
     Args:
         id: The unique ID of the proposal.
-        desc: Desc.
+        desc: Description.
         qty: Quantity.
         subprice: Unit price.
         product_id: Product ID.
@@ -1967,7 +1967,7 @@ async def proposals_update_line(id: int, lineid: int, desc: Optional[str] = None
     Args:
         id: The unique ID of the proposal.
         lineid: The line ID.
-        desc: Desc.
+        desc: Description.
         qty: Quantity.
         subprice: Unit price.
         product_id: Product ID.
@@ -2043,7 +2043,7 @@ async def proposals_get_contacts(id: int, type: str = "", ctx: Context = None) -
 
     Args:
         id: The unique ID of the proposal.
-        type: Type.
+        type: Contact type code (e.g. BILLING, SHIPPING, CUSTOMER).
     """
     data = await get_client().proposals_get_contacts(id, get_user_token(), type=type)
     return {"items": json_to_toon(data)}
@@ -2055,8 +2055,8 @@ async def proposals_add_contact(id: int, contactid: int, type: str, source: str 
     Args:
         id: The unique ID of the proposal.
         contactid: Contact ID.
-        type: Type.
-        source: Source.
+        contact_type: Contact type code (e.g. BILLING, SHIPPING, CUSTOMER).
+        source: Source (internal or external).
         notrigger: Disable triggers flag.
     """
     return await get_client().proposals_add_contact(id, contactid, type, get_user_token(), source=source, notrigger=notrigger)
@@ -2178,7 +2178,7 @@ async def orders_create_line(id: int, desc: str, qty: float, subprice: float, pr
 
     Args:
         id: The unique ID of the order.
-        desc: Desc.
+        desc: Description.
         qty: Quantity.
         subprice: Unit price.
         product_id: Product ID.
@@ -2202,7 +2202,7 @@ async def orders_update_line(id: int, lineid: int, desc: Optional[str] = None, q
     Args:
         id: The unique ID of the order.
         lineid: The line ID.
-        desc: Desc.
+        desc: Description.
         qty: Quantity.
         subprice: Unit price.
         product_id: Product ID.
@@ -2314,7 +2314,7 @@ async def orders_get_contacts(id: int, type: str = "", ctx: Context = None) -> d
 
     Args:
         id: The unique ID of the order.
-        type: Type.
+        type: Contact type code (e.g. BILLING, SHIPPING, CUSTOMER).
     """
     data = await get_client().orders_get_contacts(id, get_user_token(), type=type)
     return {"items": json_to_toon(data)}
@@ -2355,7 +2355,7 @@ async def invoices_create(socid: int, date: str, type: int, ref: str = "", statu
     Args:
         socid: Third party ID.
         date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        type: Type.
+        type: Invoice type (0=standard, 1=credit note, 2=deposit, 3=situation).
         ref: Reference.
         status: Status.
         note_public: Public note.
@@ -2384,7 +2384,7 @@ async def invoices_update(id: int, socid: Optional[int] = None, date: Optional[s
         id: The unique ID of the invoice.
         socid: Third party ID.
         date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        type: Type.
+        type: Invoice type (0=standard, 1=credit note, 2=deposit, 3=situation).
         ref: Reference.
         status: Status.
         note_public: Public note.
@@ -2426,7 +2426,7 @@ async def invoices_create_line(id: int, desc: str, qty: float, subprice: float, 
 
     Args:
         id: The unique ID of the invoice.
-        desc: Desc.
+        desc: Description.
         qty: Quantity.
         subprice: Unit price.
         product_id: Product ID.
@@ -2450,7 +2450,7 @@ async def invoices_update_line(id: int, lineid: int, desc: Optional[str] = None,
     Args:
         id: The unique ID of the invoice.
         lineid: The line ID.
-        desc: Desc.
+        desc: Description.
         qty: Quantity.
         subprice: Unit price.
         product_id: Product ID.
@@ -2547,12 +2547,12 @@ async def invoices_add_payment(id: int, datepaye: str, paymentid: int, accountid
         datepaye: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         paymentid: Payment type ID.
         accountid: Account ID.
-        closepaidinvoices: Close paid invoices flag ("yes" or "no").
+        closepaidinvoices: Close paid invoices (yes/no).
         num_payment: Payment number.
         comment: Comment.
         amount: Amount to pay.
-        chqemetteur: Check issuer.
-        chqbank: Check bank.
+        chqemetteur: Check issuer name.
+        chqbank: Check bank name.
     """
     datepaye = _normalize_datetime(datepaye)
     params = CreateInvoicePaymentParam(datepaye=datepaye, paymentid=paymentid, accountid=accountid, closepaidinvoices=closepaidinvoices, num_payment=num_payment, comment=comment, amount=amount, chqemetteur=chqemetteur, chqbank=chqbank)
@@ -2564,7 +2564,7 @@ async def invoices_get_contacts(id: int, type: str = "", ctx: Context = None) ->
 
     Args:
         id: The unique ID of the invoice.
-        type: Type.
+        type: Contact type code (e.g. BILLING, SHIPPING, CUSTOMER).
     """
     data = await get_client().invoices_get_contacts(id, get_user_token(), type=type)
     return {"items": json_to_toon(data)}
@@ -2577,7 +2577,7 @@ async def invoices_add_contact(id: int, fk_socpeople: int, type_contact: str, so
         id: The unique ID of the invoice.
         fk_socpeople: Contact ID.
         type_contact: Contact type.
-        source: Source.
+        source: Source (internal or external).
         notrigger: Disable triggers flag.
     """
     params = CreateInvoiceContactParam(fk_socpeople=fk_socpeople, type_contact=type_contact, source=source, notrigger=notrigger)
@@ -2590,7 +2590,7 @@ async def invoices_delete_contact(id: int, contactid: int, type: str, ctx: Conte
     Args:
         id: The unique ID of the invoice.
         contactid: Contact ID.
-        type: Type.
+        type: Contact type code (e.g. BILLING, SHIPPING, CUSTOMER).
     """
     return await get_client().invoices_delete_contact(id, contactid, type, get_user_token())
 
@@ -2715,7 +2715,7 @@ async def bankaccounts_create(ref: str, label: str, type: int, currency_code: st
     Args:
         ref: Reference.
         label: Label.
-        type: Type.
+        type: Account type (1=checking, 2=savings, 3=credit card, etc.).
         currency_code: Currency Code.
         account_number: Account Number.
         country_id: Country ID.
@@ -2745,7 +2745,7 @@ async def bankaccounts_update(id: int, ref: Optional[str] = None, label: Optiona
         id: The unique ID of the bank account.
         ref: Reference.
         label: Label.
-        type: Type.
+        type: Account type (1=checking, 2=savings, 3=credit card, etc.).
         currency_code: Currency Code.
         account_number: Account Number.
         bank: Bank.
@@ -2810,13 +2810,13 @@ async def bankaccounts_create_line(id: int, date: str, type: str, label: str, am
     Args:
         id: The unique ID of the bank account.
         date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        type: Type.
+        type: Line type (e.g. credit, debit).
         label: Label.
         amount: Amount.
         category: Category ID filter.
         cheque_number: Check number.
         cheque_writer: Check writer.
-        cheque_bank: Cheque Bank.
+        cheque_bank: Check bank name.
         accountancycode: Accounting code.
         datev: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         num_releve: Statement number.
@@ -2957,7 +2957,7 @@ async def supplier_orders_create_line(id: int, desc: str, qty: float, subprice: 
 
     Args:
         id: The unique ID of the supplier order.
-        desc: Desc.
+        desc: Description.
         qty: Quantity.
         subprice: Unit price.
         product_id: Product ID.
@@ -2980,7 +2980,7 @@ async def supplier_orders_get_contacts(id: int, type: str = "", ctx: Context = N
 
     Args:
         id: The unique ID of the supplier order.
-        type: Type.
+        type: Contact type code (e.g. BILLING, SHIPPING, CUSTOMER).
     """
     data = await get_client().supplier_orders_get_contacts(id, get_user_token(), type=type)
     return {"items": json_to_toon(data)}
@@ -2992,8 +2992,8 @@ async def supplier_orders_add_contact(id: int, contactid: int, type: str, source
     Args:
         id: The unique ID of the supplier order.
         contactid: Contact ID.
-        type: Type.
-        source: Source.
+        contact_type: Contact type code (e.g. BILLING, SHIPPING, CUSTOMER).
+        source: Source (internal or external).
     """
     return await get_client().supplier_orders_add_contact(id, contactid, type, source, get_user_token())
 
@@ -3004,8 +3004,8 @@ async def supplier_orders_delete_contact(id: int, contactid: int, type: str, sou
     Args:
         id: The unique ID of the supplier order.
         contactid: Contact ID.
-        type: Type.
-        source: Source.
+        contact_type: Contact type code (e.g. BILLING, SHIPPING, CUSTOMER).
+        source: Source (internal or external).
     """
     return await get_client().supplier_orders_delete_contact(id, contactid, type, source, get_user_token())
 
@@ -3145,7 +3145,7 @@ async def supplier_invoices_create_line(id: int, desc: str, qty: float, subprice
 
     Args:
         id: The unique ID of the supplier invoice.
-        desc: Desc.
+        desc: Description.
         qty: Quantity.
         subprice: Unit price.
         product_id: Product ID.
@@ -3163,7 +3163,7 @@ async def supplier_invoices_update_line(id: int, lineid: int, desc: Optional[str
     Args:
         id: The unique ID of the supplier invoice.
         lineid: The line ID.
-        desc: Desc.
+        desc: Description.
         qty: Quantity.
         subprice: Unit price.
         product_id: Product ID.
@@ -3412,7 +3412,7 @@ async def contracts_create_line(id: int, desc: str = "", qty: float = 0.0, subpr
 
     Args:
         id: The unique ID of the contract.
-        desc: Desc.
+        desc: Description.
         qty: Quantity.
         subprice: Unit price.
         product_id: Product ID.
@@ -3434,7 +3434,7 @@ async def contracts_update_line(id: int, lineid: int, desc: Optional[str] = None
     Args:
         id: The unique ID of the contract.
         lineid: The line ID.
-        desc: Desc.
+        desc: Description.
         qty: Quantity.
         subprice: Unit price.
         product_id: Product ID.
@@ -3533,7 +3533,7 @@ async def boms_create(ref: str, label: str, fk_product: int, qty: float, bomtype
         label: Label.
         fk_product: Product ID.
         qty: Quantity.
-        bomtype: BOM type (0=manufacturing, 1=...).
+        bomtype: 0=Manufacturing, 1=Disassemble.
         status: Status.
         description: Description.
         note_public: Public note.
@@ -3593,9 +3593,9 @@ async def boms_create_line(id: int, fk_product: int = 0, qty: float = 0.0, desc:
         id: The unique ID of the BOM.
         fk_product: Product ID.
         qty: Quantity.
-        desc: Desc.
+        desc: Description.
         warehouse_id: Warehouse ID.
-        position: Position.
+        position: Line position (0-based).
     """
     params = CreateBomLineParam(fk_product=fk_product, qty=qty, desc=desc, warehouse_id=warehouse_id, position=position)
     return await get_client().boms_create_line(id, params.model_dump(exclude_unset=True), get_user_token())
@@ -3647,7 +3647,7 @@ async def mos_create(ref: str, label: str, fk_product: int, qty: float, fk_wareh
         fk_product: Product ID.
         qty: Quantity.
         fk_warehouse: Warehouse ID.
-        mrptype: MO type (0=...).
+        mrptype: 0=Manufacturing, 1=Disassemble.
         status: Status.
         note_public: Public note.
         note_private: Private note.
@@ -3759,10 +3759,10 @@ async def projects_create(ref: str, title: str, socid: int = 0, description: str
         date_start: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         date_end: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         budget_amount: Budget amount.
-        usage_opportunity: Usage opportunity flag.
-        usage_task: Usage task flag.
-        usage_bill_time: Usage bill time flag.
-        usage_organize_event: Usage organize event flag.
+        usage_opportunity: Enable opportunities on project (1=yes, 0=no).
+        usage_task: Enable tasks on project (1=yes, 0=no).
+        usage_bill_time: Enable billable time on project (1=yes, 0=no).
+        usage_organize_event: Enable events on project (1=yes, 0=no).
         public: Public access flag.
         percent: Progress percentage.
     """
@@ -3787,10 +3787,10 @@ async def projects_update(id: int, ref: Optional[str] = None, title: Optional[st
         date_start: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         date_end: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         budget_amount: Budget amount.
-        usage_opportunity: Usage opportunity flag.
-        usage_task: Usage task flag.
-        usage_bill_time: Usage bill time flag.
-        usage_organize_event: Usage organize event flag.
+        usage_opportunity: Enable opportunities on project (1=yes, 0=no).
+        usage_task: Enable tasks on project (1=yes, 0=no).
+        usage_bill_time: Enable billable time on project (1=yes, 0=no).
+        usage_organize_event: Enable events on project (1=yes, 0=no).
         public: Public access flag.
         percent: Progress percentage.
     """
@@ -3846,7 +3846,7 @@ async def projects_get_contacts(id: int, type: str = "", ctx: Context = None) ->
 
     Args:
         id: The unique ID of the project.
-        type: Type.
+        type: Contact type code (e.g. BILLING, SHIPPING, CUSTOMER).
     """
     data = await get_client().projects_get_contacts(id, get_user_token(), type=type)
     return {"items": json_to_toon(data)}
@@ -3956,7 +3956,7 @@ async def tasks_add_timespent(id: int, date: str, duration: float, product_id: i
         duration: Duration.
         product_id: Product ID.
         user_id: User ID.
-        note: Note.
+        note: Note (plain text).
         progress: Progress percentage.
         billable: Billable (1 = yes, 0 = no).
     """
@@ -3985,7 +3985,7 @@ async def tasks_update_timespent(id: int, timespent_id: int, date: Optional[str]
         duration: Duration.
         product_id: Product ID.
         user_id: User ID.
-        note: Note.
+        note: Note (plain text).
     """
     payload = {k: v for k, v in {"date": date, "duration": duration, "product_id": product_id, "user_id": user_id, "note": note}.items() if v is not None}
     for key in ['date']:
@@ -4009,7 +4009,7 @@ async def tasks_get_contacts(id: int, type: str = "", ctx: Context = None) -> di
 
     Args:
         id: The unique ID of the task.
-        type: Type.
+        type: Contact type code (e.g. BILLING, SHIPPING, CUSTOMER).
     """
     data = await get_client().tasks_get_contacts(id, get_user_token(), type=type)
     return {"items": json_to_toon(data)}
@@ -4341,7 +4341,7 @@ async def interventions_update_line(id: int, lineid: int, desc: Optional[str] = 
     Args:
         id: The unique ID of the intervention.
         lineid: The line ID.
-        desc: Desc.
+        desc: Description.
         duration: Duration.
         product_id: Product ID.
         qty: Quantity.
@@ -4402,7 +4402,7 @@ async def interventions_get_contacts(id: int, type: str = "", ctx: Context = Non
 
     Args:
         id: The unique ID of the intervention.
-        type: Type.
+        type: Contact type code (e.g. BILLING, SHIPPING, CUSTOMER).
     """
     data = await get_client().interventions_get_contacts(id, get_user_token(), type=type)
     return {"items": json_to_toon(data)}
@@ -4516,7 +4516,7 @@ async def expense_reports_create_line(id: int, date: str, fk_c_type_fees: int, q
         date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         fk_c_type_fees: Fee type ID.
         qty: Quantity.
-        value_unit: Value Unit.
+        value_unit: Unit price per unit.
         product_id: Product ID.
         comment: Comment.
         vatrate: VAT rate.
@@ -4539,7 +4539,7 @@ async def expense_reports_update_line(id: int, lineid: int, date: Optional[str] 
         date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         fk_c_type_fees: Fee type ID.
         qty: Quantity.
-        value_unit: Value Unit.
+        value_unit: Unit price per unit.
         product_id: Product ID.
         comment: Comment.
         tva_tx: VAT rate.
@@ -4610,7 +4610,7 @@ async def expense_reports_cancel(id: int, detail: str = "", notrigger: int = 0, 
 
     Args:
         id: The unique ID of the expense report.
-        detail: Detail.
+        detail: Details.
         notrigger: Disable triggers flag.
     """
     return await get_client().expense_reports_cancel(id, get_user_token(), detail=detail, notrigger=notrigger)
@@ -4654,7 +4654,7 @@ async def holidays_create(fk_user: int, date_debut: str, date_fin: str, halfday:
         halfday: Half day flag (0=full, 1=morning, 2=afternoon).
         fk_type: Leave type ID.
         fk_validator: Validator user ID.
-        note: Note.
+        note: Note (plain text).
         status: Status.
     """
     date_debut = _normalize_datetime(date_debut)
@@ -4673,7 +4673,7 @@ async def holidays_update(id: int, fk_user: Optional[int] = None, date_debut: Op
         date_fin: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         halfday: Half day flag (0=full, 1=morning, 2=afternoon).
         fk_type: Leave type ID.
-        note: Note.
+        note: Note (plain text).
         status: Status.
     """
     payload = {k: v for k, v in {"fk_user": fk_user, "date_debut": date_debut, "date_fin": date_fin, "halfday": halfday, "fk_type": fk_type, "note": note, "status": status}.items() if v is not None}
@@ -4768,7 +4768,7 @@ async def agenda_events_create(type_code: str, datep: str, label: str, note: str
         type_code: Event type code.
         datep: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         label: Label.
-        note: Note.
+        note: Note (plain text).
         author_user_id: Author user ID.
         userownerid: Owner user ID.
         socid: Third party ID.
@@ -4794,7 +4794,7 @@ async def agenda_events_update(id: int, type_code: Optional[str] = None, datep: 
         type_code: Event type code.
         datep: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         label: Label.
-        note: Note.
+        note: Note (plain text).
         author_user_id: Author user ID.
         userownerid: Owner user ID.
         socid: Third party ID.
@@ -4833,7 +4833,7 @@ async def categories_list(sortfield: str = "", sortorder: str = "ASC", limit: in
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        type: Type.
+        type: Category type (e.g. thirdparty, product, invoice).
         sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
@@ -4857,7 +4857,7 @@ async def categories_create(ref: str, label: str, type: str, description: str = 
     Args:
         ref: Reference.
         label: Label.
-        type: Type.
+        type: Category type (e.g. thirdparty, product, invoice).
         description: Description.
         color: Color.
         parent: Parent ID.
@@ -4876,7 +4876,7 @@ async def categories_update(id: int, ref: Optional[str] = None, label: Optional[
         id: The unique ID of the category.
         ref: Reference.
         label: Label.
-        type: Type.
+        type: Category type (e.g. thirdparty, product, invoice).
         description: Description.
         color: Color.
         parent: Parent ID.
@@ -4907,7 +4907,7 @@ async def categories_get_for_object(type: str, id: int, sortfield: str = "", sor
     """Categories Get For Object.
 
     Args:
-        type: Type.
+        type: Category type (e.g. thirdparty, product, invoice).
         id: The unique ID of the category.
         sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
@@ -4923,7 +4923,7 @@ async def categories_link_object_by_id(id: int, type: str, object_id: int, ctx: 
 
     Args:
         id: The unique ID of the category.
-        type: Type.
+        type: Category type (e.g. thirdparty, product, invoice).
         object_id: Object ID.
     """
     return await get_client().categories_link_object_by_id(id, type, object_id, get_user_token())
@@ -4934,7 +4934,7 @@ async def categories_link_object_by_ref(id: int, type: str, object_ref: str, ctx
 
     Args:
         id: The unique ID of the category.
-        type: Type.
+        type: Category type (e.g. thirdparty, product, invoice).
         object_ref: Object reference.
     """
     return await get_client().categories_link_object_by_ref(id, type, object_ref, get_user_token())
@@ -4945,7 +4945,7 @@ async def categories_unlink_object(id: int, type: str, object_id: int, ctx: Cont
 
     Args:
         id: The unique ID of the category.
-        type: Type.
+        type: Category type (e.g. thirdparty, product, invoice).
         object_id: Object ID.
     """
     return await get_client().categories_unlink_object(id, type, object_id, get_user_token())
@@ -4988,7 +4988,7 @@ async def mailings_create(title: str, sujet: str, body: str, email_from: str, ma
         email_from: From email.
         mail_template_id: Mail template ID.
         mail_subject: Mail subject.
-        note: Note.
+        note: Note (plain text).
         status: Status.
         email_to: To email.
         email_cc: CC email.
@@ -5007,7 +5007,7 @@ async def mailings_update(id: int, title: Optional[str] = None, mail_template_id
         title: Title.
         mail_template_id: Mail template ID.
         mail_subject: Mail subject.
-        note: Note.
+        note: Note (plain text).
         status: Status.
         sujet: Subject.
         body: Body.
@@ -5074,7 +5074,7 @@ async def multi_currencies_create(code: str, name: str, rate: float = 1.0, statu
         name: Name.
         rate: Exchange rate.
         status: Status.
-        note: Note.
+        note: Note (plain text).
     """
     params = CreateMultiCurrencyParam(code=code, name=name, rate=rate, status=status, note=note)
     return await get_client().multi_currencies_create(params.model_dump(exclude_unset=True), get_user_token())
@@ -5089,7 +5089,7 @@ async def multi_currencies_update(id: int, code: Optional[str] = None, name: Opt
         name: Name.
         rate: Exchange rate.
         status: Status.
-        note: Note.
+        note: Note (plain text).
     """
     payload = {k: v for k, v in {"code": code, "name": name, "rate": rate, "status": status, "note": note}.items() if v is not None}
     return await get_client().multi_currencies_update(id, payload, get_user_token())
@@ -5156,7 +5156,7 @@ async def tickets_create(subject: str, type_code: str, severity_code: str, categ
         track_id: Track ID.
         fk_user_assign: Assigned user ID.
         email: Email address.
-        origin: Origin.
+        origin: Origin object type (e.g. commande, facture).
         origin_id: Origin object ID.
         message: Message.
     """
@@ -5179,7 +5179,7 @@ async def tickets_update(id: int, subject: Optional[str] = None, type_code: Opti
         track_id: Track ID.
         fk_user_assign: Assigned user ID.
         email: Email address.
-        origin: Origin.
+        origin: Origin object type (e.g. commande, facture).
         origin_id: Origin object ID.
     """
     payload = {k: v for k, v in {"subject": subject, "type_code": type_code, "severity_code": severity_code, "category_code": category_code, "socid": socid, "note_public": note_public, "note_private": note_private, "track_id": track_id, "fk_user_assign": fk_user_assign, "email": email, "origin": origin, "origin_id": origin_id}.items() if v is not None}
@@ -5232,7 +5232,7 @@ async def tickets_delete_contact(id: int, contactid: int, type: str, source: str
     Args:
         id: The unique ID of the ticket.
         contactid: Contact ID.
-        type: Type.
+        contact_type: Contact type code (e.g. BILLING, SHIPPING, CUSTOMER).
         source: Source (internal or external).
     """
     return await get_client().tickets_delete_contact(id, contactid, type, source, get_user_token())
@@ -5272,7 +5272,7 @@ async def workstations_create(label: str, status: int = 0, ref: str = "", type: 
         label: Label.
         status: Status (0=draft, 1=active).
         ref: Reference.
-        type: Type.
+        type: Workstation type (HUMAN, MACHINE, BOTH).
         nb_operator: Number of operators.
         cost: Cost.
     """
@@ -5291,7 +5291,7 @@ async def workstations_update(id: int, label: Optional[str] = None, status: Opti
         id: The unique ID of the workstation.
         label: Label.
         status: Status.
-        type: Type.
+        type: Workstation type (HUMAN, MACHINE, BOTH).
         nb_operator: Number of operators.
         cost: Cost.
     """
@@ -5435,7 +5435,7 @@ async def users_list_groups(sortfield: str = "", sortorder: str = "ASC", limit: 
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        group_ids: Group Ids.
+        group_ids: Comma-separated group IDs.
         sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
@@ -5448,7 +5448,7 @@ async def users_get_group(id: int, load_members: int = 0, includepermissions: in
 
     Args:
         id: The unique ID of the user.
-        load_members: Load Members.
+        load_members: Load group members (1=yes, 0=no).
         includepermissions: Include permissions flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
