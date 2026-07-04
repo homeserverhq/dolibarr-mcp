@@ -2,7 +2,7 @@
 
 This repository contains a Model Context Protocol (MCP) server that acts
 as a secure, multi-tenant proxy between an AI Assistant and the
-Dolibarr ERP/CRM backend API. It exposes **299 MCP tools** covering
+Dolibarr ERP/CRM backend API. It exposes **301 MCP tools** covering
 33 resource domains with full CRUD, lifecycle management, and
 relationship management.
 
@@ -14,14 +14,14 @@ relationship management.
 - **👥 Multi-Tenancy** — Uses Python `contextvars` to maintain thread-safe
   user identity isolation, ensuring all AI-driven actions are scoped to
   the authenticated user's permissions.
-- **📊 Full Dolibarr Coverage** — 299 tools mapped to Dolibarr
+- **📊 Full Dolibarr Coverage** — 301 tools mapped to Dolibarr
   API endpoints across 33 resource domains.
 - **⚡ TOON Optimization** — Bulk list responses are automatically compressed
   using TOON (Token-Optimized Object Notation) to reduce token consumption
   and maximize context window efficiency.
 - **⚡ Efficient Gets** — GET responses return only commonly used fields by
   default. Full objects are available via an `include_all_fields` flag.
-- **🧪 Comprehensive Testing** — 529 automated tests covering all tool
+- **🧪 Comprehensive Testing** — 531 automated tests covering all tool
   domains, run via the test runner pipeline.
 
 ## 🔧 Environment Variables
@@ -78,7 +78,7 @@ The MCP server serves at `http://dolibarr-mcp:80/mcp`
 
 ## 🛠️ API Tool Mapping
 
-The server implements 299 MCP tools organized into the following
+The server implements 301 MCP tools organized into the following
 categories:
 
 ### ✅ System & Reference (6 tools)
