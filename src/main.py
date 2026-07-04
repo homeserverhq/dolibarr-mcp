@@ -640,7 +640,7 @@ class CreateHolidayParam(BaseModel):
     fk_user: int
     date_debut: str
     date_fin: str
-    halfday: int
+    halfday: int = 0
     fk_type: int
     fk_validator: int = 0
     note: str = ""
@@ -887,24 +887,26 @@ async def thirdparties_list(
     sortorder: str = "ASC",
     limit: int = 100,
     page: int = 0,
-    mode: str = "",
+    mode: str = "all",
     category: int = 0,
     sqlfilters: str = "",
     include_all_fields: bool = False,
     ctx: Context = None
 ) -> dict[str, Any]:
-    """List all third parties (customers, suppliers, prospects).
+    """List all third parties.
 
     Args:
         sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        mode: 0=All, 1=Customers, 2=Prospects, 3=Neither, 4=Suppliers.
+        mode: all, customers, prospects, neither, or suppliers.
         category: Category ID filter.
         sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
+    _mode_map = {"all": 0, "customers": 1, "prospects": 2, "neither": 3, "suppliers": 4}
+    mode = _mode_map[mode.lower()]
     data = await get_client().thirdparties_list(
         get_user_token(), sortfield=sortfield, sortorder=sortorder,
         limit=limit, page=page, mode=mode, category=category,
@@ -931,8 +933,8 @@ async def thirdparties_get(
 @mcp.tool(tags={"basic", "dolibarr", "write"})
 async def thirdparties_create(
     name: str,
-    client: int,
-    fournisseur: int,
+    client: str = "yes",
+    fournisseur: str = "no",
     address: str = "",
     zip: str = "",
     town: str = "",
@@ -961,8 +963,8 @@ async def thirdparties_create(
 
     Args:
         name: Name.
-        client: Is a customer (1=yes, 0=no).
-        fournisseur: Is a supplier (1=yes, 0=no).
+        client: Yes or no.
+        fournisseur: Yes or no.
         address: Street address.
         zip: Postal/ZIP code.
         town: City/town.
@@ -986,6 +988,8 @@ async def thirdparties_create(
         outstanding_limit: Outstanding bill limit.
         multicurrency_code: Multi-currency code.
     """
+    if client: client = {"yes": 1, "no": 0}[client.lower()]
+    if fournisseur: fournisseur = {"yes": 1, "no": 0}[fournisseur.lower()]
     params = CreateThirdPartyParam(
         name=name, client=client, fournisseur=fournisseur,
         address=address, zip=zip, town=town, country_id=country_id,
@@ -1003,8 +1007,8 @@ async def thirdparties_create(
 async def thirdparties_update(
     id: int,
     name: Optional[str] = None,
-    client: Optional[int] = None,
-    fournisseur: Optional[int] = None,
+    client: Optional[str] = None,
+    fournisseur: Optional[str] = None,
     address: Optional[str] = None,
     zip: Optional[str] = None,
     town: Optional[str] = None,
@@ -1034,8 +1038,8 @@ async def thirdparties_update(
     Args:
         id: The unique ID of the third party.
         name: Name.
-        client: Is a customer (1=yes, 0=no).
-        fournisseur: Is a supplier (1=yes, 0=no).
+        client: Yes or no.
+        fournisseur: Yes or no.
         address: Street address.
         zip: Postal/ZIP code.
         town: City/town.
@@ -1059,6 +1063,8 @@ async def thirdparties_update(
         outstanding_limit: Outstanding bill limit.
         multicurrency_code: Multi-currency code.
     """
+    if client: client = {"yes": 1, "no": 0}[client.lower()]
+    if fournisseur: fournisseur = {"yes": 1, "no": 0}[fournisseur.lower()]
     params = UpdateThirdPartyParam(
         name=name, client=client, fournisseur=fournisseur,
         address=address, zip=zip, town=town, country_id=country_id,
@@ -1132,15 +1138,17 @@ async def thirdparties_get_outstanding_invoices(
 @mcp.tool(tags={"dolibarr", "primary", "read"})
 async def thirdparties_get_representatives(
     id: int,
-    mode: int = 0,
+    mode: str = "all",
     ctx: Context = None
 ) -> dict[str, Any]:
     """Get representatives for a third party.
 
     Args:
         id: The unique ID of the third party.
-        mode: 0=All reps, 1=External contacts, 2=Internal users.
+        mode: all, external, or internal.
     """
+    _mode_map = {"all": 0, "external": 1, "internal": 2}
+    mode = _mode_map[mode.lower()]
     data = await get_client().thirdparties_get_representatives(id, get_user_token(), mode=mode)
     return {"items": json_to_toon(data)}
 
@@ -1378,10 +1386,10 @@ async def products_list(
     sortorder: str = "ASC",
     limit: int = 100,
     page: int = 0,
-    mode: int = 0,
+    mode: str = "all",
     category: int = 0,
     sqlfilters: str = "",
-    variant_filter: str = "",
+    variant_filter: str = "all",
     include_all_fields: bool = False,
     ctx: Context = None
 ) -> dict[str, Any]:
@@ -1392,12 +1400,16 @@ async def products_list(
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        mode: 0=All, 1=Products, 2=Services.
+        mode: all, products, or services.
         category: Category ID filter.
         sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
-        variant_filter: 0=all, 1=products without variants, 2=parent of variants, 3=variants only.
+        variant_filter: all, no_variants, parent, or variants_only.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
+    _mode_map = {"all": 0, "products": 1, "services": 2}
+    mode = _mode_map[mode.lower()]
+    _variant_map = {"all": 0, "no_variants": 1, "parent": 2, "variants_only": 3}
+    variant_filter = _variant_map[variant_filter.lower()]
     data = await get_client().products_list(
         get_user_token(), sortfield=sortfield, sortorder=sortorder,
         limit=limit, page=page, mode=mode, category=category,
@@ -1937,7 +1949,7 @@ async def proposals_get_lines(id: int, sqlfilters: str = "", ctx: Context = None
     return {"items": json_to_toon(data)}
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def proposals_create_line(id: int, desc: str, qty: float, subprice: float, product_id: int = 0, tva_tx: float = 0.0, remise_percent: float = 0.0, remise: float = 0.0, price_base_type: str = "HT", date_start: str = "", date_end: str = "", product_type: int = 0, rang: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def proposals_create_line(id: int, desc: str, qty: float, subprice: float, product_id: int = 0, tva_tx: float = 0.0, remise_percent: float = 0.0, remise: float = 0.0, price_base_type: str = "HT", date_start: str = "", date_end: str = "", product_type: str = "product", rang: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Add a line to a proposal.
 
     Args:
@@ -1952,16 +1964,17 @@ async def proposals_create_line(id: int, desc: str, qty: float, subprice: float,
         price_base_type: Price base type (HT or TTC).
         date_start: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         date_end: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        product_type: Product type (0=product, 1=service).
+        product_type: Product or service.
         rang: Line position.
     """
     date_end = _normalize_datetime(date_end)
     date_start = _normalize_datetime(date_start)
+    product_type = {"product": 0, "service": 1}[product_type.lower()]
     params = CreateProposalLineParam(desc=desc, qty=qty, subprice=subprice, product_id=product_id, tva_tx=tva_tx, remise_percent=remise_percent, remise=remise, price_base_type=price_base_type, date_start=date_start, date_end=date_end, product_type=product_type, rang=rang)
     return await get_client().proposals_create_line(id, params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def proposals_update_line(id: int, lineid: int, desc: Optional[str] = None, qty: Optional[float] = None, subprice: Optional[float] = None, product_id: Optional[int] = None, tva_tx: Optional[float] = None, remise_percent: Optional[float] = None, remise: Optional[float] = None, price_base_type: Optional[str] = None, date_start: Optional[str] = None, date_end: Optional[str] = None, product_type: Optional[int] = None, rang: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
+async def proposals_update_line(id: int, lineid: int, desc: Optional[str] = None, qty: Optional[float] = None, subprice: Optional[float] = None, product_id: Optional[int] = None, tva_tx: Optional[float] = None, remise_percent: Optional[float] = None, remise: Optional[float] = None, price_base_type: Optional[str] = None, date_start: Optional[str] = None, date_end: Optional[str] = None, product_type: Optional[str] = None, rang: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
     """Update a line in a proposal.
 
     Args:
@@ -1977,7 +1990,7 @@ async def proposals_update_line(id: int, lineid: int, desc: Optional[str] = None
         price_base_type: Price base type (HT or TTC).
         date_start: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         date_end: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        product_type: Product type (0=product, 1=service).
+        product_type: Product or service.
         rang: Line position.
     """
     payload = {k: v for k, v in {"desc": desc, "qty": qty, "subprice": subprice, "product_id": product_id, "tva_tx": tva_tx, "remise_percent": remise_percent, "remise": remise, "price_base_type": price_base_type, "date_start": date_start, "date_end": date_end, "product_type": product_type, "rang": rang}.items() if v is not None}
@@ -2006,17 +2019,18 @@ async def proposals_settodraft(id: int, ctx: Context = None) -> dict[str, Any]:
     return await get_client().proposals_settodraft(id, get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def proposals_validate(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def proposals_validate(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Validate a proposal.
 
     Args:
         id: The unique ID of the proposal.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().proposals_validate(id, get_user_token(), notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def proposals_close(id: int, status: int, note_private: str = "", note_public: str = "", notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def proposals_close(id: int, status: int, note_private: str = "", note_public: str = "", notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Close a proposal.
 
     Args:
@@ -2026,6 +2040,7 @@ async def proposals_close(id: int, status: int, note_private: str = "", note_pub
         note_public: Public note.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().proposals_close(id, get_user_token(), status=status, note_private=note_private, note_public=note_public, notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
@@ -2049,7 +2064,7 @@ async def proposals_get_contacts(id: int, type: str = "", ctx: Context = None) -
     return {"items": json_to_toon(data)}
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def proposals_add_contact(id: int, contactid: int, type: str, source: str = "external", notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def proposals_add_contact(id: int, contactid: int, type: str, source: str = "external", notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Add a contact to a proposal.
 
     Args:
@@ -2059,6 +2074,7 @@ async def proposals_add_contact(id: int, contactid: int, type: str, source: str 
         source: Source (internal or external).
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().proposals_add_contact(id, contactid, type, get_user_token(), source=source, notrigger=notrigger)
 
 # ============================================================
@@ -2173,7 +2189,7 @@ async def orders_get_line(id: int, lineid: int, include_all_fields: bool = False
     """
     return await get_client().orders_get_line(id, lineid, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def orders_create_line(id: int, desc: str, qty: float, subprice: float, product_id: int = 0, tva_tx: float = 0.0, remise_percent: float = 0.0, price_base_type: str = "HT", date_start: str = "", date_end: str = "", product_type: int = 0, rang: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def orders_create_line(id: int, desc: str, qty: float, subprice: float, product_id: int = 0, tva_tx: float = 0.0, remise_percent: float = 0.0, price_base_type: str = "HT", date_start: str = "", date_end: str = "", product_type: str = "product", rang: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Add a line to an order.
 
     Args:
@@ -2187,16 +2203,17 @@ async def orders_create_line(id: int, desc: str, qty: float, subprice: float, pr
         price_base_type: Price base type (HT or TTC).
         date_start: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         date_end: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        product_type: Product type (0=product, 1=service).
+        product_type: Product or service.
         rang: Line position.
     """
     date_end = _normalize_datetime(date_end)
     date_start = _normalize_datetime(date_start)
+    product_type = {"product": 0, "service": 1}[product_type.lower()]
     params = CreateOrderLineParam(desc=desc, qty=qty, subprice=subprice, product_id=product_id, tva_tx=tva_tx, remise_percent=remise_percent, price_base_type=price_base_type, date_start=date_start, date_end=date_end, product_type=product_type, rang=rang)
     return await get_client().orders_create_line(id, params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def orders_update_line(id: int, lineid: int, desc: Optional[str] = None, qty: Optional[float] = None, subprice: Optional[float] = None, product_id: Optional[int] = None, tva_tx: Optional[float] = None, remise_percent: Optional[float] = None, price_base_type: Optional[str] = None, date_start: Optional[str] = None, date_end: Optional[str] = None, product_type: Optional[int] = None, rang: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
+async def orders_update_line(id: int, lineid: int, desc: Optional[str] = None, qty: Optional[float] = None, subprice: Optional[float] = None, product_id: Optional[int] = None, tva_tx: Optional[float] = None, remise_percent: Optional[float] = None, price_base_type: Optional[str] = None, date_start: Optional[str] = None, date_end: Optional[str] = None, product_type: Optional[str] = None, rang: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
     """Update a line in an order.
 
     Args:
@@ -2211,7 +2228,7 @@ async def orders_update_line(id: int, lineid: int, desc: Optional[str] = None, q
         price_base_type: Price base type (HT or TTC).
         date_start: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         date_end: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        product_type: Product type (0=product, 1=service).
+        product_type: Product or service.
         rang: Line position.
     """
     payload = {k: v for k, v in {"desc": desc, "qty": qty, "subprice": subprice, "product_id": product_id, "tva_tx": tva_tx, "remise_percent": remise_percent, "price_base_type": price_base_type, "date_start": date_start, "date_end": date_end, "product_type": product_type, "rang": rang}.items() if v is not None}
@@ -2241,7 +2258,7 @@ async def orders_settodraft(id: int, idwarehouse: int = 0, ctx: Context = None) 
     return await get_client().orders_settodraft(id, get_user_token(), idwarehouse=idwarehouse)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def orders_validate(id: int, idwarehouse: int = 0, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def orders_validate(id: int, idwarehouse: int = 0, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Validate an order.
 
     Args:
@@ -2249,16 +2266,18 @@ async def orders_validate(id: int, idwarehouse: int = 0, notrigger: int = 0, ctx
         idwarehouse: Warehouse ID.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().orders_validate(id, get_user_token(), idwarehouse=idwarehouse, notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def orders_close(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def orders_close(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Close an order.
 
     Args:
         id: The unique ID of the order.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().orders_close(id, get_user_token(), notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
@@ -2349,13 +2368,13 @@ async def invoices_get(id: int, include_all_fields: bool = False, ctx: Context =
     """
     return await get_client().invoices_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"basic", "dolibarr", "write"})
-async def invoices_create(socid: int, date: str, type: int, ref: str = "", status: int = 0, note_public: str = "", note_private: str = "", total_ht: float = 0.0, total_tva: float = 0.0, total_ttc: float = 0.0, multicurrency_code: str = "", payment_terms: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def invoices_create(socid: int, date: str, invoice_type: str = "standard", ref: str = "", status: int = 0, note_public: str = "", note_private: str = "", total_ht: float = 0.0, total_tva: float = 0.0, total_ttc: float = 0.0, multicurrency_code: str = "", payment_terms: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Create a new customer invoice.
 
     Args:
         socid: Third party ID.
         date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        type: Invoice type (0=standard, 1=credit note, 2=deposit, 3=situation).
+        invoice_type: standard, replacement, credit_note, deposit, or situation.
         ref: Reference.
         status: Status.
         note_public: Public note.
@@ -2367,7 +2386,7 @@ async def invoices_create(socid: int, date: str, type: int, ref: str = "", statu
         payment_terms: Payment terms.
     """
     params = CreateInvoiceParam(
-        socid=socid, date=_normalize_datetime(date), type=type, ref=ref,
+        socid=socid, date=_normalize_datetime(date), type={"standard": 0, "credit_note": 2, "deposit": 3, "situation": 5}[invoice_type.lower()], ref=ref,
         status=status, note_public=note_public,
         note_private=note_private, total_ht=total_ht,
         total_tva=total_tva, total_ttc=total_ttc,
@@ -2377,14 +2396,14 @@ async def invoices_create(socid: int, date: str, type: int, ref: str = "", statu
     return await get_client().invoices_create(params.model_dump(), get_user_token())
 
 @mcp.tool(tags={"basic", "dolibarr", "write"})
-async def invoices_update(id: int, socid: Optional[int] = None, date: Optional[str] = None, type: Optional[int] = None, ref: Optional[str] = None, status: Optional[int] = None, note_public: Optional[str] = None, note_private: Optional[str] = None, total_ht: Optional[float] = None, total_tva: Optional[float] = None, total_ttc: Optional[float] = None, multicurrency_code: Optional[str] = None, payment_terms: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
+async def invoices_update(id: int, socid: Optional[int] = None, date: Optional[str] = None, invoice_type: Optional[str] = None, ref: Optional[str] = None, status: Optional[int] = None, note_public: Optional[str] = None, note_private: Optional[str] = None, total_ht: Optional[float] = None, total_tva: Optional[float] = None, total_ttc: Optional[float] = None, multicurrency_code: Optional[str] = None, payment_terms: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
     """Update an existing invoice.
 
     Args:
         id: The unique ID of the invoice.
         socid: Third party ID.
         date: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        type: Invoice type (0=standard, 1=credit note, 2=deposit, 3=situation).
+        invoice_type: standard, replacement, credit_note, deposit, or situation.
         ref: Reference.
         status: Status.
         note_public: Public note.
@@ -2395,7 +2414,8 @@ async def invoices_update(id: int, socid: Optional[int] = None, date: Optional[s
         multicurrency_code: Multi-currency code.
         payment_terms: Payment terms.
     """
-    payload = {k: v for k, v in {"socid": socid, "date": date, "type": type, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc, "multicurrency_code": multicurrency_code, "payment_terms": payment_terms}.items() if v is not None}
+    invoice_type = {"standard": 0, "credit_note": 2, "deposit": 3, "situation": 5}[invoice_type.lower()] if invoice_type else None
+    payload = {k: v for k, v in {"socid": socid, "date": date, "type": invoice_type, "ref": ref, "status": status, "note_public": note_public, "note_private": note_private, "total_ht": total_ht, "total_tva": total_tva, "total_ttc": total_ttc, "multicurrency_code": multicurrency_code, "payment_terms": payment_terms}.items() if v is not None}
     for key in ['date']:
         if isinstance(payload.get(key), str) and payload[key]:
             payload[key] = _normalize_datetime(payload[key])
@@ -2421,7 +2441,7 @@ async def invoices_get_lines(id: int, ctx: Context = None) -> dict[str, Any]:
     return {"items": json_to_toon(data)}
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def invoices_create_line(id: int, desc: str, qty: float, subprice: float, product_id: int = 0, tva_tx: float = 0.0, remise_percent: float = 0.0, price_base_type: str = "HT", date_start: str = "", date_end: str = "", product_type: int = 0, rang: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def invoices_create_line(id: int, desc: str, qty: float, subprice: float, product_id: int = 0, tva_tx: float = 0.0, remise_percent: float = 0.0, price_base_type: str = "HT", date_start: str = "", date_end: str = "", product_type: str = "product", rang: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Add a line to an invoice.
 
     Args:
@@ -2435,16 +2455,17 @@ async def invoices_create_line(id: int, desc: str, qty: float, subprice: float, 
         price_base_type: Price base type (HT or TTC).
         date_start: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         date_end: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        product_type: Product type (0=product, 1=service).
+        product_type: Product or service.
         rang: Line position.
     """
     date_end = _normalize_datetime(date_end)
     date_start = _normalize_datetime(date_start)
+    product_type = {"product": 0, "service": 1}[product_type.lower()]
     params = CreateInvoiceLineParam(desc=desc, qty=qty, subprice=subprice, product_id=product_id, tva_tx=tva_tx, remise_percent=remise_percent, price_base_type=price_base_type, date_start=date_start, date_end=date_end, product_type=product_type, rang=rang)
     return await get_client().invoices_create_line(id, params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def invoices_update_line(id: int, lineid: int, desc: Optional[str] = None, qty: Optional[float] = None, subprice: Optional[float] = None, product_id: Optional[int] = None, tva_tx: Optional[float] = None, remise_percent: Optional[float] = None, price_base_type: Optional[str] = None, date_start: Optional[str] = None, date_end: Optional[str] = None, product_type: Optional[int] = None, rang: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
+async def invoices_update_line(id: int, lineid: int, desc: Optional[str] = None, qty: Optional[float] = None, subprice: Optional[float] = None, product_id: Optional[int] = None, tva_tx: Optional[float] = None, remise_percent: Optional[float] = None, price_base_type: Optional[str] = None, date_start: Optional[str] = None, date_end: Optional[str] = None, product_type: Optional[str] = None, rang: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
     """Update a line in an invoice.
 
     Args:
@@ -2459,7 +2480,7 @@ async def invoices_update_line(id: int, lineid: int, desc: Optional[str] = None,
         price_base_type: Price base type (HT or TTC).
         date_start: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         date_end: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        product_type: Product type (0=product, 1=service).
+        product_type: Product or service.
         rang: Line position.
     """
     payload = {k: v for k, v in {"desc": desc, "qty": qty, "subprice": subprice, "product_id": product_id, "tva_tx": tva_tx, "remise_percent": remise_percent, "price_base_type": price_base_type, "date_start": date_start, "date_end": date_end, "product_type": product_type, "rang": rang}.items() if v is not None}
@@ -2497,7 +2518,7 @@ async def invoices_settodraft(id: int, ctx: Context = None) -> dict[str, Any]:
     return await get_client().invoices_settodraft(id, get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def invoices_validate(id: int, force_number: int = 0, idwarehouse: int = 0, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def invoices_validate(id: int, force_number: bool = False, idwarehouse: int = 0, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Validate an invoice.
 
     Args:
@@ -2506,6 +2527,8 @@ async def invoices_validate(id: int, force_number: int = 0, idwarehouse: int = 0
         idwarehouse: Warehouse ID.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
+    force_number = 1 if force_number else 0
     return await get_client().invoices_validate(id, get_user_token(), force_number=force_number, idwarehouse=idwarehouse, notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
@@ -2547,7 +2570,7 @@ async def invoices_add_payment(id: int, datepaye: str, paymentid: int, accountid
         datepaye: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         paymentid: Payment type ID.
         accountid: Account ID.
-        closepaidinvoices: Close paid invoices (yes/no).
+        closepaidinvoices: Yes or no.
         num_payment: Payment number.
         comment: Comment.
         amount: Amount to pay.
@@ -2570,7 +2593,7 @@ async def invoices_get_contacts(id: int, type: str = "", ctx: Context = None) ->
     return {"items": json_to_toon(data)}
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def invoices_add_contact(id: int, fk_socpeople: int, type_contact: str, source: str = "external", notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def invoices_add_contact(id: int, fk_socpeople: int, type_contact: str, source: str = "external", notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Add a contact to an invoice.
 
     Args:
@@ -2580,6 +2603,7 @@ async def invoices_add_contact(id: int, fk_socpeople: int, type_contact: str, so
         source: Source (internal or external).
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     params = CreateInvoiceContactParam(fk_socpeople=fk_socpeople, type_contact=type_contact, source=source, notrigger=notrigger)
     return await get_client().invoices_add_contact(id, params.model_dump(exclude_unset=True), get_user_token())
 
@@ -2658,7 +2682,7 @@ async def payments_create(datepaye: str, paymentid: int, amount: float, accounti
         paymentid: Payment type ID.
         amount: Amount.
         accountid: Bank account ID.
-        closepaidinvoices: Close paid invoices (yes/no).
+        closepaidinvoices: Yes or no.
         socid: Thirdparty ID for the placeholder invoice.
     """
     pay_inv = await get_client().invoices_create({"socid": socid, "date": int(_to_timestamp(datepaye)), "type": 0}, get_user_token())
@@ -2952,7 +2976,7 @@ async def supplier_orders_delete(id: int, ctx: Context = None) -> dict[str, Any]
     return await get_client().supplier_orders_delete(id, get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def supplier_orders_create_line(id: int, desc: str, qty: float, subprice: float, product_id: int = 0, tva_tx: float = 0.0, remise_percent: float = 0.0, price_base_type: str = "HT", date_start: str = "", date_end: str = "", product_type: int = 0, rang: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def supplier_orders_create_line(id: int, desc: str, qty: float, subprice: float, product_id: int = 0, tva_tx: float = 0.0, remise_percent: float = 0.0, price_base_type: str = "HT", date_start: str = "", date_end: str = "", product_type: str = "product", rang: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Supplier Orders Create Line.
 
     Args:
@@ -2966,11 +2990,12 @@ async def supplier_orders_create_line(id: int, desc: str, qty: float, subprice: 
         price_base_type: Price base type (HT or TTC).
         date_start: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         date_end: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        product_type: Product type (0=product, 1=service).
+        product_type: Product or service.
         rang: Line position.
     """
     date_end = _normalize_datetime(date_end)
     date_start = _normalize_datetime(date_start)
+    product_type = {"product": 0, "service": 1}[product_type.lower()]
     params = CreateSupplierOrderLineParam(desc=desc, qty=qty, subprice=subprice, product_id=product_id, tva_tx=tva_tx, remise_percent=remise_percent, price_base_type=price_base_type, date_start=date_start, date_end=date_end, product_type=product_type, rang=rang)
     return await get_client().supplier_orders_create_line(id, params.model_dump(exclude_unset=True), get_user_token())
 
@@ -3010,7 +3035,7 @@ async def supplier_orders_delete_contact(id: int, contactid: int, type: str, sou
     return await get_client().supplier_orders_delete_contact(id, contactid, type, source, get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def supplier_orders_validate(id: int, idwarehouse: int = 0, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def supplier_orders_validate(id: int, idwarehouse: int = 0, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Supplier Orders Validate.
 
     Args:
@@ -3018,10 +3043,11 @@ async def supplier_orders_validate(id: int, idwarehouse: int = 0, notrigger: int
         idwarehouse: Warehouse ID.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().supplier_orders_validate(id, get_user_token(), idwarehouse=idwarehouse, notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def supplier_orders_approve(id: int, idwarehouse: int = 0, secondlevel: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def supplier_orders_approve(id: int, idwarehouse: int = 0, secondlevel: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Supplier Orders Approve.
 
     Args:
@@ -3029,10 +3055,11 @@ async def supplier_orders_approve(id: int, idwarehouse: int = 0, secondlevel: in
         idwarehouse: Warehouse ID.
         secondlevel: Second approval level flag.
     """
+    secondlevel = 1 if secondlevel else 0
     return await get_client().supplier_orders_approve(id, get_user_token(), idwarehouse=idwarehouse, secondlevel=secondlevel)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def supplier_orders_receive(id: int, closeopenorder: int = 0, comment: str = "", lines: list[ReceiveLine] = None, ctx: Context = None) -> dict[str, Any]:
+async def supplier_orders_receive(id: int, closeopenorder: bool = False, comment: str = "", lines: list[ReceiveLine] = None, ctx: Context = None) -> dict[str, Any]:
     """Supplier Orders Receive.
 
     Args:
@@ -3041,6 +3068,7 @@ async def supplier_orders_receive(id: int, closeopenorder: int = 0, comment: str
         comment: Comment.
         lines: List of line objects with id, qty, warehouse, fk_product.
     """
+    closeopenorder = 1 if closeopenorder else 0
     return await get_client().supplier_orders_receive(id, get_user_token(), closeopenorder=closeopenorder, comment=comment, lines=lines or [])
 
 # ============================================================
@@ -3185,7 +3213,7 @@ async def supplier_invoices_delete_line(id: int, lineid: int, ctx: Context = Non
     return await get_client().supplier_invoices_delete_line(id, lineid, get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def supplier_invoices_validate(id: int, idwarehouse: int = 0, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def supplier_invoices_validate(id: int, idwarehouse: int = 0, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Supplier Invoices Validate.
 
     Args:
@@ -3193,6 +3221,7 @@ async def supplier_invoices_validate(id: int, idwarehouse: int = 0, notrigger: i
         idwarehouse: Warehouse ID.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().supplier_invoices_validate(id, get_user_token(), idwarehouse=idwarehouse, notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
@@ -3478,23 +3507,25 @@ async def contracts_delete_line(id: int, lineid: int, ctx: Context = None) -> di
     return await get_client().contracts_delete_line(id, lineid, get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def contracts_validate(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def contracts_validate(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Validate a contract.
 
     Args:
         id: The unique ID of the contract.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().contracts_validate(id, get_user_token(), notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def contracts_close(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def contracts_close(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Contracts Close.
 
     Args:
         id: The unique ID of the contract.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().contracts_close(id, get_user_token(), notrigger=notrigger)
 
 # ============================================================
@@ -3525,7 +3556,7 @@ async def boms_get(id: int, include_all_fields: bool = False, ctx: Context = Non
     """
     return await get_client().boms_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "write"})
-async def boms_create(ref: str, label: str, fk_product: int, qty: float, bomtype: int = 0, status: int = 0, description: str = "", note_public: str = "", note_private: str = "", duration: float = 0.0, efficiency: float = 0.0, warehouse_id: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def boms_create(ref: str = "", label: str = "", fk_product: int = 0, qty: float = 0.0, bomtype: str = "manufacturing", status: int = 0, description: str = "", note_public: str = "", note_private: str = "", duration: float = 0.0, efficiency: float = 0.0, warehouse_id: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Create a new bill of materials.
 
     Args:
@@ -3533,7 +3564,7 @@ async def boms_create(ref: str, label: str, fk_product: int, qty: float, bomtype
         label: Label.
         fk_product: Product ID.
         qty: Quantity.
-        bomtype: 0=Manufacturing, 1=Disassemble.
+        bomtype: Manufacturing or disassemble.
         status: Status.
         description: Description.
         note_public: Public note.
@@ -3542,6 +3573,7 @@ async def boms_create(ref: str, label: str, fk_product: int, qty: float, bomtype
         efficiency: Efficiency rate.
         warehouse_id: Warehouse ID.
     """
+    bomtype = {"manufacturing": 0, "disassemble": 1}[bomtype.lower()]
     params = CreateBomParam(ref=ref, label=label, fk_product=fk_product, qty=qty, bomtype=bomtype, status=status, description=description, note_public=note_public, note_private=note_private, duration=duration, efficiency=efficiency, warehouse_id=warehouse_id)
     return await get_client().boms_create(params.model_dump(exclude_unset=True), get_user_token())
 
@@ -3638,7 +3670,7 @@ async def mos_get(id: int, include_all_fields: bool = False, ctx: Context = None
     """
     return await get_client().mos_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "write"})
-async def mos_create(ref: str, label: str, fk_product: int, qty: float, fk_warehouse: int, mrptype: int = 0, status: int = 0, note_public: str = "", note_private: str = "", date_planned: str = "", bom_id: int = 0, priority: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def mos_create(ref: str, label: str, fk_product: int, qty: float, fk_warehouse: int, mrptype: str = "manufacturing", status: int = 0, note_public: str = "", note_private: str = "", date_planned: str = "", bom_id: int = 0, priority: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Mos Create.
 
     Args:
@@ -3647,7 +3679,7 @@ async def mos_create(ref: str, label: str, fk_product: int, qty: float, fk_wareh
         fk_product: Product ID.
         qty: Quantity.
         fk_warehouse: Warehouse ID.
-        mrptype: 0=Manufacturing, 1=Disassemble.
+        mrptype: Manufacturing or disassemble.
         status: Status.
         note_public: Public note.
         note_private: Private note.
@@ -3656,6 +3688,7 @@ async def mos_create(ref: str, label: str, fk_product: int, qty: float, fk_wareh
         priority: Priority.
     """
     date_planned = _normalize_datetime(date_planned)
+    mrptype = {"manufacturing": 0, "disassemble": 1}[mrptype.lower()]
     params = CreateMOParam(ref=ref, label=label, fk_product=fk_product, qty=qty, fk_warehouse=fk_warehouse, mrptype=mrptype, status=status, note_public=note_public, note_private=note_private, date_planned=date_planned, bom_id=bom_id, priority=priority)
     return await get_client().mos_create(params.model_dump(exclude_unset=True), get_user_token())
 
@@ -3693,7 +3726,7 @@ async def mos_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     return await get_client().mos_delete(id, get_user_token())
 
 @mcp.tool(tags={"advanced", "dolibarr", "write"})
-async def mos_produce_and_consume(id: int, inventorylabel: str, inventorycode: str, arraytoconsume: list[ConsumeLine] = None, arraytoproduce: list[ProduceLine] = None, autoclose: int = 1, ctx: Context = None) -> dict[str, Any]:
+async def mos_produce_and_consume(id: int, inventorylabel: str, inventorycode: str, arraytoconsume: list[ConsumeLine] = None, arraytoproduce: list[ProduceLine] = None, autoclose: bool = True, ctx: Context = None) -> dict[str, Any]:
     """Record consumption of raw materials and production of finished product for a manufacturing order.
 
     The MO must be in Validated (1) or In Progress (2) status.
@@ -3745,7 +3778,7 @@ async def projects_get(id: int, include_all_fields: bool = False, ctx: Context =
     """
     return await get_client().projects_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def projects_create(ref: str, title: str, socid: int = 0, description: str = "", note_public: str = "", note_private: str = "", status: int = 0, date_start: str = "", date_end: str = "", budget_amount: float = 0.0, usage_opportunity: int = 0, usage_task: int = 0, usage_bill_time: int = 0, usage_organize_event: int = 0, public: int = 0, percent: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def projects_create(ref: str, title: str, socid: int = 0, description: str = "", note_public: str = "", note_private: str = "", status: int = 0, date_start: str = "", date_end: str = "", budget_amount: float = 0.0, usage_opportunity: bool = False, usage_task: bool = False, usage_bill_time: bool = False, usage_organize_event: bool = False, public: bool = False, percent: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Create a new project.
 
     Args:
@@ -3768,11 +3801,17 @@ async def projects_create(ref: str, title: str, socid: int = 0, description: str
     """
     date_end = _normalize_datetime(date_end)
     date_start = _normalize_datetime(date_start)
+    public = 1 if public else 0
+    usage_opportunity = 1 if usage_opportunity else 0
+    usage_task = 1 if usage_task else 0
+    usage_bill_time = 1 if usage_bill_time else 0
+    usage_organize_event = 1 if usage_organize_event else 0
+    public = 1 if public else 0
     params = CreateProjectParam(ref=ref, title=title, socid=socid, description=description, note_public=note_public, note_private=note_private, status=status, date_start=date_start, date_end=date_end, budget_amount=budget_amount, usage_opportunity=usage_opportunity, usage_task=usage_task, usage_bill_time=usage_bill_time, usage_organize_event=usage_organize_event, public=public, percent=percent)
     return await get_client().projects_create(params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def projects_update(id: int, ref: Optional[str] = None, title: Optional[str] = None, socid: Optional[int] = None, description: Optional[str] = None, note_public: Optional[str] = None, note_private: Optional[str] = None, status: Optional[int] = None, date_start: Optional[str] = None, date_end: Optional[str] = None, budget_amount: Optional[float] = None, usage_opportunity: Optional[int] = None, usage_task: Optional[int] = None, usage_bill_time: Optional[int] = None, usage_organize_event: Optional[int] = None, public: Optional[int] = None, percent: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
+async def projects_update(id: int, ref: Optional[str] = None, title: Optional[str] = None, socid: Optional[int] = None, description: Optional[str] = None, note_public: Optional[str] = None, note_private: Optional[str] = None, status: Optional[int] = None, date_start: Optional[str] = None, date_end: Optional[str] = None, budget_amount: Optional[float] = None, usage_opportunity: Optional[bool] = None, usage_task: Optional[bool] = None, usage_bill_time: Optional[bool] = None, usage_organize_event: Optional[bool] = None, public: Optional[bool] = None, percent: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
     """Update an existing project.
 
     Args:
@@ -3831,13 +3870,14 @@ async def projects_get_timespent(id: int, ctx: Context = None) -> dict[str, Any]
     return {"items": json_to_toon(data)}
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def projects_validate(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def projects_validate(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Projects Validate.
 
     Args:
         id: The unique ID of the project.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().projects_validate(id, get_user_token(), notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "read"})
@@ -4103,23 +4143,25 @@ async def shipments_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     return await get_client().shipments_delete(id, get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def shipments_validate(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def shipments_validate(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Validate a shipment.
 
     Args:
         id: The unique ID of the shipment.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().shipments_validate(id, get_user_token(), notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def shipments_close(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def shipments_close(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Close a shipment.
 
     Args:
         id: The unique ID of the shipment.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().shipments_close(id, get_user_token(), notrigger=notrigger)
 
 # ============================================================
@@ -4205,23 +4247,25 @@ async def receptions_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     return await get_client().receptions_delete(id, get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def receptions_validate(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def receptions_validate(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Validate a reception.
 
     Args:
         id: The unique ID of the reception.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().receptions_validate(id, get_user_token(), notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def receptions_close(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def receptions_close(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Receptions Close.
 
     Args:
         id: The unique ID of the reception.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().receptions_close(id, get_user_token(), notrigger=notrigger)
 
 # ============================================================
@@ -4377,23 +4421,25 @@ async def interventions_settodraft(id: int, ctx: Context = None) -> dict[str, An
     return await get_client().interventions_settodraft(id, get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def interventions_validate(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def interventions_validate(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Validate an intervention.
 
     Args:
         id: The unique ID of the intervention.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().interventions_validate(id, get_user_token(), notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def interventions_close(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def interventions_close(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Interventions Close.
 
     Args:
         id: The unique ID of the intervention.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().interventions_close(id, get_user_token(), notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "read"})
@@ -4574,27 +4620,29 @@ async def expense_reports_settodraft(id: int, ctx: Context = None) -> dict[str, 
     return await get_client().expense_reports_settodraft(id, get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def expense_reports_validate(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def expense_reports_validate(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Expense Reports Validate.
 
     Args:
         id: The unique ID of the expense report.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().expense_reports_validate(id, get_user_token(), notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def expense_reports_approve(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def expense_reports_approve(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Expense Reports Approve.
 
     Args:
         id: The unique ID of the expense report.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().expense_reports_approve(id, get_user_token(), notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def expense_reports_deny(id: int, details: str = "", notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def expense_reports_deny(id: int, details: str = "", notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Expense Reports Deny.
 
     Args:
@@ -4602,10 +4650,11 @@ async def expense_reports_deny(id: int, details: str = "", notrigger: int = 0, c
         details: Details.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().expense_reports_deny(id, get_user_token(), details=details, notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def expense_reports_cancel(id: int, detail: str = "", notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def expense_reports_cancel(id: int, detail: str = "", notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Expense Reports Cancel.
 
     Args:
@@ -4613,6 +4662,7 @@ async def expense_reports_cancel(id: int, detail: str = "", notrigger: int = 0, 
         detail: Details.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().expense_reports_cancel(id, get_user_token(), detail=detail, notrigger=notrigger)
 
 # ============================================================
@@ -4644,14 +4694,14 @@ async def holidays_get(id: int, include_all_fields: bool = False, ctx: Context =
     """
     return await get_client().holidays_get(id, get_user_token(), include_all_fields=include_all_fields)
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def holidays_create(fk_user: int, date_debut: str, date_fin: str, halfday: int, fk_type: int, fk_validator: int = 0, note: str = "", status: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def holidays_create(fk_user: int, date_debut: str, date_fin: str, fk_type: int, halfday: str = "full", fk_validator: int = 0, note: str = "", status: int = 0, ctx: Context = None) -> dict[str, Any]:
     """Create a new leave/holiday request.
 
     Args:
         fk_user: User ID.
         date_debut: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         date_fin: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        halfday: Half day flag (0=full, 1=morning, 2=afternoon).
+        halfday: Full, morning, or afternoon.
         fk_type: Leave type ID.
         fk_validator: Validator user ID.
         note: Note (plain text).
@@ -4659,11 +4709,12 @@ async def holidays_create(fk_user: int, date_debut: str, date_fin: str, halfday:
     """
     date_debut = _normalize_datetime(date_debut)
     date_fin = _normalize_datetime(date_fin)
+    halfday = {"full": 0, "morning": 1, "afternoon": 2}[halfday.lower()]
     params = CreateHolidayParam(fk_user=fk_user, date_debut=date_debut, date_fin=date_fin, halfday=halfday, fk_type=fk_type, fk_validator=fk_validator, note=note, status=status)
     return await get_client().holidays_create(params.model_dump(exclude_unset=True), get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def holidays_update(id: int, fk_user: Optional[int] = None, date_debut: Optional[str] = None, date_fin: Optional[str] = None, halfday: Optional[int] = None, fk_type: Optional[int] = None, note: Optional[str] = None, status: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
+async def holidays_update(id: int, fk_user: Optional[int] = None, date_debut: Optional[str] = None, date_fin: Optional[str] = None, halfday: Optional[str] = None, fk_type: Optional[int] = None, note: Optional[str] = None, status: Optional[int] = None, ctx: Context = None) -> dict[str, Any]:
     """Update an existing leave request.
 
     Args:
@@ -4671,7 +4722,7 @@ async def holidays_update(id: int, fk_user: Optional[int] = None, date_debut: Op
         fk_user: User ID.
         date_debut: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
         date_fin: Use ISO 8601 format with explicit UTC offset (2026-06-22T15:00:00-04:00).
-        halfday: Half day flag (0=full, 1=morning, 2=afternoon).
+        halfday: Full, morning, or afternoon.
         fk_type: Leave type ID.
         note: Note (plain text).
         status: Status.
@@ -4692,37 +4743,40 @@ async def holidays_delete(id: int, ctx: Context = None) -> dict[str, Any]:
     return await get_client().holidays_delete(id, get_user_token())
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def holidays_validate(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def holidays_validate(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Validate a leave request.
 
     Args:
         id: The unique ID of the holiday.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().holidays_validate(id, get_user_token(), notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def holidays_approve(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def holidays_approve(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Approve a leave request.
 
     Args:
         id: The unique ID of the holiday.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().holidays_approve(id, get_user_token(), notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def holidays_cancel(id: int, notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def holidays_cancel(id: int, notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Holidays Cancel.
 
     Args:
         id: The unique ID of the holiday.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().holidays_cancel(id, get_user_token(), notrigger=notrigger)
 
 @mcp.tool(tags={"dolibarr", "primary", "write"})
-async def holidays_refuse(id: int, detail_refuse: str = "", notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def holidays_refuse(id: int, detail_refuse: str = "", notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Holidays Refuse.
 
     Args:
@@ -4730,6 +4784,7 @@ async def holidays_refuse(id: int, detail_refuse: str = "", notrigger: int = 0, 
         detail_refuse: Refusal detail.
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().holidays_refuse(id, get_user_token(), detail_refuse=detail_refuse, notrigger=notrigger)
 
 # ============================================================
@@ -5213,7 +5268,7 @@ async def tickets_create_message(track_id: str, message: str, fk_user_author: in
     return result
 
 @mcp.tool(tags={"advanced", "dolibarr", "write"})
-async def tickets_add_contact(id: int, contactid: int, type: str, source: str = "external", notrigger: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def tickets_add_contact(id: int, contactid: int, type: str, source: str = "external", notrigger: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Add a contact to a ticket.
 
     Args:
@@ -5223,6 +5278,7 @@ async def tickets_add_contact(id: int, contactid: int, type: str, source: str = 
         source: Source (internal or external).
         notrigger: Disable triggers flag.
     """
+    notrigger = 1 if notrigger else 0
     return await get_client().tickets_add_contact(id, contactid, type, source, notrigger, get_user_token())
 
 @mcp.tool(tags={"advanced", "dolibarr", "write"})
@@ -5385,7 +5441,7 @@ async def users_list(sortfield: str = "", sortorder: str = "ASC", limit: int = 1
     return {"items": json_to_toon(data)}
 
 @mcp.tool(tags={"basic", "dolibarr", "read"})
-async def users_get(id: int, includepermissions: int = 0, include_all_fields: bool = False, ctx: Context = None) -> dict[str, Any]:
+async def users_get(id: int, includepermissions: bool = False, include_all_fields: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Get a single user by ID.
 
     Args:
@@ -5393,9 +5449,10 @@ async def users_get(id: int, includepermissions: int = 0, include_all_fields: bo
         includepermissions: Include permissions flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
+    includepermissions = 1 if includepermissions else 0
     return await get_client().users_get(id, get_user_token(), includepermissions=includepermissions, include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "read"})
-async def users_get_by_login(login: str, includepermissions: int = 0, include_all_fields: bool = False, ctx: Context = None) -> dict[str, Any]:
+async def users_get_by_login(login: str, includepermissions: bool = False, include_all_fields: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Users Get By Login.
 
     Args:
@@ -5403,9 +5460,10 @@ async def users_get_by_login(login: str, includepermissions: int = 0, include_al
         includepermissions: Include permissions flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
+    includepermissions = 1 if includepermissions else 0
     return await get_client().users_get_by_login(login, get_user_token(), includepermissions=includepermissions, include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "read"})
-async def users_get_by_email(email: str, includepermissions: int = 0, include_all_fields: bool = False, ctx: Context = None) -> dict[str, Any]:
+async def users_get_by_email(email: str, includepermissions: bool = False, include_all_fields: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Users Get By Email.
 
     Args:
@@ -5418,12 +5476,13 @@ async def users_get_by_email(email: str, includepermissions: int = 0, include_al
     return isinstance(user, dict) and user or {}
 
 @mcp.tool(tags={"advanced", "dolibarr", "read"})
-async def users_get_info(includepermissions: int = 0, ctx: Context = None) -> dict[str, Any]:
+async def users_get_info(includepermissions: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Users Get Info.
 
     Args:
         includepermissions: Include permissions flag.
     """
+    includepermissions = 1 if includepermissions else 0
     return await get_client().users_get_info(get_user_token(), includepermissions=includepermissions)
 
 @mcp.tool(tags={"advanced", "dolibarr", "read"})
@@ -5443,7 +5502,7 @@ async def users_list_groups(sortfield: str = "", sortorder: str = "ASC", limit: 
     return {"items": json_to_toon(data)}
 
 @mcp.tool(tags={"advanced", "dolibarr", "read"})
-async def users_get_group(id: int, load_members: int = 0, includepermissions: int = 0, include_all_fields: bool = False, ctx: Context = None) -> dict[str, Any]:
+async def users_get_group(id: int, load_members: bool = False, includepermissions: bool = False, include_all_fields: bool = False, ctx: Context = None) -> dict[str, Any]:
     """Users Get Group.
 
     Args:
@@ -5452,6 +5511,8 @@ async def users_get_group(id: int, load_members: int = 0, includepermissions: in
         includepermissions: Include permissions flag.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
+    includepermissions = 1 if includepermissions else 0
+    load_members = 1 if load_members else 0
     return await get_client().users_get_group(id, get_user_token(), load_members=load_members, includepermissions=includepermissions, include_all_fields=include_all_fields)
 @mcp.tool(tags={"advanced", "dolibarr", "read"})
 async def users_get_user_groups(id: int, ctx: Context = None) -> dict[str, Any]:
