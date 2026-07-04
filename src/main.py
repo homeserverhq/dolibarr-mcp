@@ -827,7 +827,7 @@ async def documents_list(
         id: The unique ID of the document.
         ref: Reference.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
@@ -896,13 +896,13 @@ async def thirdparties_list(
     """List all third parties (customers, suppliers, prospects).
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        mode: Mode.
+        mode: 0=All, 1=Customers, 2=Prospects, 3=Neither, 4=Suppliers.
         category: Category ID filter.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().thirdparties_list(
@@ -1094,7 +1094,7 @@ async def thirdparties_get_outstanding_proposals(
 
     Args:
         id: The unique ID of the third party.
-        mode: Mode.
+        mode: 'customer' or 'supplier'.
     """
     data = await get_client().thirdparties_get_outstanding_proposals(id, get_user_token(), mode=mode)
     return {"items": json_to_toon(data)}
@@ -1109,7 +1109,7 @@ async def thirdparties_get_outstanding_orders(
 
     Args:
         id: The unique ID of the third party.
-        mode: Mode.
+        mode: 'customer' or 'supplier'.
     """
     data = await get_client().thirdparties_get_outstanding_orders(id, get_user_token(), mode=mode)
     return {"items": json_to_toon(data)}
@@ -1124,7 +1124,7 @@ async def thirdparties_get_outstanding_invoices(
 
     Args:
         id: The unique ID of the third party.
-        mode: Mode.
+        mode: 'customer' or 'supplier'.
     """
     data = await get_client().thirdparties_get_outstanding_invoices(id, get_user_token(), mode=mode)
     return {"items": json_to_toon(data)}
@@ -1139,7 +1139,7 @@ async def thirdparties_get_representatives(
 
     Args:
         id: The unique ID of the third party.
-        mode: Mode.
+        mode: 0=All reps, 1=External contacts, 2=Internal users.
     """
     data = await get_client().thirdparties_get_representatives(id, get_user_token(), mode=mode)
     return {"items": json_to_toon(data)}
@@ -1177,7 +1177,7 @@ async def thirdparties_get_categories(
 
     Args:
         id: The unique ID of the third party.
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
@@ -1203,13 +1203,13 @@ async def contacts_list(
     """List all contacts.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         thirdparty_ids: Comma-separated third party IDs.
         category: Category ID filter.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().contacts_list(
@@ -1361,7 +1361,7 @@ async def contacts_get_categories(
 
     Args:
         id: The unique ID of the contact.
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
@@ -1388,13 +1388,13 @@ async def products_list(
     """List all products/services.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        mode: Mode.
+        mode: 0=All, 1=Products, 2=Services.
         category: Category ID filter.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         variant_filter: Variant filter.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
@@ -1572,7 +1572,7 @@ async def products_get_categories(
 
     Args:
         id: The unique ID of the product.
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
@@ -1612,12 +1612,12 @@ async def warehouses_list(
     """List all warehouses.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         category: Category ID filter.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().warehouses_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, category=category, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -1690,7 +1690,7 @@ async def warehouses_list_products(id: int, sortfield: str = "", sortorder: str 
 
     Args:
         id: The unique ID of the warehouse.
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
@@ -1707,11 +1707,11 @@ async def stockmovements_list(sortfield: str = "", sortorder: str = "ASC", limit
     """List all stock movements.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().stockmovements_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -1759,11 +1759,11 @@ async def productlots_list(sortfield: str = "", sortorder: str = "ASC", limit: i
     """List all product lots/batches.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().productlots_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -1842,12 +1842,12 @@ async def proposals_list(sortfield: str = "", sortorder: str = "ASC", limit: int
     """List all commercial proposals.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         thirdparty_ids: Comma-separated third party IDs.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().proposals_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -1931,7 +1931,7 @@ async def proposals_get_lines(id: int, sqlfilters: str = "", ctx: Context = None
 
     Args:
         id: The unique ID of the proposal.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
     """
     data = await get_client().proposals_get_lines(id, get_user_token(), sqlfilters=sqlfilters)
     return {"items": json_to_toon(data)}
@@ -2069,12 +2069,12 @@ async def orders_list(sortfield: str = "", sortorder: str = "ASC", limit: int = 
     """List all customer orders.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         thirdparty_ids: Comma-separated third party IDs.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().orders_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -2327,13 +2327,13 @@ async def invoices_list(sortfield: str = "", sortorder: str = "ASC", limit: int 
     """List all customer invoices.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         thirdparty_ids: Comma-separated third party IDs.
         status: Status.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().invoices_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, status=status, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -2630,11 +2630,11 @@ async def payments_list(sortfield: str = "", sortorder: str = "ASC", limit: int 
     """List all customer payments.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().payments_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -2688,12 +2688,12 @@ async def bankaccounts_list(sortfield: str = "", sortorder: str = "ASC", limit: 
     """List all bank accounts.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         category: Category ID filter.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().bankaccounts_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, category=category, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -2798,7 +2798,7 @@ async def bankaccounts_get_lines(id: int, sqlfilters: str = "", ctx: Context = N
 
     Args:
         id: The unique ID of the bank account.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
     """
     data = await get_client().bankaccounts_get_lines(id, get_user_token(), sqlfilters=sqlfilters)
     return {"items": json_to_toon(data)}
@@ -2872,14 +2872,14 @@ async def supplier_orders_list(sortfield: str = "", sortorder: str = "ASC", limi
     """Supplier Orders List.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         thirdparty_ids: Comma-separated third party IDs.
         product_ids: Comma-separated product IDs.
         status: Status.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().supplier_orders_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, product_ids=product_ids, status=status, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -3051,13 +3051,13 @@ async def supplier_invoices_list(sortfield: str = "", sortorder: str = "ASC", li
     """Supplier Invoices List.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         thirdparty_ids: Comma-separated third party IDs.
         status: Status.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().supplier_invoices_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, status=status, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -3242,12 +3242,12 @@ async def supplier_proposals_list(sortfield: str = "", sortorder: str = "ASC", l
     """Supplier Proposals List.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         thirdparty_ids: Comma-separated third party IDs.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().supplier_proposals_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -3324,12 +3324,12 @@ async def contracts_list(sortfield: str = "", sortorder: str = "ASC", limit: int
     """List all contracts.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         thirdparty_ids: Comma-separated third party IDs.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().contracts_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -3396,11 +3396,11 @@ async def contracts_get_lines(id: int, sortfield: str = "", sortorder: str = "AS
 
     Args:
         id: The unique ID of the contract.
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().contracts_get_lines(id, get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields)
@@ -3505,11 +3505,11 @@ async def boms_list(sortfield: str = "", sortorder: str = "ASC", limit: int = 10
     """List all bills of materials.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().boms_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -3618,11 +3618,11 @@ async def mos_list(sortfield: str = "", sortorder: str = "ASC", limit: int = 100
     """Mos List.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().mos_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -3723,13 +3723,13 @@ async def projects_list(sortfield: str = "", sortorder: str = "ASC", limit: int 
     """List all projects.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         thirdparty_ids: Comma-separated third party IDs.
         category: Category ID filter.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().projects_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, category=category, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -3859,11 +3859,11 @@ async def tasks_list(sortfield: str = "", sortorder: str = "ASC", limit: int = 1
     """List all project tasks.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().tasks_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -4022,12 +4022,12 @@ async def shipments_list(sortfield: str = "", sortorder: str = "ASC", limit: int
     """List all shipments.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         thirdparty_ids: Comma-separated third party IDs.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().shipments_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -4130,12 +4130,12 @@ async def receptions_list(sortfield: str = "", sortorder: str = "ASC", limit: in
     """List all receptions.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         thirdparty_ids: Comma-separated third party IDs.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().receptions_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -4232,12 +4232,12 @@ async def interventions_list(sortfield: str = "", sortorder: str = "ASC", limit:
     """List all interventions.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         thirdparty_ids: Comma-separated third party IDs.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().interventions_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, thirdparty_ids=thirdparty_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -4415,12 +4415,12 @@ async def expense_reports_list(sortfield: str = "", sortorder: str = "ASC", limi
     """Expense Reports List.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         user_ids: Comma-separated user IDs.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().expense_reports_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, user_ids=user_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -4623,12 +4623,12 @@ async def holidays_list(sortfield: str = "", sortorder: str = "ASC", limit: int 
     """List all leave/holiday requests.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         user_ids: Comma-separated user IDs.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().holidays_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, user_ids=user_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -4740,12 +4740,12 @@ async def agenda_events_list(sortfield: str = "", sortorder: str = "ASC", limit:
     """Agenda Events List.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         user_ids: Comma-separated user IDs.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().agenda_events_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, user_ids=user_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -4829,12 +4829,12 @@ async def categories_list(sortfield: str = "", sortorder: str = "ASC", limit: in
     """List all categories.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         type: Type.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().categories_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, type=type, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -4909,7 +4909,7 @@ async def categories_get_for_object(type: str, id: int, sortfield: str = "", sor
     Args:
         type: Type.
         id: The unique ID of the category.
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
@@ -4958,11 +4958,11 @@ async def mailings_list(sortfield: str = "", sortorder: str = "ASC", limit: int 
     """List all mailings.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().mailings_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -5046,11 +5046,11 @@ async def multi_currencies_list(sortfield: str = "", sortorder: str = "ASC", lim
     """Multi Currencies List.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().multi_currencies_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -5121,12 +5121,12 @@ async def tickets_list(sortfield: str = "", sortorder: str = "ASC", limit: int =
     """List all tickets.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         socid: Third party ID.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().tickets_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, socid=socid, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -5245,11 +5245,11 @@ async def workstations_list(sortfield: str = "", sortorder: str = "ASC", limit: 
     """List all workstations.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().workstations_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -5372,13 +5372,13 @@ async def users_list(sortfield: str = "", sortorder: str = "ASC", limit: int = 1
     """List all users.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         user_ids: Comma-separated user IDs.
         category: Category ID filter.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().users_list(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, user_ids=user_ids, category=category, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
@@ -5431,12 +5431,12 @@ async def users_list_groups(sortfield: str = "", sortorder: str = "ASC", limit: 
     """Users List Groups.
 
     Args:
-        sortfield: Field to sort by.
+        sortfield: Sort field in t.column format.
         sortorder: Sort order (ASC or DESC).
         limit: Maximum number of results.
         page: Page number (0-based).
         group_ids: Group Ids.
-        sqlfilters: Dolibarr SQL filter syntax.
+        sqlfilters: Filter in SQL syntax. Example: (t.ref:like:'SO-%')and(t.status:>:1). Operators: like, notlike, =, !=, <, >, <=, >=, in.
         include_all_fields: When False (default), returns only commonly used fields. Set to True to retrieve all available fields.
     """
     data = await get_client().users_list_groups(get_user_token(), sortfield=sortfield, sortorder=sortorder, limit=limit, page=page, group_ids=group_ids, sqlfilters=sqlfilters, include_all_fields=include_all_fields if ALLOW_ALL_AGGREGATE else False)
