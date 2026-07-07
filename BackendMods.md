@@ -87,6 +87,15 @@ if (!DolibarrApi::_checkAccessToResource('societe', $this->company->id)) {
 
 **Fix**: Added `post()`, `put()`, `delete()` methods between `index()` and `_cleanObjectDatas()`. Permission checks use `$user->rights->workstation->workstation->write` (POST/PUT) and `$user->rights->workstation->workstation->delete` (DELETE). The workstation module's permission subperms use English names (`read`, `write`, `delete`) rather than French (`lire`, `creer`, `supprimer`). The admin user (aeinstein, user 1) requires these rights to be explicitly granted in `llx_user_rights`.
 
+**Rights seeding SQL** (run on the Dolibarr database — `dolibarrdb` — after starting a fresh stack):
+```sql
+INSERT INTO llx_user_rights (fk_user, fk_id, entity, droit) VALUES
+(1, (SELECT id FROM llx_c_actioncomm WHERE code = 'workstation' LIMIT 1), 1, 'read'),
+(1, (SELECT id FROM llx_c_actioncomm WHERE code = 'workstation' LIMIT 1), 1, 'write'),
+(1, (SELECT id FROM llx_c_actioncomm WHERE code = 'workstation' LIMIT 1), 1, 'delete');
+```
+Note: Workstation rights are stored in `llx_user_rights` with `fk_id` pointing to the module's entry in `llx_c_actioncomm`. Run this before any POST/PUT/DELETE workstation tests. The `get()`/`index()`/`getByRef()` (read) methods use the public API key permission model and do not require this seeding.
+
 **Before** (insertion point):
 ```php
         return $obj_ret;
@@ -191,6 +200,8 @@ if (!DolibarrApi::_checkAccessToResource('societe', $this->company->id)) {
 
 **Problem**: The `getLines()` handler was wrapped in `/* TODO */` — code existed but was commented out. It called `$this->fichinter->getLinesArray()` which doesn't exist on `Fichinter`. The correct method is `$this->fichinter->fetch_lines()`.
 
+**Important**: Both the opening `/* TODO` and the closing `*/` must be removed. Leaving only one will orphan the other, causing a PHP parse error ("Unterminated comment") that disables every method below it in the file (including `postLine`, `putLine`, `deleteLine`, etc.).
+
 **Before**:
 ```php
 /* TODO
@@ -253,4 +264,200 @@ if ($this->supplier_proposal->update(DolibarrApiAccess::$user) > 0) {
 **After**:
 ```php
 if ($this->supplier_proposal->updateCommon(DolibarrApiAccess::$user) > 0) {
+```
+
+## Hotfix: Tickets missing POST/DELETE contact handlers
+
+**File**: `/var/www/html/ticket/class/api_tickets.class.php`
+
+**Problem**: The `Tickets` API class had no `postContact()` or `deleteContact()` methods, so the routes `POST {id}/contact/{contactid}/{type}` and `DELETE {id}/contact/{contactid}/{type}` returned 404. The `Ticket` model inherits `add_contact()`, `delete_contact()`, and `liste_contact()` from `CommonObject`, so all the infrastructure for contact management existed — just no REST API endpoints. The contact type codes for tickets are `SUPPORTCLI` and `CONTRIBUTOR` (not `BILLING`). Permission subperms use English `write` (not French `creer`).
+
+**Before** (insertion point — no contact methods exist, `delete()` is immediately followed by `_validate()`):
+```php
+	}
+
+
+
+	/**
+	 * Validate fields before create or update object
+```
+
+**After** (inserted `postContact()` and `deleteContact()` between `delete()` and `_validate()`):
+```php
+	}
+
+
+
+	/**
+	 * Add a contact to a ticket.
+	 *
+	 * @param int    $id           Id of ticket to update
+	 * @param int    $contactid    Id of contact to add
+	 * @param string $type         Type of the contact (SUPPORTCLI, CONTRIBUTOR).
+	 * @param string $source       Source of the contact (external, internal).
+	 * @param int    $notrigger    1=No triggers will be executed, 0=triggers will be executed
+	 *
+	 * @return array<string,array<string,int|string>>
+	 *
+	 * @url POST {id}/contact/{contactid}/{type}
+	 *
+	 * @throws RestException 400
+	 * @throws RestException 401
+	 * @throws RestException 404
+	 * @throws RestException 503
+	 */
+	public function postContact($id, $contactid, $type, $source = 'external', $notrigger = 0)
+	{
+		if (!DolibarrApiAccess::$user->hasRight('ticket', 'write')) {
+			throw new RestException(403);
+		}
+
+		if (empty($source)) {
+			throw new RestException(400, 'Source can not be empty');
+		}
+
+		$sql_distinct_source = "SELECT DISTINCT source";
+		$sql_distinct_source .= " FROM " . MAIN_DB_PREFIX . "c_type_contact";
+		$sql_distinct_source .= " WHERE element LIKE 'ticket'";
+		$sql_distinct_source .= " AND source IS NOT NULL";
+		$sql_distinct_source .= " AND active != 0";
+		$source_result = $this->db->query($sql_distinct_source);
+		$source_array = [];
+
+		if ($source_result) {
+			$num = $this->db->num_rows($source_result);
+			$i = 0;
+			while ($i < $num) {
+				$obj = $this->db->fetch_object($source_result);
+				$source_kind = (string)$obj->source;
+				array_push($source_array, $source_kind);
+				$i++;
+			}
+		} else {
+			throw new RestException(503, 'Error when retrieving list of ticket contact sources: ' . $this->db->lasterror());
+		}
+		if (!in_array($source, (array)$source_array, true)) {
+			throw new RestException(400, 'Source=' . $source . ' not found in dictionary with active ticket contact types');
+		}
+
+		if (empty($type)) {
+			throw new RestException(400, 'type can not be empty');
+		}
+
+		$sql_distinct_type = "SELECT DISTINCT code";
+		$sql_distinct_type .= " FROM " . MAIN_DB_PREFIX . "c_type_contact";
+		$sql_distinct_type .= " WHERE element LIKE 'ticket'";
+		$sql_distinct_type .= " AND source='" . $this->db->escape($source) . "'";
+		$sql_distinct_type .= " AND code IS NOT NULL";
+		$sql_distinct_type .= " AND active != 0";
+		$type_result = $this->db->query($sql_distinct_type);
+		$type_array = [];
+
+		if ($type_result) {
+			$num = $this->db->num_rows($type_result);
+			$i = 0;
+			while ($i < $num) {
+				$obj = $this->db->fetch_object($type_result);
+				$type_kind = (string)$obj->code;
+				array_push($type_array, $type_kind);
+				$i++;
+			}
+		} else {
+			throw new RestException(503, 'Error when retrieving list of ticket contact types: ' . $this->db->lasterror());
+		}
+		if (!in_array($type, (array)$type_array, true)) {
+			throw new RestException(400, 'Type=' . $type . ' and Source=' . $source . ' not found in dictionary with active ticket contact types');
+		}
+
+		$result = $this->ticket->fetch($id);
+		if (!$result) {
+			throw new RestException(404, 'Ticket not found');
+		}
+		if (!DolibarrApi::_checkAccessToResource('ticket', $this->ticket->id)) {
+			throw new RestException(403, 'Access not allowed for login ' . DolibarrApiAccess::$user->login);
+		}
+
+		$result = $this->ticket->add_contact($contactid, $type, $source, $notrigger);
+
+		if ($result == 0) {
+			throw new RestException(400, 'Already exists: Contact=' . $contactid . ' is already linked to the ticket=' . $id . ' as source=' . $source . ' and type=' . $type);
+		} elseif ($result == -1) {
+			throw new RestException(400, 'Wrong contact=' . $contactid);
+		} elseif ($result == -2) {
+			throw new RestException(400, 'Wrong type=' . $type);
+		} elseif ($result == -3) {
+			throw new RestException(400, 'Not allowed contacts');
+		} elseif ($result == -4) {
+			throw new RestException(400, 'ErrorCommercialNotAllowedForThirdparty');
+		} elseif ($result == -5) {
+			throw new RestException(400, 'Trigger failed');
+		} elseif ($result == -6) {
+			throw new RestException(400, 'DB_ERROR_RECORD_ALREADY_EXISTS');
+		} elseif ($result == -7) {
+			throw new RestException(400, 'Some other error');
+		}
+
+		if (!$result) {
+			throw new RestException(500, 'Error when added the contact');
+		}
+
+		return [
+			'success' => [
+				'code' => 200,
+				'message' => 'Contact=' . $contactid . ' linked to the ticket=' . $id . ' as ' . $source . ' ' . $type
+			]
+		];
+	}
+
+	/**
+	 * Remove a contact from a ticket.
+	 *
+	 * @param int    $id           Id of ticket to update
+	 * @param int    $contactid    Row key of the contact in the array contact_ids.
+	 * @param string $type         Type of the contact (SUPPORTCLI, CONTRIBUTOR).
+	 *
+	 * @return array<string,array<string,int|string>>
+	 *
+	 * @url DELETE {id}/contact/{contactid}/{type}
+	 *
+	 * @throws RestException 401
+	 * @throws RestException 404
+	 * @throws RestException 500
+	 */
+	public function deleteContact($id, $contactid, $type)
+	{
+		if (!DolibarrApiAccess::$user->hasRight('ticket', 'write')) {
+			throw new RestException(403);
+		}
+
+		$result = $this->ticket->fetch($id);
+		if (!$result) {
+			throw new RestException(404, 'Ticket not found');
+		}
+
+		if (!DolibarrApi::_checkAccessToResource('ticket', $this->ticket->id)) {
+			throw new RestException(403, 'Access not allowed for login ' . DolibarrApiAccess::$user->login);
+		}
+
+		foreach (['internal', 'external'] as $source) {
+			$contacts = $this->ticket->liste_contact(-1, $source);
+			foreach ($contacts as $contact) {
+				if ($contact['id'] == $contactid && $contact['code'] == $type) {
+					$result = $this->ticket->delete_contact($contact['rowid']);
+
+					if (!$result) {
+						throw new RestException(500, 'Error when deleted the contact');
+					}
+
+					return $this->_cleanObjectDatas($this->ticket);
+				}
+			}
+		}
+
+		throw new RestException(404, 'Contact not found on ticket');
+	}
+
+
+	/**
+	 * Validate fields before create or update object
 ```
