@@ -42,7 +42,7 @@ relationship management.
     ```
 3. Run the server:
     ```bash
-    export DOLIBARR_BASE_URL=http://localhost:8040/api/index.php
+    export DOLIBARR_BASE_URL=http://localhost:8040
     export MCP_SERVER_PORT=80
     python -m src.main
     ```
@@ -54,7 +54,7 @@ Build and run the server using Docker:
 ```bash
 docker build -t dolibarr-mcp:latest .
 docker run -d --name dolibarr-mcp \
-    -e DOLIBARR_BASE_URL="http://dolibarr-app:80/api/index.php" \
+    -e DOLIBARR_BASE_URL="http://dolibarr-app:80" \
     -e MCP_SERVER_PORT=80 \
     dolibarr-mcp:latest
 

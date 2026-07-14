@@ -141,7 +141,8 @@ def _filter_fields(data: Any, common_set: set[str]) -> Any:
 
 class DolibarrClient:
     def __init__(self, base_url: Optional[str] = None):
-        self.base_url = (base_url or os.getenv("DOLIBARR_BASE_URL", "")).rstrip("/")
+        base = (base_url or os.getenv("DOLIBARR_BASE_URL", "")).rstrip("/")
+        self.base_url = f"{base}/api/index.php"
         if not self.base_url:
             raise ValueError(
                 "Dolibarr URL required. Set DOLIBARR_BASE_URL env var or pass base_url."
