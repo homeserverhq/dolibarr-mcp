@@ -5618,7 +5618,7 @@ def main() -> None:
     """Run the MCP server."""
     import uvicorn
     host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "6033"))
+    port = int(os.getenv("MCP_SERVER_PORT", "6033"))
     base_url = os.getenv("DOLIBARR_BASE_URL", "")
     IS_STATEFUL = os.getenv("IS_STATEFUL", "false").lower() in ("true", "1", "yes")
     if not base_url:
