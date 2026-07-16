@@ -276,28 +276,180 @@ if ($this->supplier_proposal->updateCommon(DolibarrApiAccess::$user) > 0) {
 ```php
 	}
 
-
-
-## Hotfix: Ticket delete crashes — `dol_is_dir()` undefined function
-
-**File**: `/var/www/html/ticket/class/ticket.class.php`
-
-**Problem**: The `Ticket::delete()` model method calls `dol_is_dir()` on line 1234, but this function is not defined in any loaded include path when the method is invoked via the REST API. This causes `PHP Fatal error: Call to undefined function dol_is_dir()`, which produces a 500 with an empty body. The native PHP `is_dir()` is functionally identical on Linux (`dol_is_dir` just calls `dol_osencode()` then `is_dir()`; `dol_osencode()` is a no-op on Linux). A second occurrence exists at line 2585 in `addFile()`.
-
-**Before** (lines 1234, 2585):
-```php
-if (dol_is_dir($dir)) {
+	/**
+	 * Validate fields before create or update object
+	 */
 ```
 
-**After**:
+**After** (inserted `postContact()` and `deleteContact()` between `delete()` and `_validate()`):
 ```php
-if (is_dir($dir)) {
-```
+	}
 
+	/**
+	 * Add a contact to a ticket.
+	 *
+	 * @param int    $id           Id of ticket to update
+	 * @param int    $contactid    Id of contact to add
+	 * @param string $type         Type of the contact (SUPPORTCLI, CONTRIBUTOR).
+	 * @param string $source       Source of the contact (external, internal).
+	 * @param int    $notrigger    1=No triggers will be executed, 0=triggers will be executed
+	 *
+	 * @return array<string,array<string,int|string>>
+	 *
+	 * @url POST {id}/contact/{contactid}/{type}
+	 */
+	public function postContact($id, $contactid, $type, $source = 'external', $notrigger = 0)
+	{
+		if (!DolibarrApiAccess::$user->hasRight('ticket', 'write')) {
+			throw new RestException(403);
+		}
+
+		if (empty($source)) {
+			throw new RestException(400, 'Source can not be empty');
+		}
+
+		$sql_distinct_source = "SELECT DISTINCT source";
+		$sql_distinct_source .= " FROM " . MAIN_DB_PREFIX . "c_type_contact";
+		$sql_distinct_source .= " WHERE element LIKE 'ticket'";
+		$sql_distinct_source .= " AND source IS NOT NULL";
+		$sql_distinct_source .= " AND active != 0";
+		$source_result = $this->db->query($sql_distinct_source);
+		$source_array = [];
+
+		if ($source_result) {
+			$num = $this->db->num_rows($source_result);
+			$i = 0;
+			while ($i < $num) {
+				$obj = $this->db->fetch_object($source_result);
+				$source_kind = (string)$obj->source;
+				array_push($source_array, $source_kind);
+				$i++;
+			}
+		} else {
+			throw new RestException(503, 'Error when retrieving list of ticket contact sources: ' . $this->db->lasterror());
+		}
+		if (!in_array($source, (array)$source_array, true)) {
+			throw new RestException(400, 'Source=' . $source . ' not found in dictionary with active ticket contact types');
+		}
+
+		if (empty($type)) {
+			throw new RestException(400, 'type can not be empty');
+		}
+
+		$sql_distinct_type = "SELECT DISTINCT code";
+		$sql_distinct_type .= " FROM " . MAIN_DB_PREFIX . "c_type_contact";
+		$sql_distinct_type .= " WHERE element LIKE 'ticket'";
+		$sql_distinct_type .= " AND source='" . $this->db->escape($source) . "'";
+		$sql_distinct_type .= " AND code IS NOT NULL";
+		$sql_distinct_type .= " AND active != 0";
+		$type_result = $this->db->query($sql_distinct_type);
+		$type_array = [];
+
+		if ($type_result) {
+			$num = $this->db->num_rows($type_result);
+			$i = 0;
+			while ($i < $num) {
+				$obj = $this->db->fetch_object($type_result);
+				$type_kind = (string)$obj->code;
+				array_push($type_array, $type_kind);
+				$i++;
+			}
+		} else {
+			throw new RestException(503, 'Error when retrieving list of ticket contact types: ' . $this->db->lasterror());
+		}
+		if (!in_array($type, (array)$type_array, true)) {
+			throw new RestException(400, 'Type=' . $type . ' and Source=' . $source . ' not found in dictionary with active ticket contact types');
+		}
+
+		$result = $this->ticket->fetch($id);
+		if (!$result) {
+			throw new RestException(404, 'Ticket not found');
+		}
+		if (!DolibarrApi::_checkAccessToResource('ticket', $this->ticket->id)) {
+			throw new RestException(403, 'Access not allowed for login ' . DolibarrApiAccess::$user->login);
+		}
+
+		$result = $this->ticket->add_contact($contactid, $type, $source, $notrigger);
+
+		if ($result == 0) {
+			throw new RestException(400, 'Already exists: Contact=' . $contactid . ' is already linked to the ticket=' . $id . ' as source=' . $source . ' and type=' . $type);
+		} elseif ($result == -1) {
+			throw new RestException(400, 'Wrong contact=' . $contactid);
+		} elseif ($result == -2) {
+			throw new RestException(400, 'Wrong type=' . $type);
+		} elseif ($result == -3) {
+			throw new RestException(400, 'Not allowed contacts');
+		} elseif ($result == -4) {
+			throw new RestException(400, 'ErrorCommercialNotAllowedForThirdparty');
+		} elseif ($result == -5) {
+			throw new RestException(400, 'Trigger failed');
+		} elseif ($result == -6) {
+			throw new RestException(400, 'DB_ERROR_RECORD_ALREADY_EXISTS');
+		} elseif ($result == -7) {
+			throw new RestException(400, 'Some other error');
+		}
+
+		if (!$result) {
+			throw new RestException(500, 'Error when added the contact');
+		}
+
+		return [
+			'success' => [
+				'code' => 200,
+				'message' => 'Contact=' . $contactid . ' linked to the ticket=' . $id . ' as ' . $source . ' ' . $type
+			]
+		];
+	}
+
+	/**
+	 * Remove a contact from a ticket.
+	 *
+	 * @param int    $id           Id of ticket to update
+	 * @param int    $contactid    Row key of the contact in the array contact_ids.
+	 * @param string $type         Type of the contact (SUPPORTCLI, CONTRIBUTOR).
+	 *
+	 * @return array<string,array<string,int|string>>
+	 *
+	 * @url DELETE {id}/contact/{contactid}/{type}
+	 */
+	public function deleteContact($id, $contactid, $type)
+	{
+		if (!DolibarrApiAccess::$user->hasRight('ticket', 'write')) {
+			throw new RestException(403);
+		}
+
+		$result = $this->ticket->fetch($id);
+		if (!$result) {
+			throw new RestException(404, 'Ticket not found');
+		}
+
+		if (!DolibarrApi::_checkAccessToResource('ticket', $this->ticket->id)) {
+			throw new RestException(403, 'Access not allowed for login ' . DolibarrApiAccess::$user->login);
+		}
+
+		foreach (['internal', 'external'] as $source) {
+			$contacts = $this->ticket->liste_contact(-1, $source);
+			foreach ($contacts as $contact) {
+				if ($contact['id'] == $contactid && $contact['code'] == $type) {
+					$result = $this->ticket->delete_contact($contact['rowid']);
+
+					if (!$result) {
+						throw new RestException(500, 'Error when deleted the contact');
+					}
+
+					return $this->_cleanObjectDatas($this->ticket);
+				}
+			}
+		}
+
+		throw new RestException(404, 'Contact not found on ticket');
+	}
 
 	/**
 	 * Validate fields before create or update object
 	 */
+```
+```
 	public function postContact($id, $contactid, $type, $source = 'external', $notrigger = 0)
 	{
 		if (!DolibarrApiAccess::$user->hasRight('ticket', 'write')) {
@@ -449,7 +601,23 @@ if (is_dir($dir)) {
 		throw new RestException(404, 'Contact not found on ticket');
 	}
 
-
 	/**
 	 * Validate fields before create or update object
+	 */
+```
+
+## Hotfix: Ticket delete crashes — `dol_is_dir()` undefined function
+
+**File**: `/var/www/html/ticket/class/ticket.class.php`
+
+**Problem**: The `Ticket::delete()` model method calls `dol_is_dir()` on line 1234, but this function is not defined in any loaded include path when the method is invoked via the REST API. This causes `PHP Fatal error: Call to undefined function dol_is_dir()`, which produces a 500 with an empty body. The native PHP `is_dir()` is functionally identical on Linux (`dol_is_dir` just calls `dol_osencode()` then `is_dir()`; `dol_osencode()` is a no-op on Linux). A second occurrence exists at line 2585 in `addFile()`.
+
+**Before** (lines 1234, 2585):
+```php
+if (dol_is_dir($dir)) {
+```
+
+**After**:
+```php
+if (is_dir($dir)) {
 ```
