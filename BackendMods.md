@@ -294,8 +294,6 @@ if (dol_is_dir($dir)) {
 if (is_dir($dir)) {
 ```
 
-**Restart implications**: Like all backend patches, this is lost on container restart (`docker compose down/up` or `docker restart dolibarr-app`). Reapply after any stack restart.
-
 
 	/**
 	 * Validate fields before create or update object
