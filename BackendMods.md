@@ -278,33 +278,27 @@ if ($this->supplier_proposal->updateCommon(DolibarrApiAccess::$user) > 0) {
 
 
 
-	/**
-	 * Validate fields before create or update object
+## Hotfix: Ticket delete crashes — `dol_is_dir()` undefined function
+
+**File**: `/var/www/html/ticket/class/ticket.class.php`
+
+**Problem**: The `Ticket::delete()` model method calls `dol_is_dir()` on line 1234, but this function is not defined in any loaded include path when the method is invoked via the REST API. This causes `PHP Fatal error: Call to undefined function dol_is_dir()`, which produces a 500 with an empty body. The native PHP `is_dir()` is functionally identical on Linux (`dol_is_dir` just calls `dol_osencode()` then `is_dir()`; `dol_osencode()` is a no-op on Linux). A second occurrence exists at line 2585 in `addFile()`.
+
+**Before** (lines 1234, 2585):
+```php
+if (dol_is_dir($dir)) {
 ```
 
-**After** (inserted `postContact()` and `deleteContact()` between `delete()` and `_validate()`):
+**After**:
 ```php
-	}
+if (is_dir($dir)) {
+```
 
+**Restart implications**: Like all backend patches, this is lost on container restart (`docker compose down/up` or `docker restart dolibarr-app`). Reapply after any stack restart.
 
 
 	/**
-	 * Add a contact to a ticket.
-	 *
-	 * @param int    $id           Id of ticket to update
-	 * @param int    $contactid    Id of contact to add
-	 * @param string $type         Type of the contact (SUPPORTCLI, CONTRIBUTOR).
-	 * @param string $source       Source of the contact (external, internal).
-	 * @param int    $notrigger    1=No triggers will be executed, 0=triggers will be executed
-	 *
-	 * @return array<string,array<string,int|string>>
-	 *
-	 * @url POST {id}/contact/{contactid}/{type}
-	 *
-	 * @throws RestException 400
-	 * @throws RestException 401
-	 * @throws RestException 404
-	 * @throws RestException 503
+	 * Validate fields before create or update object
 	 */
 	public function postContact($id, $contactid, $type, $source = 'external', $notrigger = 0)
 	{
